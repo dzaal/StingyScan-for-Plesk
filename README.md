@@ -15,7 +15,7 @@ Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web developm
 >
 > **[Sign up as a beta tester](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-signup.yml)** · install with [one command](#installation) · **[send feedback](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-feedback.yml)**
 
-![From an infected site to the vendors that flag it, each with a link to ask for a review (demo names)](docs/screenshots/why-flagged-demo.gif)
+![StingyScan dashboard in Plesk: every hosted site with its status, score, file scanners and Rescan (placeholder names)](docs/screenshots/scanner-dashboard.png)
 
 ## Who it's for
 
@@ -30,28 +30,25 @@ StingyScan makes that quota go a long way:
 
 ## Screenshots
 
-**Scanner dashboard:** every hosted website with its status, detection score and a Rescan button. The Scan Monitor shows what is being checked right now.
+**Dashboard:** every hosted website, grouped by reseller and customer, with its status, detection score, last scan, file scanner buttons and Rescan. Badges such as *Avast: Botnet* come from the optional direct checks.
 
-![StingyScan dashboard in Plesk](docs/screenshots/scanner-dashboard.png)
+(See the screenshot at the top.)
 
-**Why is a site flagged, and how do you fix it?** Click the score of a flagged site: you see which security vendors flag it, a review link per vendor, and the steps from cleaning the site to getting it delisted.
+**Why is a site flagged, and how do you fix it?** Click a flagged site: you see Google Safe Browsing, AVG and Avast (direct), every VirusTotal vendor that flags it with a review link, and which reviews you already requested.
 
-![Vendors that flag a site, with review links and the steps to get delisted](docs/screenshots/why-flagged.png)
+![Vendors that flag a site, with review links and requests already made](docs/screenshots/why-flagged.png)
 
-**Card on the Plesk Home page:** counts per status and the sites flagged by the most engines, straight on the admin's Home page.
+Below that, the **history of the site**: detections, review requests, and classifications appearing or going away.
+
+![History of a site](docs/screenshots/site-history.png)
+
+**Card on the Plesk Home page:** counts per status and the sites flagged by the most engines.
 
 <p>
   <img src="docs/screenshots/home-widget.png" alt="StingyScan card on the Plesk Home page" width="346">
 </p>
 
-<details>
-<summary>The card in context on the Plesk Home page</summary>
-
-![Plesk Home page with the StingyScan card](docs/screenshots/home-dashboard.png)
-
-</details>
-
-*Domain names and IP addresses in these screenshots are replaced with placeholders. The trend graph shows demo data.*
+*Domain names, IP addresses, customer names and API keys in these screenshots are replaced with placeholders. The trend graph partly shows demo data (the shaded days).*
 
 ---
 
@@ -127,6 +124,8 @@ How it works: website files belong to the subscription users, so the scans run t
 
 ## Settings
 
+![Settings: VirusTotal with its daily budget, Google Safe Browsing, and the experimental AVG / Avast checks](docs/screenshots/settings.png)
+
 The **Settings** tab, from top to bottom (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
 
 - **VirusTotal**: the API key, with a green check *API key active* when VirusTotal accepts it (a red cross when it doesn't).
@@ -181,9 +180,11 @@ The **Trend** tab shows how infections develop, per day, over the last **1, 2 or
 - Hover over a day for its figures, or open **Show as table**.
 - **Recent status changes**, newest first, one line per change: the date (time), the status before and after as coloured badges with a solid arrow between them (green = better, red = worse), and the site, for example `20-11-2026 (11:10)  [Infected] ➡ [Suspicious]  flower-centrum.example`. Click the site to open its VirusTotal report. A site that was infected or suspicious and leaves the site list (deleted, disabled or suspended in Plesk) shows as *Left the list*. Changes from before this list existed are filled in once from the scan logs.
 
-![Trend graph with demo data: many infections, a big clean-up, then a slow rise again](docs/screenshots/trend.png)
+![Trend graph: infected and suspicious sites per day, and sites cleaned per day](docs/screenshots/trend.png)
 
-*This screenshot uses demo data (the shaded part): many infected sites, a big clean-up two months ago, and a slow rise since.*
+*The shaded days are demo data; the days after are real totals.*
+
+![Recent status changes: VirusTotal status changes and AVG / Avast classifications per site](docs/screenshots/status-changes.png)
 
 The totals are saved once a day: by the nightly scan (for the server, every reseller and every customer), and whenever someone opens the dashboard. The history is kept for about a year in the data folder (`vt_history.json` for the server, `vt_history_r_<login>.json` per reseller, `vt_history_c_<login>.json` per customer). Demo data is only added when you run the demo script below.
 

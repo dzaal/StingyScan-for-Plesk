@@ -19,5 +19,5 @@ ssh "$SERVER" "plesk bin extension --install /tmp/${EXT_ID}.zip && rm /tmp/${EXT
 
 echo ""
 echo "✓ Geïnstalleerd!"
-echo "→ Zichtbaar in Plesk onder: Tools & Settings → Extensions → StingyScan by Digizaal"
+echo "→ Zichtbaar in Plesk onder: Tools & Settings → Extensions → Stingy Scanner by Digizaal"
 echo "→ Direct URL: https://${HOSTNAME_ONLY}:8443/modules/stingyscan/"

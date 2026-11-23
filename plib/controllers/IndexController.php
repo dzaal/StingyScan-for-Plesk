@@ -84,11 +84,11 @@ class IndexController extends pm_Controller_Action
     public function indexAction(): void
     {
         // Browser tab title; Plesk's own page header is hidden by the view (branded header instead)
-        $this->view->pageTitle = 'StingyScan';
+        $this->view->pageTitle = 'Stingy Scanner';
         $this->view->baseUrl   = pm_Context::getBaseUrl();
         $version = $this->installedVersion();
         $this->view->version   = $version;
-        // The old extension (VT Site Scanner 1.x) still installed next to StingyScan: both would scan
+        // The old extension (VT Site Scanner 1.x) still installed next to Stingy Scanner: both would scan
         $this->view->oldVtInstalled = $this->role() === 'admin' && basename(dirname(__DIR__)) !== 'virustotal-extension'
             && is_dir('/usr/local/psa/admin/plib/modules/virustotal-extension');
         $this->view->paypalUrl = self::PAYPAL_ME !== ''
@@ -728,7 +728,7 @@ class IndexController extends pm_Controller_Action
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT        => 10,
-                CURLOPT_HTTPHEADER     => ['User-Agent: StingyScan-Plesk/' . $current],
+                CURLOPT_HTTPHEADER     => ['User-Agent: Stingy Scanner-Plesk/' . $current],
                 CURLOPT_FOLLOWLOCATION => true,
             ]);
             $raw  = curl_exec($ch);

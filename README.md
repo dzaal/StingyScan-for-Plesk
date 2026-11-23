@@ -1,27 +1,27 @@
 <img src="docs/logo.png" alt="" width="72" align="right">
 
-# StingyScan for Plesk
+# Stingy Scanner for Plesk
 
 A Plesk extension that checks every website hosted on your Plesk server against [VirusTotal](https://www.virustotal.com)¹ for malware, phishing and spam, while carefully managing the limited number of API calls in VirusTotal's free tier. Optionally it also asks Google Safe Browsing¹ directly, and (experimental) the URL reputation of AVG and Avast¹.
 
-<sub>¹ StingyScan is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
+<sub>¹ Stingy Scanner is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
 
-Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web development and hosting company in Amsterdam. *Stingy* because it is sparing with every API call. StingyScan was called **VT Site Scanner** until version 1.35; see [Coming from VT Site Scanner](#coming-from-vt-site-scanner-1x).
+Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web development and hosting company in Amsterdam. *Stingy* because it is sparing with every API call. Stingy Scanner was called **VT Site Scanner** until version 1.35; see [Coming from VT Site Scanner](#coming-from-vt-site-scanner-1x).
 
-> **Detection only.** StingyScan never changes anything on your sites. It does not edit, clean, move, quarantine or delete files, and it does not change or delete databases. It only looks and reports, so you decide what to do. (The one thing it writes, on request, is a backup copy of an orphan database.)
+> **Detection only.** Stingy Scanner never changes anything on your sites. It does not edit, clean, move, quarantine or delete files, and it does not change or delete databases. It only looks and reports, so you decide what to do. (The one thing it writes, on request, is a backup copy of an orphan database.)
 
 > [!TIP]
-> **Beta testers wanted.** Do you run a Plesk server with many websites, as a hosting company, agency or sysadmin? Try StingyScan for two weeks and tell us what you think. You get early access to new versions, direct contact with the developer, and a mention in this README if you like.
+> **Beta testers wanted.** Do you run a Plesk server with many websites, as a hosting company, agency or sysadmin? Try Stingy Scanner for two weeks and tell us what you think. You get early access to new versions, direct contact with the developer, and a mention in this README if you like.
 >
 > **[Sign up as a beta tester](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-signup.yml)** · install with [one command](#installation) · **[send feedback](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-feedback.yml)**
 
-![StingyScan dashboard in Plesk: every hosted site with its status, score, file scanners and Rescan (placeholder names)](docs/screenshots/scanner-dashboard.png)
+![Stingy Scanner dashboard in Plesk: every hosted site with its status, score, file scanners and Rescan (placeholder names)](docs/screenshots/scanner-dashboard.png)
 
 ## Who it's for
 
 Hosting companies, agencies and server admins who look after **more sites than VirusTotal's free API can check in a day**. The free key allows 500 requests per day and 4 per minute. With 500 sites or more you can't check them all every day, and a simple scanner burns the whole quota before you get to the one site you just cleaned up.
 
-StingyScan makes that quota go a long way:
+Stingy Scanner makes that quota go a long way:
 
 - **Every site gets its turn.** The nightly scan picks up where it stopped the night before, so all sites are checked in rotation, however many there are.
 - **Quota left for you.** Part of the daily budget is always kept for manual rescans.
@@ -45,7 +45,7 @@ Below that, the **history of the site**: detections, review requests, and classi
 **Card on the Plesk Home page:** counts per status and the sites flagged by the most engines.
 
 <p>
-  <img src="docs/screenshots/home-widget.png" alt="StingyScan card on the Plesk Home page" width="346">
+  <img src="docs/screenshots/home-widget.png" alt="Stingy Scanner card on the Plesk Home page" width="346">
 </p>
 
 *Domain names, IP addresses, customer names and API keys in these screenshots are replaced with placeholders. The trend graph partly shows demo data (the shaded days).*
@@ -58,7 +58,7 @@ Digizaal hosts about 600 WordPress sites on a single Plesk server. A single comp
 
 With that many sites, VirusTotal's free API quota (500 requests per day) runs out every single day: checking every site even once takes more than a day, and rescans of infected sites come on top of that. Plesk ships with its own VirusTotal integration (*VirusTotal Website Check*), but every day it reported that the API calls were exhausted and not all sites had been scanned, leaving the rest unscanned, with no control over which sites were checked or when. That left no room to rescan a site after cleaning it up, which is the moment you need it most.
 
-StingyScan was built to fix that:
+Stingy Scanner was built to fix that:
 
 - **Careful with API calls.** Every call goes through a rate limiter, results are cached, and the daily budget is split between background scans and manual rescans.
 - **Interactive.** A live dashboard shows all sites, grouped by reseller and customer (click a customer to fold its sites away; the search box also finds customers), lets you filter on infected or suspicious ones, and rescans a site on demand, with a Scan Monitor that shows each step of each scan.
@@ -67,7 +67,7 @@ StingyScan was built to fix that:
 ## Features
 
 - Dashboard with every website hosted on the server (WordPress or not): status (Infected / Suspicious / Clean / Queued / Error), detection score (e.g. `3/93` engines), IP address, domain age and danger tags (malware, phishing, …), with direct links to the site and to its VirusTotal page.
-- **Home page card** for the Plesk admin (Plesk 18.0.60 or newer): infected / suspicious / clean counts and the worst-scoring sites, styled like Plesk's own cards. It reads cached results only and never uses API calls. Show or hide it via **Home → Customize → Security → StingyScan**.
+- **Home page card** for the Plesk admin (Plesk 18.0.60 or newer): infected / suspicious / clean counts and the worst-scoring sites, styled like Plesk's own cards. It reads cached results only and never uses API calls. Show or hide it via **Home → Customize → Security → Stingy Scanner**.
 - **Scan Monitor**: a panel on the right that shows the VirusTotal lookups and file scans that are running, waiting and finished, each with its steps and result (blue = VirusTotal running, amber = file scan running, green = done and clean, red = failed or infected). The pause for VirusTotal's 4-requests-per-minute limit is waited out automatically instead of failing. Click its header to open or close it.
 - **Rescans keep going when you leave the page.** A rescan is also queued on the server, and a task that runs every 5 minutes finishes it if the browser was closed first.
 - **Group or Sort:** sites grouped by reseller and customer, or one flat list. Click the **Domain**, **Score** or **Last scan** header to sort (within each group in Group mode). Mode, sort column and direction are remembered. *Last scan* shows how long ago the site was checked, with the exact time on hover.
@@ -118,7 +118,7 @@ A click opens the result under the site: the scan while it runs, then the result
 
 In the list of infected files, the administrator gets an **Action** column. Nothing happens without a click and a confirmation, and every action can be undone:
 
-- **Clean** (needs ImunifyAV+ or Imunify360): StingyScan first asks Imunify whether it recognises the file; if Imunify has not seen it yet, it scans only that file (detection only). It then shows **what Imunify will change** (removed lines in red) before you confirm. Imunify removes the malicious code, or empties the file when the whole file is malicious, and keeps the original: **Undo** puts it back. Files Imunify does not recognise cannot be cleaned; use Quarantine for those. This also works for files ClamAV found.
+- **Clean** (needs ImunifyAV+ or Imunify360): Stingy Scanner first asks Imunify whether it recognises the file; if Imunify has not seen it yet, it scans only that file (detection only). It then shows **what Imunify will change** (removed lines in red) before you confirm. Imunify removes the malicious code, or empties the file when the whole file is malicious, and keeps the original: **Undo** puts it back. Files Imunify does not recognise cannot be cleaned; use Quarantine for those. This also works for files ClamAV found.
 - **Quarantine** (any server): the file is moved to `/var/lib/stingyscan/quarantine`, a folder only root can open, together with its original place, permissions, date and checksum. **Restore** puts it back exactly, and never overwrites a file that is there again.
 - **Clean all with Imunify** / **Quarantine all** handle every listed file one by one and report what was skipped.
 - **Cleaned and quarantined files** in the site details lists everything that was handled, with Undo / Restore. Each action is written to the site history and the Log tab.
@@ -163,7 +163,7 @@ Each online service has its own coloured block with its logo, so you see at a gl
 
 ## Users and roles
 
-StingyScan works at all three Plesk user levels: **administrator**, **reseller** and **client**. Each user opens it from their own Plesk panel and only ever sees their own sites.
+Stingy Scanner works at all three Plesk user levels: **administrator**, **reseller** and **client**. Each user opens it from their own Plesk panel and only ever sees their own sites.
 
 | Level | Sees |
 |---|---|
@@ -233,15 +233,15 @@ Buttons (administrator only):
 - **Back up** makes a `.sql.gz` copy of the database, or only of the old tables, in the subscription's `private/vt-db-backups/` folder, owned by the subscription's user. Nothing is deleted.
 - **Delete in Plesk ↗** opens the subscription's **Databases** page in Plesk. Delete the database there, or use phpMyAdmin from that page to drop only the old tables.
 
-StingyScan never deletes anything itself. After you delete a database, the hostname disappears from the list within a day, or right away with **Refresh site list** in the menu next to **All**.
+Stingy Scanner never deletes anything itself. After you delete a database, the hostname disappears from the list within a day, or right away with **Refresh site list** in the menu next to **All**.
 
 ## Cleaned, but still red?
 
-A red or orange site raises two questions for the webmaster: *who* says the site is unsafe, and *how* do I get that changed once the site is clean? StingyScan answers both on the same screen, so you don't have to search for each vendor's support page yourself.
+A red or orange site raises two questions for the webmaster: *who* says the site is unsafe, and *how* do I get that changed once the site is clean? Stingy Scanner answers both on the same screen, so you don't have to search for each vendor's support page yourself.
 
 ![Vendors that flag a site, with review links and the steps to get delisted](docs/screenshots/why-flagged.png)
 
-The status in StingyScan comes from **VirusTotal**, not from the files on your server. VirusTotal shows what dozens of security vendors think of a site, and **each vendor keeps its own blocklist** and updates it on its own schedule. So after you clean a site, it can stay *infected* or *suspicious* in the dashboard for a while: sometimes hours, often days, sometimes weeks, and some vendors only remove a site when you ask.
+The status in Stingy Scanner comes from **VirusTotal**, not from the files on your server. VirusTotal shows what dozens of security vendors think of a site, and **each vendor keeps its own blocklist** and updates it on its own schedule. So after you clean a site, it can stay *infected* or *suspicious* in the dashboard for a while: sometimes hours, often days, sometimes weeks, and some vendors only remove a site when you ask.
 
 Click a flagged site's row, or its **score** (for example *8/92 · Why?*). A second line opens with:
 
@@ -373,7 +373,7 @@ The VirusTotal checks work right away. The **file scan** button in a site's deta
 
 ### Step 3: Add your VirusTotal API key
 
-1. In Plesk, open **StingyScan** in the left navigation (under **Links to Additional Services**; in the Power User view and for customers in the main menu), or under **Extensions → My Extensions**. Until you add a key, the sites show **Needs API key** and nothing is looked up.
+1. In Plesk, open **Stingy Scanner** in the left navigation (under **Links to Additional Services**; in the Power User view and for customers in the main menu), or under **Extensions → My Extensions**. Until you add a key, the sites show **Needs API key** and nothing is looked up.
 2. Go to the **Settings** tab. The VirusTotal API key is the first card.
 3. Paste your API key and click **Save settings**.
 4. Optional: choose **Sites to scan** (all hosted websites, or WordPress sites only), and adjust **Max calls / day** (500 for the free tier, higher if you have a premium key), the background/manual split with the slider, and how long results are cached. See [Settings](#settings).
@@ -419,15 +419,15 @@ Plesk keeps your settings, API key, scan results and history, and the nightly ta
 
 ### Coming from VT Site Scanner (1.x)
 
-Until version 1.35 StingyScan was called **VT Site Scanner** (repository [dzaal/VT-Scanner-for-Plesk](https://github.com/dzaal/VT-Scanner-for-Plesk)). An installed VT Site Scanner updates to StingyScan **in place**: click **Install** on its update banner (1.31.2 and newer), or run as root:
+Until version 1.35 Stingy Scanner was called **VT Site Scanner** (repository [dzaal/VT-Scanner-for-Plesk](https://github.com/dzaal/VT-Scanner-for-Plesk)). An installed VT Site Scanner updates to Stingy Scanner **in place**: click **Install** on its update banner (1.31.2 and newer), or run as root:
 
 ```bash
 plesk bin extension --upgrade-url https://github.com/dzaal/VT-Scanner-for-Plesk/releases/latest/download/virustotal-extension.zip
 ```
 
-This is the same StingyScan, packaged under the old extension id (`virustotal-extension`), so your settings, API keys, results and history stay where they are and the panel address stays `/modules/virustotal-extension/`. After that, updates come from this repository automatically.
+This is the same Stingy Scanner, packaged under the old extension id (`virustotal-extension`), so your settings, API keys, results and history stay where they are and the panel address stays `/modules/virustotal-extension/`. After that, updates come from this repository automatically.
 
-New installations use the extension id `stingyscan` ([Installation](#installation)). If a server has both, StingyScan copies the data of VT Site Scanner once and shows a reminder to remove the old one with `plesk bin extension --uninstall virustotal-extension`.
+New installations use the extension id `stingyscan` ([Installation](#installation)). If a server has both, Stingy Scanner copies the data of VT Site Scanner once and shows a reminder to remove the old one with `plesk bin extension --uninstall virustotal-extension`.
 
 **Upgrading from 1.0.x?** Earlier versions asked you to add a line to root's crontab by hand. Remove that line (`crontab -e` as root, delete the line with `background_scan.php`); the extension now schedules itself.
 
@@ -477,7 +477,7 @@ No site content, files or customer data are sent anywhere.
 
 ### Releases
 
-Every new version gets a ready-made zip on the [Releases page](https://github.com/dzaal/StingyScan-for-Plesk/releases). This happens automatically: when the `<version>` in `META_INF/meta.xml` changes on `main`, the GitHub Action in `.github/workflows/release.yml` builds the package with `build.sh` and publishes release `v<version>` with three copies of it: `stingyscan-<version>.zip`, `stingyscan.zip` (a fixed name, so the `releases/latest/download/...` link always gives the newest version) and `virustotal-extension.zip` (the same StingyScan built with the old extension id by `bash build.sh legacy`, so installations of VT Site Scanner 1.x update to it in place).
+Every new version gets a ready-made zip on the [Releases page](https://github.com/dzaal/StingyScan-for-Plesk/releases). This happens automatically: when the `<version>` in `META_INF/meta.xml` changes on `main`, the GitHub Action in `.github/workflows/release.yml` builds the package with `build.sh` and publishes release `v<version>` with three copies of it: `stingyscan-<version>.zip`, `stingyscan.zip` (a fixed name, so the `releases/latest/download/...` link always gives the newest version) and `virustotal-extension.zip` (the same Stingy Scanner built with the old extension id by `bash build.sh legacy`, so installations of VT Site Scanner 1.x update to it in place).
 
 The release notes come from `CHANGELOG.md` (`.github/release-notes.sh`): add a `## <version> — <date>` section there with each version bump. Changing `CHANGELOG.md` also refreshes the notes of all existing releases.
 
@@ -531,9 +531,9 @@ Notes:
 
 ## Trademarks
 
-StingyScan is an independent product of Digizaal. It is **not affiliated with, endorsed, sponsored or approved by** any of the companies below. Their names and logos are used only to identify the services and software the extension works with (nominative use); the logos are their favicons, shown next to the settings and results of that service.
+Stingy Scanner is an independent product of Digizaal. It is **not affiliated with, endorsed, sponsored or approved by** any of the companies below. Their names and logos are used only to identify the services and software the extension works with (nominative use); the logos are their favicons, shown next to the settings and results of that service.
 
-- **StingyScan** and **Digizaal** are names of Dirk Zaal (Digizaal).
+- **Stingy Scanner** and **Digizaal** are names of Dirk Zaal (Digizaal).
 - **VirusTotal** is a trademark of Google LLC.
 - **Google**, **Google Safe Browsing**, **Google Cloud**, **Google Search Console** and **Chrome** are trademarks of Google LLC.
 - **AVG** and **Avast** are trademarks of Gen Digital Inc. or its affiliates.
@@ -550,9 +550,9 @@ Use of these services is subject to their own terms, which you accept with your 
 
 Copyright © 2026 Dirk Zaal, trading as Digizaal. All rights reserved.
 
-StingyScan, its code, design and the way it works, is the intellectual property of Dirk Zaal. The source code is public so you can read it; it is **not** open source.
+Stingy Scanner, its code, design and the way it works, is the intellectual property of Dirk Zaal. The source code is public so you can read it; it is **not** open source.
 
-- **You may:** install and use StingyScan, exactly as published, on servers you manage, also for your business and for sites you host for others. Free of charge.
+- **You may:** install and use Stingy Scanner, exactly as published, on servers you manage, also for your business and for sites you host for others. Free of charge.
 - **You may not, without written permission:** change the code (also not privately), copy parts into other software, or distribute it.
 
 Want to do one of these? Just ask, via [digizaal.nl](https://www.digizaal.nl). Full terms, in plain language: [LICENSE](LICENSE).
@@ -561,4 +561,4 @@ Want to do one of these? Just ask, via [digizaal.nl](https://www.digizaal.nl). F
 
 **Dirk Zaal**, [Digizaal](https://www.digizaal.nl), Amsterdam
 
-StingyScan is free. If it saves you time or catches a hacked site, you can [buy me a cup of coffee ($3)](https://www.paypal.com/paypalme/zirk020/3USD) ☕
+Stingy Scanner is free. If it saves you time or catches a hacked site, you can [buy me a cup of coffee ($3)](https://www.paypal.com/paypalme/zirk020/3USD) ☕

@@ -192,14 +192,14 @@ class VtNotifier
         ksort($suspicious);
 
         $n = count($changes);
-        $subject = '[StingyScan] '
+        $subject = '[Stingy Scanner] '
             . ($test ? 'Test: ' : '')
             . ($n ? $n . ' status change' . ($n === 1 ? '' : 's') . ', ' : '')
             . count($infected) . ' infected site' . (count($infected) === 1 ? '' : 's');
 
         $L = [];
         if ($test) {
-            $L[] = 'This is a test of your StingyScan notifications. Real e-mails look';
+            $L[] = 'This is a test of your Stingy Scanner notifications. Real e-mails look';
             $L[] = 'like this, with the status changes at the top.';
             $L[] = '';
         }
@@ -228,10 +228,10 @@ class VtNotifier
         $L[] = 'Infected or suspicious often means one or a few vendors flag the site, which';
         $L[] = 'can be a false alarm. Check the site, clean it if needed, then click Rescan.';
         $L[] = '';
-        $L[] = 'StingyScan: ' . self::panelUrl();
+        $L[] = 'Stingy Scanner: ' . self::panelUrl();
         $L[] = '';
         $L[] = '-- ';
-        $L[] = 'StingyScan on ' . self::host() . '. Change or switch off these e-mails in Settings.';
+        $L[] = 'Stingy Scanner on ' . self::host() . '. Change or switch off these e-mails in Settings.';
         return [$subject, implode("\n", $L) . "\n"];
     }
 
@@ -239,11 +239,11 @@ class VtNotifier
     {
         $from = self::emailOfLogin('admin') ?: ('noreply@' . self::host());
         $headers = implode("\r\n", [
-            'From: StingyScan <' . $from . '>',
+            'From: Stingy Scanner <' . $from . '>',
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset=UTF-8',
             'Content-Transfer-Encoding: 8bit',
-            'X-Mailer: StingyScan',
+            'X-Mailer: Stingy Scanner',
         ]);
         return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
     }

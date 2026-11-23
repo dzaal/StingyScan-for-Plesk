@@ -1,5 +1,5 @@
 name: Beta feedback
-description: Tell us how StingyScan works on your server.
+description: Tell us how Stingy Scanner works on your server.
 title: "Feedback: "
 labels: ["beta-feedback"]
 body:
@@ -12,7 +12,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: StingyScan version
+      label: Stingy Scanner version
       description: Shown next to the title in the extension, for example v1.15.6.
     validations:
       required: true

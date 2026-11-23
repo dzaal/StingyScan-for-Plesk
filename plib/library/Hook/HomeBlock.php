@@ -15,8 +15,8 @@ class Modules_Stingyscan_Hook_HomeBlock extends \Plesk\SDK\Hook\Home\Block
     private const MAX_LISTED = 4;
 
     public function getId(): string      { return 'vt-site-scanner'; }
-    public function getName(): string    { return 'StingyScan'; }
-    public function getTitle(): string   { return 'StingyScan'; }
+    public function getName(): string    { return 'Stingy Scanner'; }
+    public function getTitle(): string   { return 'Stingy Scanner'; }
     public function getSection(): string { return self::SECTION_SECURITY; }
     public function getColumn(): int     { return 1; }
     public function getOrder(): int      { return 2; } // right below SSL/TLS Certificates
@@ -61,7 +61,7 @@ class Modules_Stingyscan_Hook_HomeBlock extends \Plesk\SDK\Hook\Home\Block
     public function getFooter(): string
     {
         $s = $this->stats();
-        $label = ($s['infected'] + $s['suspicious']) > 0 ? 'Review flagged sites' : 'Open StingyScan';
+        $label = ($s['infected'] + $s['suspicious']) > 0 ? 'Review flagged sites' : 'Open Stingy Scanner';
         return '<a href="' . htmlspecialchars(pm_Context::getBaseUrl()) . '">' . $label . '</a>';
     }
 

@@ -11,10 +11,10 @@
  */
 pm_Context::init('stingyscan');
 
-// From VT Site Scanner (1.x, extension id "virustotal-extension") to StingyScan (2.x, "stingyscan"):
+// From VT Site Scanner (1.x, extension id "virustotal-extension") to Stingy Scanner (2.x, "stingyscan"):
 // Plesk sees a new extension, so copy settings, API keys, results, history and logs once from the
 // old data folder. Files that already exist here are never overwritten. Plesk deletes the old folder
-// when the old extension is uninstalled, so this must run first (it does: installing StingyScan).
+// when the old extension is uninstalled, so this must run first (it does: installing Stingy Scanner).
 $oldData = '/usr/local/psa/var/modules/virustotal-extension/data';
 $newData = '/usr/local/psa/var/modules/stingyscan/data';
 $marker  = $newData . '/.migrated_from_vt_site_scanner';
@@ -31,7 +31,7 @@ if ($oldData !== $newData && is_dir($oldData) && !file_exists($marker)) {
     if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
         @exec('chown -R psaadm:psaadm ' . escapeshellarg(dirname($newData)));
     }
-    echo "StingyScan: copied $n data files from VT Site Scanner. Uninstall the old extension: plesk bin extension --uninstall virustotal-extension\n";
+    echo "Stingy Scanner: copied $n data files from VT Site Scanner. Uninstall the old extension: plesk bin extension --uninstall virustotal-extension\n";
 }
 
 $scheduler = pm_Scheduler::getInstance();
@@ -61,5 +61,5 @@ $task2->setSchedule([
 $task2->setCmd('manual_scan.php');
 $scheduler->putTask($task2);
 
-echo "StingyScan: nightly background scan scheduled (03:00), manual queue processor scheduled (every 5 min).\n";
+echo "Stingy Scanner: nightly background scan scheduled (03:00), manual queue processor scheduled (every 5 min).\n";
 exit(0);

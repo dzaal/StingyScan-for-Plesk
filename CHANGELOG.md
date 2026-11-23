@@ -1,7 +1,10 @@
 # Changes
 
-Every version of StingyScan for Plesk (called VT Site Scanner until 1.35), newest first.
+Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
+
+## 2.2.0 — 2026-11-23
+- **New name: Stingy Scanner** (was StingyScan). Everywhere you see it: the Plesk menu, the extension list, the Home card, e-mails, the About tab, the license and the documentation. The extension id (`stingyscan`), the panel address, the download names and the repository stay the same, so updates keep working as before.
 
 ## 2.1.1 — 2026-11-23
 - Site list: the status column is wider, so every detection (file scans, Avast/AVG, Google) stays on one line.

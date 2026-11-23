@@ -14,6 +14,7 @@ require_once __DIR__ . '/VtEvents.php';
  *   unreview  {ts, vendor, by}                  a review mark was undone
  *   denied    {ts, vendor, reason, by}          the vendor turned the review request down
  *   av        {ts, product, from, to, detection} Avast / AVG classification appeared, changed or went away
+ *   file      {ts, action, file, by, detail}  a file was cleaned, quarantined or put back
  */
 class VtSiteLog
 {
@@ -45,6 +46,12 @@ class VtSiteLog
         elseif ($undo) $e = ['ts' => time(), 'type' => 'unreview', 'vendor' => $vendor, 'by' => $by];
         else $e = ['ts' => time(), 'type' => 'review', 'vendor' => $vendor, 'via' => $via === 'email' ? 'email' : 'form', 'to' => $to, 'by' => $by];
         self::add($domain, [$e]);
+    }
+
+    /** A file was cleaned (Imunify), quarantined, or put back. $action: clean | unclean | quarantine | unquarantine */
+    public static function fileAction(string $domain, string $action, string $file, string $by, string $detail = ''): void
+    {
+        self::add($domain, [['ts' => time(), 'type' => 'file', 'action' => $action, 'file' => $file, 'by' => $by, 'detail' => $detail]]);
     }
 
     /** The Avast / AVG classification of a site changed ('' = no classification) */

@@ -281,8 +281,16 @@ if ($mode === 'list') {
     $list  = [];
     foreach (SCANNERS as $id) {
         $s = $found[$id] ?? null;
-        $list[] = ['id' => $id, 'name' => $s['name'] ?? $names[$id], 'installed' => (bool)$s,
-                   'instant' => !empty($s['instant']), 'detail' => $s ? scanner_detail($s) : ''];
+        $row = ['id' => $id, 'name' => $s['name'] ?? $names[$id], 'installed' => (bool)$s,
+                'instant' => !empty($s['instant']), 'detail' => $s ? scanner_detail($s) : ''];
+        if ($id === 'imunify' && $s) {
+            // Cleaning needs ImunifyAV+ or Imunify360; the free ImunifyAV only detects
+            $lic = (string)(imunify_json($s, 'malware malicious summary')['license']['license_type'] ?? '');
+            $row['license'] = $lic;
+            $row['cleanup'] = $lic !== '' && strcasecmp($lic, 'imunifyAV') !== 0;
+            $row['detail'] .= $lic !== '' ? ' (' . $lic . ($row['cleanup'] ? ', can clean' : ', detection only') . ')' : '';
+        }
+        $list[] = $row;
     }
     // Scan engines for the settings page (see VtScanEngine: only one of them is ever used)
     $engines = [];
@@ -362,7 +370,239 @@ if ($mode === 'dump') {
     if ($code !== '0' || !is_file($file) || filesize($file) < 100) { @unlink($file); out(['error' => 'The backup failed']); }
     out(['ok' => true, 'file' => substr($file, strlen(VHOSTS)), 'size' => filesize($file), 'tables' => count($tables)]);
 }
-if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | wpconfigs | dump <db> [prefix] | start <scanner> <hostname>']);
+// ── Clean (Imunify) and quarantine, one file at a time ─────────
+// site-scan fileact <op> <hostname> <relative path>      op: check | diff | clean | restore | quarantine
+// site-scan fileact unquarantine <qid>
+// site-scan fileact qlist <hostname>
+//
+// Safety:
+//  - The path must stay inside the site's document root (no "..", no symlink, realpath checked).
+//  - Every read, write and delete of a site file runs as the subscription's system user (runuser),
+//    never as root. A symlink swapped in by the site can therefore never make this touch a file
+//    the site user could not touch anyway.
+//  - Cleaning is done by Imunify itself, which keeps the original (restore-original = Undo).
+//  - Quarantine moves the file to a root-only folder with its original place, mode and time,
+//    so Restore puts it back exactly. Nothing is ever deleted for good.
+const QDIR = '/var/lib/stingyscan/quarantine'; // root only (0700); never under the panel's data folder
+
+if ($mode === 'fileact') {
+    $op = (string)($argv[2] ?? '');
+    if ($op === 'unquarantine') fa_out(q_restore((string)($argv[3] ?? '')));
+    $host = strtolower(trim((string)($argv[3] ?? '')));
+    if (!preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z0-9\-]{2,}$/', $host)) out(['error' => 'Invalid site name']);
+    if ($op === 'qlist') out(['items' => q_list($host)]);
+    $site = fa_site($host, (string)($argv[4] ?? ''), $op !== 'restore'); // after a cleanup the file may be gone
+    switch ($op) {
+        case 'check':      fa_out(imu_check($site));
+        case 'diff':       fa_out(imu_diff($site));
+        case 'clean':      fa_out(imu_clean($site));
+        case 'restore':    fa_out(imu_restore($site));
+        case 'quarantine': fa_out(q_add($site, substr(preg_replace('/[^\w.@ -]/u', '', (string)($argv[5] ?? '')), 0, 100)));
+    }
+    out(['error' => 'Unknown action']);
+}
+
+function fa_out(array $a): void { out($a); }
+
+
+/** Validate a site file: [host, root, rel, path, user]. $mustExist=false for a restore target. */
+function fa_site(string $host, string $rel, bool $mustExist = true): array
+{
+    $root = docroot($host);
+    if (!$root) out(['error' => 'Could not find the website folder of ' . $host]);
+    $rel = ltrim($rel, '/');
+    if ($rel === '' || strlen($rel) > 4000 || strpos($rel, "\0") !== false
+        || preg_match('#(^|/)\.\.?(/|$)#', $rel)) out(['error' => 'Invalid file path']);
+    $path = $root . '/' . $rel;
+    $own  = @fileowner($root);
+    $pw   = $own !== false ? posix_getpwuid($own) : null;
+    if (!$pw || $own < 500 || $pw['name'] === 'root') out(['error' => 'Could not find the system user of this site']);
+    if ($mustExist) {
+        if (is_link($path) || !is_file($path)) out(['error' => 'The file no longer exists (or is a link)']);
+        $real = realpath($path);
+        if (!$real || strpos($real, $root . '/') !== 0) out(['error' => 'The file is outside the website folder']);
+    } else {
+        $dir = realpath(dirname($path));
+        if (!$dir || strpos($dir . '/', $root . '/') !== 0) out(['error' => 'The folder of the file no longer exists in the website']);
+    }
+    return ['host' => $host, 'root' => $root, 'rel' => $rel, 'path' => $path, 'user' => $pw['name']];
+}
+
+/** Run a command as the site user; returns [exit code, output] */
+function as_user(string $user, string $cmd): array
+{
+    exec('runuser -u ' . escapeshellarg($user) . ' -- ' . $cmd . ' 2>&1', $lines, $code);
+    return [$code, implode("\n", $lines)];
+}
+
+// ── Imunify ────────────────────────────────────────────────────
+
+function imu_bin(): string
+{
+    $s = imunify_detect();
+    if (!$s) out(['error' => 'Imunify is not installed on this server']);
+    return $s['bin'];
+}
+
+/** Imunify's newest entry for this exact file, or null */
+function imu_item(array $site): ?array
+{
+    $best = null;
+    foreach (imunify_json(['bin' => imu_bin()], 'malware malicious list --limit 50 --search ' . escapeshellarg($site['path']))['items'] ?? [] as $it) {
+        if (($it['file'] ?? '') === $site['path'] && (!$best || $it['id'] > $best['id'])) $best = $it;
+    }
+    return $best;
+}
+
+function imu_view(?array $it): ?array
+{
+    return $it ? ['id' => (int)$it['id'], 'status' => (string)($it['status'] ?? ''), 'type' => (string)($it['type'] ?? '')] : null;
+}
+
+/** Wait until Imunify has no on-demand scan or cleanup running (max $max seconds) */
+function imu_wait(string $what, int $max): bool
+{
+    for ($t = 0; $t < $max; $t += 3) {
+        $s = imunify_json(['bin' => imu_bin()], 'malware ' . $what . ' status');
+        if (($s['status'] ?? $s['items']['status'] ?? '') !== 'running') return true;
+        sleep(3);
+    }
+    return false;
+}
+
+/** Does Imunify see this file as malware? If it has no entry yet, scan just this file first (detection only). */
+function imu_check(array $site): array
+{
+    $it = imu_item($site);
+    if (!$it || ($it['status'] ?? '') !== 'found') {
+        $name = basename($site['path']);
+        if (preg_match('/[*?\[\],]/', $name)) return ['item' => imu_view($it), 'note' => 'Imunify cannot check a file with this name on its own'];
+        if (!imu_wait('on-demand', 60)) return ['pending' => true, 'item' => imu_view($it)];
+        // On-demand scans only report: Imunify's default action is not applied to them
+        shell_exec('timeout 60 ' . escapeshellarg(imu_bin()) . ' malware on-demand start --path ' . escapeshellarg(dirname($site['path']) . '/')
+                 . ' --file-mask ' . escapeshellarg($name) . ' >/dev/null 2>&1');
+        sleep(2);
+        if (!imu_wait('on-demand', 90)) return ['pending' => true, 'item' => imu_view(imu_item($site))];
+        $it = imu_item($site);
+    }
+    return ['item' => imu_view($it)];
+}
+
+function imu_diff(array $site): array
+{
+    $it = imu_item($site);
+    if (!$it || $it['status'] !== 'found') return ['error' => 'Imunify has not detected this file (choose Clean again to check it first)'];
+    $d = imunify_json(['bin' => imu_bin()], 'malware malicious diff --id ' . (int)$it['id']);
+    $diff = base64_decode((string)($d['diff'] ?? ''), true);
+    if ($diff === false) $diff = '';
+    $lines = substr_count($diff, "\n");
+    if (strlen($diff) > 30000) $diff = substr($diff, 0, 30000) . "\n… (shortened)";
+    return ['item' => imu_view($it), 'diff' => $diff, 'lines' => $lines, 'size' => (int)@filesize($site['path'])];
+}
+
+function imu_clean(array $site): array
+{
+    $it = imu_item($site);
+    if (!$it || $it['status'] !== 'found') return ['error' => 'Imunify has not detected this file, so it cannot clean it. Use Quarantine instead.'];
+    if (!imu_wait('cleanup', 60)) return ['error' => 'Imunify is busy cleaning other files; try again in a minute'];
+    shell_exec('timeout 120 ' . escapeshellarg(imu_bin()) . ' malware malicious cleanup ' . (int)$it['id'] . ' >/dev/null 2>&1');
+    sleep(2);
+    imu_wait('cleanup', 120);
+    $after = imunify_json(['bin' => imu_bin()], 'malware malicious list --ids ' . (int)$it['id'])['items'][0] ?? null;
+    $st = (string)($after['status'] ?? '');
+    clearstatcache();
+    if (strpos($st, 'cleanup_done') !== 0 && strpos($st, 'cleanup_removed') !== 0) {
+        return ['error' => 'Imunify did not clean the file' . ($st ? ' (' . $st . ')' : ''), 'item' => imu_view($after)];
+    }
+    return ['ok' => true, 'item' => imu_view($after), 'status' => $st, 'size' => is_file($site['path']) ? (int)filesize($site['path']) : null];
+}
+
+function imu_restore(array $site): array
+{
+    $site2 = $site;
+    $userArg = (is_file($site2['path']) && (posix_getpwuid((int)fileowner($site2['path']))['name'] ?? '') === $site2['user'])
+        ? ' --user ' . escapeshellarg($site2['user']) : '';
+    $r = imunify_json(['bin' => imu_bin()], 'malware malicious restore-original --path ' . escapeshellarg($site2['path']) . $userArg);
+    if (in_array($site2['path'], $r['succeeded'] ?? [], true)) return ['ok' => true, 'item' => imu_view(imu_item($site2))];
+    return ['error' => 'Imunify could not restore the original' . (($r['not_exist'] ?? []) ? ': no original kept for this file' : '')];
+}
+
+// ── Quarantine ─────────────────────────────────────────────────
+
+function q_add(array $site, string $by = ''): array
+{
+    if (!is_dir(QDIR)) { @mkdir(QDIR, 0700, true); @chmod(dirname(QDIR), 0700); }
+    $st  = lstat($site['path']);
+    $qid = date('Ymd-His') . '-' . bin2hex(random_bytes(4));
+    $dir = QDIR . '/' . $qid;
+    if (!@mkdir($dir, 0700)) return ['error' => 'Could not create the quarantine folder'];
+    // Copy as the site user (it can only read what the site can read), then compare
+    $copy = $dir . '/file';
+    // (the redirect is done by root's shell into the root-only folder; only the reading runs as the site user)
+    exec('runuser -u ' . escapeshellarg($site['user']) . ' -- cat -- ' . escapeshellarg($site['path']) . ' > ' . escapeshellarg($copy) . ' 2>/dev/null', $o, $code);
+    clearstatcache();
+    if ($code !== 0 || !is_file($copy) || filesize($copy) !== $st['size']) {
+        @unlink($copy); @rmdir($dir);
+        return ['error' => 'The site user cannot read this file, so it was not moved (it may belong to root or another user)'];
+    }
+    chmod($copy, 0600);
+    $meta = [
+        'qid' => $qid, 'domain' => $site['host'], 'rel' => $site['rel'], 'path' => $site['path'], 'user' => $site['user'],
+        'owner' => posix_getpwuid($st['uid'])['name'] ?? (string)$st['uid'], 'mode' => sprintf('%04o', $st['mode'] & 07777),
+        'mtime' => $st['mtime'], 'size' => $st['size'], 'sha256' => hash_file('sha256', $copy), 'at' => time(), 'by' => $by,
+    ];
+    file_put_contents($dir . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    chmod($dir . '/meta.json', 0600);
+    // Remove the original, again as the site user
+    [$code, $msg] = as_user($site['user'], 'rm -f -- ' . escapeshellarg($site['path']));
+    clearstatcache();
+    if ($code !== 0 || file_exists($site['path'])) {
+        @unlink($copy); @unlink($dir . '/meta.json'); @rmdir($dir);
+        return ['error' => 'The file could not be removed from the site, so nothing was changed' . ($msg ? ': ' . $msg : '')];
+    }
+    return ['ok' => true, 'qid' => $qid, 'item' => array_diff_key($meta, ['path' => 1])];
+}
+
+function q_meta(string $qid): ?array
+{
+    if (!preg_match('/^\d{8}-\d{6}-[0-9a-f]{8}$/', $qid)) return null;
+    $m = json_decode((string)@file_get_contents(QDIR . '/' . $qid . '/meta.json'), true);
+    return is_array($m) && is_file(QDIR . '/' . $qid . '/file') ? $m : null;
+}
+
+function q_list(string $host): array
+{
+    $out = [];
+    foreach (glob(QDIR . '/*/meta.json') ?: [] as $f) {
+        $m = q_meta(basename(dirname($f)));
+        if ($m && $m['domain'] === $host) $out[] = array_diff_key($m, ['path' => 1]);
+    }
+    usort($out, fn($a, $b) => $b['at'] <=> $a['at']);
+    return $out;
+}
+
+function q_restore(string $qid): array
+{
+    $m = q_meta($qid);
+    if (!$m) return ['error' => 'This file is no longer in quarantine'];
+    $site = fa_site($m['domain'], $m['rel'], false);
+    if (file_exists($site['path']) || is_link($site['path'])) {
+        return ['error' => 'There is a file at ' . $m['rel'] . ' again. Rename or remove it first, then restore.'];
+    }
+    $copy = QDIR . '/' . $qid . '/file';
+    if (hash_file('sha256', $copy) !== $m['sha256']) return ['error' => 'The quarantined copy has changed; not restored'];
+    // Write as the site user; conv=excl never overwrites a file that appeared in the meantime
+    exec('runuser -u ' . escapeshellarg($site['user']) . ' -- dd ' . escapeshellarg('of=' . $site['path']) . ' conv=excl status=none < ' . escapeshellarg($copy) . ' 2>&1', $lines, $code);
+    clearstatcache();
+    if ($code !== 0 || !is_file($site['path'])) return ['error' => 'Could not write the file back: ' . implode(' ', $lines)];
+    as_user($site['user'], 'chmod ' . escapeshellarg(preg_match('/^0?[0-7]{3,4}$/', $m['mode']) ? $m['mode'] : '0644') . ' -- ' . escapeshellarg($site['path']));
+    as_user($site['user'], 'touch -d ' . escapeshellarg('@' . (int)$m['mtime']) . ' -- ' . escapeshellarg($site['path']));
+    @unlink($copy); @unlink(QDIR . '/' . $qid . '/meta.json'); @rmdir(QDIR . '/' . $qid);
+    $note = $m['owner'] !== $site['user'] ? 'Restored as ' . $site['user'] . ' (it belonged to ' . $m['owner'] . ')' : '';
+    return ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel'], 'note' => $note];
+}
+
+if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | wpconfigs | dump <db> [prefix] | start <scanner> <hostname> | fileact <op> <hostname> <file>']);
 
 $id   = (string)($argv[2] ?? '');
 $host = strtolower(trim((string)($argv[3] ?? '')));

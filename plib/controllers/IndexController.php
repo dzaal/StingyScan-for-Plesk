@@ -249,7 +249,9 @@ class IndexController extends pm_Controller_Action
             'budget'  => $budgetInfo,
             'scans'    => self::scanResults($domains),
             'scanners' => self::enabledScanners(),
-            'reviews'  => VtReviews::forDomains(array_merge($domains, $related)),
+            'fileact'  => ['admin' => $this->role() === 'admin',
+                           'imunify' => (bool)array_filter(self::scanners(), fn($s) => $s['id'] === 'imunify' && !empty($s['installed']) && !empty($s['cleanup']))],
+            'reviews' => VtReviews::forDomains(array_merge($domains, $related)),
             'history'  => array_values(array_intersect(VtSiteLog::domains(), array_merge($domains, $related))),
             'avast'    => self::avastInfo($domains),
             'gsb'      => VtSafeBrowsing::enabled() ? ['enabled' => true, 'fresh' => VtSafeBrowsing::FRESH, 'review' => VtSafeBrowsing::REVIEW_URL,
@@ -458,6 +460,121 @@ class IndexController extends pm_Controller_Action
     }
 
     /** Current file-scan result of one site and scanner */
+    // ── Clean (Imunify) and quarantine infected files, administrator only ──
+    // All file work happens in sbin/site-scan fileact (root, file I/O as the site user).
+
+    private const FA_STORE = 'vt_fileactions.json'; // { domain: { file: {status, at, by, type} } }: files Imunify cleaned
+
+    private static function faStore(?callable $change = null): array
+    {
+        $f  = VtDataDir::path(self::FA_STORE);
+        $fp = @fopen($f . '.lock', 'c');
+        if ($fp) flock($fp, LOCK_EX);
+        $d = json_decode((string)@file_get_contents($f), true);
+        if (!is_array($d)) $d = [];
+        if ($change) {
+            $d = $change($d);
+            if (@file_put_contents($f . '.tmp', json_encode($d)) !== false) @rename($f . '.tmp', $f);
+        }
+        if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
+        return $d;
+    }
+
+    private static function faSbin(array $args): array
+    {
+        try {
+            $res = pm_ApiCli::callSbin('site-scan', array_merge(['fileact'], $args), pm_ApiCli::RESULT_FULL);
+            $out = json_decode(trim((string)($res['stdout'] ?? '')), true);
+        } catch (\Throwable $e) {
+            return ['error' => 'The server helper failed: ' . $e->getMessage()];
+        }
+        return is_array($out) ? $out : ['error' => 'No answer from the server helper'];
+    }
+
+    /** Cleaned and quarantined files of a site: [{file, action: cleaned|quarantined, at, by?, status?, qid?}] */
+    private static function faHandled(string $domain): array
+    {
+        $out = [];
+        foreach (self::faStore()[$domain] ?? [] as $file => $e) {
+            $out[] = ['file' => (string)$file, 'action' => 'cleaned'] + $e;
+        }
+        foreach (self::faSbin(['qlist', $domain])['items'] ?? [] as $q) {
+            $out[] = ['file' => $q['rel'], 'action' => 'quarantined', 'at' => $q['at'], 'qid' => $q['qid'], 'by' => $q['by'] ?? '',
+                      'size' => $q['size'], 'owner' => $q['owner']];
+        }
+        usort($out, fn($a, $b) => ($b['at'] ?? 0) <=> ($a['at'] ?? 0));
+        return $out;
+    }
+
+    private function faDomain(): ?string
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can clean or quarantine files']); return null; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        if (!$domain || !in_array($domain, PleskDomains::forCurrentUser(false), true)) { $this->respond(['error' => 'forbidden']); return null; }
+        return $domain;
+    }
+
+    /** Files of a site that were cleaned or quarantined */
+    public function fileHandledAction(): void
+    {
+        if (!($domain = $this->faDomain())) return;
+        $this->respond(['handled' => self::faHandled($domain)]);
+    }
+
+    /**
+     * One action on one file: check | diff | clean | restore (Imunify) · quarantine | unquarantine.
+     * check/diff change nothing. clean and quarantine always have an undo (restore / unquarantine).
+     */
+    public function fileActAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if (!($domain = $this->faDomain())) return;
+        $op   = (string)$this->_getParam('op', '');
+        $file = (string)$this->_getParam('file', '');
+        $by   = $this->resolveUserId();
+        if (!in_array($op, ['check', 'diff', 'clean', 'restore', 'quarantine', 'unquarantine'], true)) { $this->respond(['error' => 'Unknown action']); return; }
+        if ($op === 'unquarantine') {
+            $qid = (string)$this->_getParam('qid', '');
+            $own = array_column(self::faSbin(['qlist', $domain])['items'] ?? [], 'rel', 'qid');
+            if (!isset($own[$qid])) { $this->respond(['error' => 'This file is no longer in quarantine']); return; }
+            $file = $own[$qid];
+            $r = self::faSbin(['unquarantine', $qid]);
+        } else {
+            if ($file === '' || strlen($file) > 4000) { $this->respond(['error' => 'Invalid file path']); return; }
+            $r = self::faSbin($op === 'quarantine' ? [$op, $domain, $file, $by] : [$op, $domain, $file]);
+        }
+        if (!empty($r['ok'])) {
+            $sig = (string)($r['item']['type'] ?? '');
+            switch ($op) {
+                case 'clean':
+                    $st = (string)($r['status'] ?? '');
+                    self::faStore(function ($d) use ($domain, $file, $st, $by, $sig) {
+                        $d[$domain][$file] = ['status' => $st, 'at' => time(), 'by' => $by, 'type' => $sig];
+                        return $d;
+                    });
+                    $what = strpos($st, 'cleanup_removed') === 0 ? 'removed the malicious file content' : 'cleaned the file';
+                    VtSiteLog::fileAction($domain, 'clean', $file, $by, 'Imunify ' . $what . ($sig ? ' (' . $sig . ')' : ''));
+                    $this->appendLog("[files] Imunify cleaned $domain/$file ($st) by $by");
+                    break;
+                case 'restore':
+                    self::faStore(function ($d) use ($domain, $file) { unset($d[$domain][$file]); if (empty($d[$domain])) unset($d[$domain]); return $d; });
+                    VtSiteLog::fileAction($domain, 'unclean', $file, $by, 'original restored by Imunify');
+                    $this->appendLog("[files] Imunify restored the original of $domain/$file by $by");
+                    break;
+                case 'quarantine':
+                    VtSiteLog::fileAction($domain, 'quarantine', $file, $by, 'moved to quarantine (' . (int)($r['item']['size'] ?? 0) . ' bytes)');
+                    $this->appendLog("[files] quarantined $domain/$file by $by");
+                    break;
+                case 'unquarantine':
+                    VtSiteLog::fileAction($domain, 'unquarantine', $file, $by, 'put back from quarantine' . (!empty($r['note']) ? '; ' . $r['note'] : ''));
+                    $this->appendLog("[files] restored $domain/$file from quarantine by $by");
+                    break;
+            }
+            $r['handled'] = self::faHandled($domain);
+        }
+        $this->respond($r);
+    }
+
     public function fileResultAction(): void
     {
         if (!($p = $this->scanParams())) return;

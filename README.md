@@ -77,12 +77,13 @@ StingyScan was built to fix that:
 - **Optional AVG / Avast Web Shield** classification (experimental), asked live (see [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental)).
 - **Update check:** when a newer version is on GitHub, a yellow banner appears with the release notes and, for the administrator, an **Install** button that upgrades the extension in one click.
 - **Nightly background scan** (03:00, server time), scheduled automatically through Plesk's own scheduler.
-- **Trend graph:** infected, suspicious and cleaned sites per day over the last 1, 2 or 3 months, for the whole server, per reseller or per customer (see [Trend](#trend)).
+- **Statistics tab:** a trend graph of infected, suspicious and cleaned sites per day over the last 1, 2 or 3 months, for the whole server, per reseller or per customer (see [Statistics](#statistics)).
 - **Helps you solve it, not just report it.** Click the score of an infected or suspicious site to see which vendors flag it, with a link per vendor to ask for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 - **E-mail notifications:** one summary e-mail with status changes and the full list of infected sites (see [Notifications](#notifications)).
 - **Works for every Plesk user level:** administrator, reseller and client (see [Users and roles](#users-and-roles)).
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
+- **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
 
@@ -112,6 +113,17 @@ A click opens the result under the site: the scan while it runs, then the result
 - Scans run at low CPU and disk priority. A large site takes a few minutes (about 17,000 files took 5–6 minutes with ClamAV in testing).
 - maldet's own daily cron scan (`/etc/cron.daily/maldet`, on when `cron_daily_scan="1"` in `conf.maldet`) runs outside the extension. With ClamAV installed you may not need it; that is up to you.
 - Scanners don't always agree, and VirusTotal can flag a site for spam or phishing content in its database while its files are clean. Signatures starting with `PUA.` or `Heuristics.` are often false alarms.
+
+### Cleaning and quarantine (administrator)
+
+In the list of infected files, the administrator gets an **Action** column. Nothing happens without a click and a confirmation, and every action can be undone:
+
+- **Clean** (needs ImunifyAV+ or Imunify360): StingyScan first asks Imunify whether it recognises the file; if Imunify has not seen it yet, it scans only that file (detection only). It then shows **what Imunify will change** (removed lines in red) before you confirm. Imunify removes the malicious code, or empties the file when the whole file is malicious, and keeps the original: **Undo** puts it back. Files Imunify does not recognise cannot be cleaned; use Quarantine for those. This also works for files ClamAV found.
+- **Quarantine** (any server): the file is moved to `/var/lib/stingyscan/quarantine`, a folder only root can open, together with its original place, permissions, date and checksum. **Restore** puts it back exactly, and never overwrites a file that is there again.
+- **Clean all with Imunify** / **Quarantine all** handle every listed file one by one and report what was skipped.
+- **Cleaned and quarantined files** in the site details lists everything that was handled, with Undo / Restore. Each action is written to the site history and the Log tab.
+
+Safety: the file must be inside the site's document root (no `..`, no symbolic links), and every read, write and delete of a site file runs as the subscription's own system user, never as root. A file the site user cannot read (for example one owned by root) is not moved. Cleaning is done by Imunify itself. Check the site after cleaning: a cleaned or removed file can break it until you undo. Cleaning removes the symptom, not the hole; update the site and change passwords too.
 
 ### Settings and request rates
 
@@ -177,9 +189,9 @@ The summary goes out at the end of the nightly scan, and during the day 10 minut
 
 Mail is sent with the server's own mail system (PHP `mail()` via sendmail), from the administrator's e-mail address. Keep in mind that a single vendor flagging a site can be a false alarm, so check a site before alarming its owner.
 
-## Trend
+## Statistics
 
-The **Trend** tab shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
+The **Statistics** tab shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
 
 - **Infected** and **suspicious** sites per day, as lines.
 - **Sites cleaned per day**: sites that were infected or suspicious and are clean again, as bars.
@@ -187,7 +199,7 @@ The **Trend** tab shows how infections develop, per day, over the last **1, 2 or
 - Hover over a day for its figures, or open **Show as table**.
 - **Recent status changes**, newest first, one line per change: the date (time), the status before and after as coloured badges with a solid arrow between them (green = better, red = worse), and the site, for example `20-11-2026 (11:10)  [Infected] ➡ [Suspicious]  flower-centrum.example`. Click the site to open its VirusTotal report. A site that was infected or suspicious and leaves the site list (deleted, disabled or suspended in Plesk) shows as *Left the list*. Changes from before this list existed are filled in once from the scan logs.
 
-![Trend graph: infected and suspicious sites per day, and sites cleaned per day](docs/screenshots/trend.png)
+![Statistics: trend graph, infected and suspicious sites per day, and sites cleaned per day](docs/screenshots/trend.png)
 
 *The shaded days are demo data; the days after are real totals.*
 

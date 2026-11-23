@@ -3,6 +3,15 @@
 Every version of StingyScan for Plesk (called VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.1.0 — 2026-11-23
+- **Clean and quarantine infected files** (administrator), in the list of infected files of a file scan:
+  - **Clean** with Imunify (ImunifyAV+ or Imunify360): shows first what Imunify will change, then cleans after your confirmation. Imunify keeps the original: **Undo** puts it back. Works for files ClamAV found too (Imunify checks that one file first).
+  - **Quarantine** on any server: the file moves to a root-only folder with its original place, permissions and date; **Restore** puts it back exactly.
+  - **Clean all** / **Quarantine all**, a list of cleaned and quarantined files per site with Undo / Restore, and every action in the site history and the log.
+  - Safe by design: only files inside the site's folder, no links, and all file work runs as the site's own system user, never as root.
+- The **Trend** tab is now called **Statistics**.
+- Settings show the Imunify license; with the free ImunifyAV (detection only) there is no Clean button.
+
 ## 2.0.4 — 2026-11-23
 - **One file-scan engine, chosen automatically.** Maldet scans with ClamAV's engine and puts its signatures (rfxn.*) in ClamAV's database, so running both only scanned every file twice. Now: ClamAV only → **ClamAV scan**; ClamAV and Maldet → ClamAV only, button **ClamAV/Maldet scan**; Maldet only → **Maldet scan**, but only when the new setting *Maldet enabled* is on (default off); otherwise the button is disabled with the reason. A Maldet scan is refused while ClamAV is installed. Old Maldet results stay in the files but are no longer shown while ClamAV is used.
 - Settings → Internal serverside file scanners: new **Scan engine** section with ClamAV and Maldet versions, whether clamd runs, the *Maldet enabled* switch, whether the Maldet signatures are in ClamAV (with a hint to run `maldet -u`), the active engine, and **Re-detect engines**. Opening Settings detects the engines again.

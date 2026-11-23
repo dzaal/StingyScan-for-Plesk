@@ -14,6 +14,7 @@ require_once $_vtLib . '/VtNotifier.php';
 require_once $_vtLib . '/VtHistory.php';
 require_once $_vtLib . '/VtManualQueue.php';
 require_once $_vtLib . '/VtEvents.php';
+require_once $_vtLib . '/VtScanEngine.php';
 require_once $_vtLib . '/VtReviews.php';
 require_once $_vtLib . '/VtSiteLog.php';
 require_once $_vtLib . '/VtAvastStore.php';
@@ -317,65 +318,111 @@ class IndexController extends pm_Controller_Action
 
     // ── File scanners (ClamAV, maldet, …), on demand ───────────
 
-    /** All known scanners with 'installed' (asked from the root helper, cached for an hour) */
-    private static function scanners(bool $fresh = false): array
+    /**
+     * What the root helper found: ['scanners' => [{id, name, installed, instant, detail}], 'engines' => [clamav => …, maldet => …]].
+     * Cached for an hour; detected again when the administrator opens Settings or clicks "Re-detect engines".
+     */
+    private static function detection(bool $fresh = false): array
     {
         $cache = VtDataDir::path('vt_scanners.json');
         if (!$fresh && is_file($cache) && time() - filemtime($cache) < 3600) {
             $d = json_decode((string)file_get_contents($cache), true);
-            if (is_array($d) && (!$d || isset($d[0]['installed']))) return $d;
+            if (is_array($d) && isset($d['scanners'], $d['engines'])) return $d;
         }
         try {
-            $res  = pm_ApiCli::callSbin('site-scan', ['list'], pm_ApiCli::RESULT_FULL);
-            $list = json_decode(trim((string)($res['stdout'] ?? '')), true)['scanners'] ?? null;
+            $res = pm_ApiCli::callSbin('site-scan', ['list'], pm_ApiCli::RESULT_FULL);
+            $d   = json_decode(trim((string)($res['stdout'] ?? '')), true);
         } catch (\Throwable $e) {
-            $list = null;
+            $d = null;
         }
-        if (!is_array($list)) return [];
-        @file_put_contents($cache, json_encode($list));
-        return $list;
+        if (!is_array($d) || !is_array($d['scanners'] ?? null) || !is_array($d['engines'] ?? null)) {
+            return ['scanners' => [], 'engines' => ['clamav' => ['installed' => false], 'maldet' => ['installed' => false]], 'failed' => true];
+        }
+        @file_put_contents($cache, json_encode($d));
+        return $d;
     }
 
-    /** Scanners switched off by the administrator (server-wide) */
+    private static function scanners(bool $fresh = false): array { return self::detection($fresh)['scanners']; }
+
+    /** "Maldet enabled" (server-wide, default off). Only matters when ClamAV is not installed. */
+    private static function maldetEnabled(): bool
+    {
+        return (bool)(new VtSettings('admin'))->get('maldet_enabled', false);
+    }
+
+    /** Scanners switched off by the administrator (server-wide; now only used for Imunify) */
     private static function disabledScanners(): array
     {
         $d = (new VtSettings('admin'))->get('scanners_disabled', []);
         return is_array($d) ? $d : [];
     }
 
-    /** Scanners that are installed and switched on: these get a button on every site */
+    private static function imunifyOn(): bool
+    {
+        foreach (self::scanners() as $s) {
+            if ($s['id'] === 'imunify') return !empty($s['installed']) && !in_array('imunify', self::disabledScanners(), true);
+        }
+        return false;
+    }
+
+    /**
+     * The buttons in a site's details: ONE scan engine (VtScanEngine decides which), or a disabled
+     * button with the reason, plus Imunify's results when switched on.
+     */
     private static function enabledScanners(): array
     {
-        $off = array_flip(self::disabledScanners());
-        return array_values(array_filter(self::scanners(), fn($s) => !empty($s['installed']) && !isset($off[$s['id']])));
+        return VtScanEngine::buttons(self::detection()['engines'], self::maldetEnabled(), self::imunifyOn());
     }
 
-    /** All scanners with installed/enabled state, for the settings page */
+    /** Engine status and switches, for the settings page */
     private static function scannerSettings(bool $fresh = false): array
     {
-        $off = array_flip(self::disabledScanners());
-        return array_map(fn($s) => $s + ['enabled' => !isset($off[$s['id']])], self::scanners($fresh));
+        $d   = self::detection($fresh);
+        $imu = null;
+        foreach ($d['scanners'] as $s) if ($s['id'] === 'imunify') $imu = $s;
+        return [
+            'failed'         => !empty($d['failed']),
+            'engines'        => $d['engines'],
+            'active'         => VtScanEngine::select($d['engines'], self::maldetEnabled()),
+            'maldet_enabled' => self::maldetEnabled(),
+            'clamav_detail'  => self::detailOf($d['scanners'], 'clamav'),
+            'imunify'        => ['installed' => !empty($imu['installed']), 'detail' => (string)($imu['detail'] ?? ''),
+                                 'enabled' => !in_array('imunify', self::disabledScanners(), true)],
+            'buttons'        => VtScanEngine::buttons($d['engines'], self::maldetEnabled(), self::imunifyOn()),
+        ];
     }
 
-    /** Detect the installed scanners again (after installing or removing one) */
+    private static function detailOf(array $list, string $id): string
+    {
+        foreach ($list as $s) if ($s['id'] === $id) return (string)($s['detail'] ?? '');
+        return '';
+    }
+
+    /** Detect the installed engines again (after installing or removing one) */
     public function detectScannersAction(): void
     {
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
         $this->respond(['scanners' => self::scannerSettings(true)]);
     }
 
-    /** Switch a scanner on or off for the whole server (administrator only) */
+    /** Server-wide switches (administrator only): "Maldet enabled", and Imunify on/off */
     public function saveScannerAction(): void
     {
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can change the scanners']); return; }
         $id = (string)$this->_getParam('scanner', '');
-        if (!in_array($id, array_column(self::scanners(), 'id'), true)) { $this->respond(['error' => 'Unknown scanner']); return; }
-        $on  = filter_var($this->_getParam('enabled', ''), FILTER_VALIDATE_BOOLEAN);
-        $off = array_values(array_diff(self::disabledScanners(), [$id]));
-        if (!$on) $off[] = $id;
-        (new VtSettings('admin'))->setAll(['scanners_disabled' => $off]);
-        $this->appendLog('[files] ' . $id . ' scanner ' . ($on ? 'switched on' : 'switched off'));
+        $on = filter_var($this->_getParam('enabled', ''), FILTER_VALIDATE_BOOLEAN);
+        if ($id === 'maldet') {
+            (new VtSettings('admin'))->setAll(['maldet_enabled' => $on]);
+            $this->appendLog('[files] Maldet ' . ($on ? 'enabled' : 'disabled') . ' (used only when ClamAV is not installed)');
+        } elseif ($id === 'imunify') {
+            $off = array_values(array_diff(self::disabledScanners(), ['imunify']));
+            if (!$on) $off[] = 'imunify';
+            (new VtSettings('admin'))->setAll(['scanners_disabled' => $off]);
+            $this->appendLog('[files] Imunify results ' . ($on ? 'switched on' : 'switched off'));
+        } else {
+            $this->respond(['error' => 'The scan engine is chosen automatically']); return;
+        }
         $this->respond(['ok' => true, 'scanners' => self::scannerSettings()]);
     }
 
@@ -625,7 +672,7 @@ class IndexController extends pm_Controller_Action
         $s['role']             = $this->role();
         $s['my_email']         = VtNotifier::emailOfLogin($this->settings->getUserId()) ?? '';
         $s['has_key']          = !empty($ownKey) || $this->usingAdminKey;
-        $s['scanners']         = self::scannerSettings();
+        $s['scanners']         = self::scannerSettings($this->role() === 'admin'); // admin opens Settings: detect again
         $s['avast_products']   = VtAvastStore::products();
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();

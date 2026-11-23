@@ -49,7 +49,8 @@ class VtSettings
         'infected_ttl_days'  => 1,
         'tier'               => 'free', // 'free' | 'premium' | 'custom'
         'check_rates'        => [],     // per optional provider/scanner, 1–5 requests per minute
-        'scanners_disabled'  => [],     // file scanners switched off (admin settings only, server-wide)
+        'scanners_disabled'  => [],     // Imunify results switched off (admin settings only, server-wide)
+        'maldet_enabled'     => false,  // use Maldet as scan engine; only when ClamAV is not installed (see VtScanEngine)
         'avast_product'      => 0,      // old single choice (before 1.29.0), read once for avast_products
         'log_max_mb'         => 5,      // log rotation (admin only, server-wide): rotate a log larger than this
         'log_keep'           => 5,      // old copies kept (gzipped)

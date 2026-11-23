@@ -82,45 +82,52 @@ StingyScan was built to fix that:
 - **E-mail notifications:** one summary e-mail with status changes and the full list of infected sites (see [Notifications](#notifications)).
 - **Works for every Plesk user level:** administrator, reseller and client (see [Users and roles](#users-and-roles)).
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
-- **File scanners on demand:** a button bar on every site for the malware scanners found on the server (ClamAV, maldet, Imunify). Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
+- **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
 
 ## File scanners (ClamAV, maldet, Imunify)
 
-VirusTotal judges a site from the outside (its URL and domain). To look inside a site, every row has a small **scanner bar** with one button per malware scanner found on the server. The extension detects what is installed and only shows those buttons:
+VirusTotal judges a site from the outside (its URL and domain). To look inside a site, click the site (or its **Details** button): the details show a line **Check the files on the server** with the file-scan buttons. They are for further investigation and run only when you click them. A scan or rescan never starts a file scan, and neither does the nightly background scan.
 
-| Button | Scanner | What a click does |
+**One scan engine, chosen automatically.** Maldet scans with ClamAV's engine when ClamAV is installed, and copies its own signatures (`rfxn.hdb`, `rfxn.ndb`, `rfxn.yara`) into ClamAV's database. A ClamAV scan therefore already covers Maldet, and running both would only scan every file twice. So a file scan uses exactly one engine:
+
+| Installed on the server | Engine used | Button |
 |---|---|---|
-| **ClamAV** | [ClamAV](https://www.clamav.net) | Scans the site's document root. Uses a running `clamd` (for example the one for mail scanning) via `clamdscan --fdpass`, so signatures are not loaded again; otherwise `clamscan`. |
-| **Maldet** | [Linux Malware Detect](https://www.rfxn.com/projects/linux-malware-detect/) | Runs `maldet -a` on the document root only (the temp folders maldet normally adds are skipped). Uses ClamAV's engine when it is installed. |
-| **Imunify** | ImunifyAV / Imunify360 | **Starts no scan.** Shows the result of Imunify's own latest scan of the site, including files Imunify has already cleaned. |
+| ClamAV only | ClamAV | **ClamAV scan** |
+| ClamAV and Maldet | ClamAV (with the Maldet signatures) | **ClamAV/Maldet scan** |
+| Maldet only, *Maldet enabled* on | Maldet | **Maldet scan** |
+| Maldet only, *Maldet enabled* off | none | disabled: *Maldet is installed but disabled in settings* |
+| neither | none | disabled: *No scanner found (install ClamAV)* |
 
-Clicking a button opens a second line under the site. It shows the scan while it runs, then the result and the list of infected files with the signature that matched. Click the button again (or **Close**) to fold it away; the button keeps a mark: ✓ for clean, a red number for infected files. **Scan again** runs a new scan.
+- **ClamAV** ([clamav.net](https://www.clamav.net)) scans the site's document root. It uses a running `clamd` (for example the one for mail scanning) via `clamdscan --fdpass`, so signatures are not loaded again; otherwise `clamscan`.
+- **Maldet** ([Linux Malware Detect](https://www.rfxn.com/projects/linux-malware-detect/)) runs `maldet -a` on the document root only (the temp folders maldet normally adds are skipped). It is refused while ClamAV is installed.
+- **Imunify results** (ImunifyAV / Imunify360) is not a scan engine: it **starts no scan** and shows the result of Imunify's own latest scan of the site, including files Imunify has already cleaned.
 
-- **On demand only.** A scan runs when you click, never by itself. One scan runs at a time on the server; a click while another scan is busy waits its turn and starts by itself. You can leave the page; the scan keeps running.
-- **Detection only.** The extension asks every scanner to report, never to clean, quarantine or delete. maldet runs with its own quarantine setting, which is off by default; leave `quarantine_hits=0` in `/usr/local/maldetect/conf.maldet`.
+A click opens the result under the site: the scan while it runs, then the result (labelled with the engine that was used) and the list of infected files with the signature that matched. **← Details** goes back to the site details. While a file scan runs, or when it found infected files, the site's **Details** button shows a spinner or a red number. **Scan again** runs a new scan.
+
+- **On demand only.** One scan runs at a time on the server; a click while another scan is busy waits its turn and starts by itself. You can leave the page; the scan keeps running.
+- **Detection only.** The extension asks the scanner to report, never to clean, quarantine or delete. maldet runs with its own quarantine setting, which is off by default; leave `quarantine_hits=0` in `/usr/local/maldetect/conf.maldet`.
 - **Why Imunify is read-only:** Imunify handles what it finds according to its own settings (*Default action on detect*, for example *cleanup*). Starting an Imunify scan from here could therefore change files, so the extension only reads its results.
 - Scans run at low CPU and disk priority. A large site takes a few minutes (about 17,000 files took 5–6 minutes with ClamAV in testing).
-- Scans from this extension run one at a time. maldet's own daily cron scan (installed with maldet) runs outside the extension and can overlap with a scan you start here.
+- maldet's own daily cron scan (`/etc/cron.daily/maldet`, on when `cron_daily_scan="1"` in `conf.maldet`) runs outside the extension. With ClamAV installed you may not need it; that is up to you.
 - Scanners don't always agree, and VirusTotal can flag a site for spam or phishing content in its database while its files are clean. Signatures starting with `PUA.` or `Heuristics.` are often false alarms.
 
 ### Settings and request rates
 
 Every optional online service and every internal scanner has its own **1–5 requests/minute** limit (default **2**), shared by all users and browser tabs. Cached results use no request. New checks wait for their turn; internal file scans run one at a time.
 
-### Switching scanners on and off
+### Scan engine settings
 
-**Settings → Internal serverside file scanners** lists every scanner the extension knows (ClamAV, Maldet, Imunify), with what was found on the server:
+**Settings → Internal serverside file scanners** shows:
 
-- **Installed**, with how it will be used: for ClamAV a running `clamd` (and its config file) or `clamscan`; for maldet and Imunify the program path. Imunify is marked *results only*.
-- **Not installed on this server**: the switch is greyed out and there is no button for it on the sites.
+- **Scan engine:** ClamAV installed or not, with its version and whether the `clamd` daemon is running; Maldet installed or not, with its version.
+- **Maldet enabled** (default off): use Maldet when ClamAV is **not** installed. With ClamAV installed the switch is ignored, and the page says so.
+- **Signatures** (when both are installed): whether the Maldet signatures (`rfxn.hdb`, `rfxn.ndb`, `rfxn.yara`) are in ClamAV's signature folder. If they are missing, run `maldet -u` on the server.
+- **Active engine:** the engine the rules above choose, and the label of its button.
+- **Imunify:** an on/off switch for the Imunify results button.
 
-Each installed scanner has an on/off switch. A scanner that is switched off gets no button on any site, its earlier results are hidden, and it cannot be started. The setting is saved right away and applies to the whole server, so it is the same for every user; only the administrator can change it. Resellers and customers see the list, but the switches are locked for them.
-
-The extension checks which scanners are installed once an hour. After you install or remove a scanner, click **Detect again** to update the list immediately. A newly found scanner is switched on.
-
-How it works: website files belong to the subscription users, so the scans run through a small root helper (`sbin/site-scan`) that Plesk installs with the extension and calls through its own `callSbin` mechanism. The helper only accepts a scanner name and a hostname, and looks up the folder in Plesk's database. Each scanner is a small adapter in that file (detect, scan, read the result), so another scanner can be added the same way.
+The switches save right away and apply to the whole server; only the administrator can change them. The extension checks what is installed once an hour, and again each time the administrator opens Settings. After you install or remove a scanner, **Re-detect engines** updates it immediately.
 
 ## Settings
 
@@ -319,7 +326,7 @@ Every API call is a domain report lookup (`GET /domains/{domain}`), a re-analysi
 - Websites hosted in Plesk. Every active domain and subdomain with web hosting is checked, whatever it runs (WordPress, Joomla, plain HTML, …), plus WordPress sites on a hostname under a hosted domain. Hostnames that only appear in a leftover WordPress database and no longer exist in DNS are listed separately under **Orphan databases** (see below). Forwarding-only domains, domains without hosting and suspended domains are skipped. The list is read from Plesk's own database. To check WordPress sites only, choose **Settings → Sites to scan → WordPress sites only**.
 - A **VirusTotal API key**. The free key is enough: create an account at [virustotal.com](https://www.virustotal.com), then open your profile menu → **API key**.
 - Optional: a **Google API key** for Google Safe Browsing (free, non-commercial use; see [Google Safe Browsing](#google-safe-browsing-optional)).
-- Optional: **ClamAV**, **maldet** and/or **ImunifyAV / Imunify360** for the file scans. The extension uses whichever are installed; none of them is required. You can switch each one off in **Settings → Internal serverside file scanners**.
+- Optional: **ClamAV** (recommended) or **maldet** for the file scans, and **ImunifyAV / Imunify360** for its results. None of them is required. A file scan uses one engine: ClamAV when installed, otherwise maldet if you enable it in **Settings → Internal serverside file scanners**.
 
 The extension runs on Plesk's own bundled PHP (8.x), so the PHP version of your websites doesn't matter.
 
@@ -350,7 +357,7 @@ Installing registers the nightly background scan automatically. You don't need t
 
 ### Step 2: Check the requirements for file scans (optional)
 
-The VirusTotal checks work right away. The **file scan** buttons appear for the malware scanners that are already installed on the server (ClamAV, Linux Malware Detect, ImunifyAV / Imunify360); see [File scanners](#file-scanners-clamav-maldet-imunify). You can check what was found under **Settings → Internal serverside file scanners**.
+The VirusTotal checks work right away. The **file scan** button in a site's details uses the scan engine already installed on the server (ClamAV, or Linux Malware Detect when ClamAV is missing), next to ImunifyAV / Imunify360's results; see [File scanners](#file-scanners-clamav-maldet-imunify). You can check what was found under **Settings → Internal serverside file scanners**.
 
 ### Step 3: Add your VirusTotal API key
 

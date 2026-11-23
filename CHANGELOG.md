@@ -3,6 +3,11 @@
 Every version of StingyScan for Plesk (called VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.0.4 — 2026-11-23
+- **One file-scan engine, chosen automatically.** Maldet scans with ClamAV's engine and puts its signatures (rfxn.*) in ClamAV's database, so running both only scanned every file twice. Now: ClamAV only → **ClamAV scan**; ClamAV and Maldet → ClamAV only, button **ClamAV/Maldet scan**; Maldet only → **Maldet scan**, but only when the new setting *Maldet enabled* is on (default off); otherwise the button is disabled with the reason. A Maldet scan is refused while ClamAV is installed. Old Maldet results stay in the files but are no longer shown while ClamAV is used.
+- Settings → Internal serverside file scanners: new **Scan engine** section with ClamAV and Maldet versions, whether clamd runs, the *Maldet enabled* switch, whether the Maldet signatures are in ClamAV (with a hint to run `maldet -u`), the active engine, and **Re-detect engines**. Opening Settings detects the engines again.
+- The result of a file scan names the engine; a ClamAV scan with the Maldet signatures says so.
+
 ## 2.0.3 — 2026-11-23
 - The file scanners (ClamAV, Maldet, Imunify) are for further investigation only. Their buttons are no longer on every site row; click a site (or its **Details** button) to see them. A scan or rescan never starts a file scan; a file scan starts only when you click its button. While a file scan runs, or when it found infected files, the Details button shows that.
 

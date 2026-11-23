@@ -16,6 +16,9 @@
  *   files, infected, found: [{file, signature}], errors
  * To support another scanner, add an adapter to SCANNERS.
  *
+ * Only one engine is used: ClamAV when installed (it includes Maldet's signatures), else Maldet
+ * when switched on in the settings. Maldet is refused here while ClamAV is installed.
+ *
  * Only one scan runs at a time on the server; a scan started while another
  * one runs waits its turn ("queued").
  */
@@ -27,42 +30,90 @@ const TIMEOUT  = 3600;  // seconds before a scan is stopped
 
 // ── Adapters ───────────────────────────────────────────────────
 
-/** ClamAV: a running clamd (fast, signatures already loaded), else clamscan */
+/** Full path of a program, or '' (root's PATH can be short when called from Plesk) */
+function bin_path(string $name): string
+{
+    $p = trim((string)shell_exec('export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; command -v ' . escapeshellarg($name) . ' 2>/dev/null'));
+    return ($p !== '' && $p[0] === '/' && is_executable($p)) ? $p : '';
+}
+
+/** Does a clamd answer on this socket? */
+function clamd_alive(string $sock): bool
+{
+    if (!file_exists($sock) || @filetype($sock) !== 'socket') return false;
+    $c = @stream_socket_client('unix://' . $sock, $en, $es, 2);
+    if (!$c) return false;
+    stream_set_timeout($c, 2);
+    fwrite($c, "zPING\0");
+    $r = (string)fread($c, 16);
+    fclose($c);
+    return strpos($r, 'PONG') === 0;
+}
+
+/**
+ * ClamAV: a running clamd (fast, signatures already loaded) through clamdscan, else clamscan.
+ * Also reports version, whether the daemon runs, and whether Maldet's signatures are in ClamAV's database.
+ */
 function clamav_detect(): ?array
 {
-    $confs = array_merge(glob('/etc/clamd.d/*.conf') ?: [], ['/etc/clamav/clamd.conf', '/etc/clamd.conf']);
-    if (is_executable('/usr/bin/clamdscan')) {
-        foreach ($confs as $c) {
-            if (!is_file($c)) continue;
-            if (preg_match('/^\s*LocalSocket\s+(\S+)/m', (string)@file_get_contents($c), $m) && file_exists($m[1])
-                && @filetype($m[1]) === 'socket') {
-                return ['id' => 'clamav', 'name' => 'ClamAV', 'mode' => 'clamd', 'conf' => $c];
-            }
-        }
+    $clamdscan = bin_path('clamdscan');
+    $clamscan  = bin_path('clamscan');
+    $confs = array_values(array_unique(array_merge(['/etc/clamd.d/scan.conf', '/etc/clamav/clamd.conf', '/etc/clamd.conf'], glob('/etc/clamd.d/*.conf') ?: [])));
+    $daemonConf = ''; $anyConf = '';
+    foreach ($confs as $c) {
+        if (!is_file($c) || !preg_match('/^\s*LocalSocket\s+(\S+)/m', (string)@file_get_contents($c), $m)) continue;
+        if ($anyConf === '') $anyConf = $c;
+        if (clamd_alive($m[1])) { $daemonConf = $c; break; }
     }
-    if (is_executable('/usr/bin/clamscan')) return ['id' => 'clamav', 'name' => 'ClamAV', 'mode' => 'clamscan'];
-    return null;
+    if (!$clamdscan && !$clamscan) return null;
+
+    // Where ClamAV keeps its signatures; Maldet copies its rfxn.* files there
+    $sigdir = '';
+    foreach (array_filter([$daemonConf ?: $anyConf, '/etc/freshclam.conf', '/etc/clamav/freshclam.conf']) as $c) {
+        if (preg_match('/^\s*DatabaseDirectory\s+(\S+)/m', (string)@file_get_contents($c), $m)) { $sigdir = rtrim($m[1], '/'); break; }
+    }
+    if ($sigdir === '' && is_dir('/var/lib/clamav')) $sigdir = '/var/lib/clamav';
+    $rfxn = [];
+    foreach (['rfxn.hdb', 'rfxn.ndb', 'rfxn.yara'] as $f) $rfxn[$f] = $sigdir !== '' && is_file("$sigdir/$f");
+
+    // "ClamAV 1.4.6/28191/Sun Nov 22 07:27:13 2026" → "1.4.6, signatures 28191"
+    $version = trim((string)shell_exec(escapeshellarg($clamscan ?: $clamdscan) . ' --version 2>/dev/null'));
+    if (preg_match('#^ClamAV ([\d.]+)(?:/(\d+))?#', $version, $m)) $version = $m[1] . (isset($m[2]) ? ', signatures ' . $m[2] : '');
+
+    $mode = ($daemonConf && $clamdscan) ? 'clamd' : ($clamscan ? 'clamscan' : 'none');
+    return ['id' => 'clamav', 'name' => 'ClamAV', 'mode' => $mode, 'conf' => $daemonConf, 'clamdscan' => $clamdscan,
+            'clamscan' => $clamscan, 'daemon' => (bool)$daemonConf, 'version' => $version, 'sigdir' => $sigdir, 'rfxn' => $rfxn];
 }
 
 function clamav_scan(array $s, string $root): array
 {
+    if ($s['mode'] === 'none') {
+        return ['found' => [], 'errors' => 1, 'timeout' => false, 'files' => 0,
+                'message' => 'clamd is not running and clamscan is not installed: start clamd or install clamscan'];
+    }
     $cmd = $s['mode'] === 'clamd'
-        ? '/usr/bin/clamdscan -c ' . escapeshellarg($s['conf']) . ' --fdpass --infected --no-summary ' . escapeshellarg($root)
-        : '/usr/bin/clamscan -r --infected --no-summary ' . escapeshellarg($root);
+        ? escapeshellarg($s['clamdscan']) . ' -c ' . escapeshellarg($s['conf']) . ' --fdpass --infected --no-summary ' . escapeshellarg($root)
+        : escapeshellarg($s['clamscan']) . ' -r --infected --no-summary ' . escapeshellarg($root);
     exec('timeout ' . TIMEOUT . ' nice -n 19 ionice -c3 ' . $cmd . ' 2>&1', $lines, $code);
     $found = []; $errors = 0;
     foreach ($lines as $line) {
         if (preg_match('/^(.*): (\S+) FOUND$/', $line, $m)) $found[] = ['file' => $m[1], 'signature' => $m[2]];
         elseif (stripos($line, 'ERROR') !== false || stripos($line, 'failed') !== false) $errors++;
     }
-    return ['found' => $found, 'errors' => $errors, 'timeout' => $code === 124, 'files' => count_files($root)];
+    $note = maldet_detect() && !in_array(false, $s['rfxn'] ?? [false], true)
+        ? 'Scanned with ClamAV, including the Maldet signatures (rfxn.*) in its database.' : '';
+    return ['found' => $found, 'errors' => $errors, 'timeout' => $code === 124, 'files' => count_files($root), 'note' => $note];
 }
 
-/** Linux Malware Detect (maldet), from rfxn.com */
+/** Linux Malware Detect (maldet), from rfxn.com. Only used when ClamAV is not installed. */
 function maldet_detect(): ?array
 {
-    foreach (['/usr/local/maldetect/maldet', '/usr/local/sbin/maldet'] as $b) {
-        if (is_executable($b)) return ['id' => 'maldet', 'name' => 'Maldet', 'bin' => $b];
+    $bins = ['/usr/local/maldetect/maldet', '/usr/local/sbin/maldet'];
+    if ($p = bin_path('maldet')) $bins[] = $p;
+    foreach ($bins as $b) {
+        if (!is_executable($b)) continue;
+        $v = (string)shell_exec('timeout 10 ' . escapeshellarg($b) . ' --version 2>/dev/null');
+        return ['id' => 'maldet', 'name' => 'Maldet', 'bin' => $b, 'version' => preg_match('/\bv(\d[\d.]*)/', $v, $m) ? $m[1] : ''];
     }
     return null;
 }
@@ -157,7 +208,8 @@ function scanners(): array
 function scanner_detail(array $s): string
 {
     switch ($s['id']) {
-        case 'clamav':  return $s['mode'] === 'clamd' ? 'running clamd (' . $s['conf'] . ')' : 'clamscan';
+        case 'clamav':  return $s['mode'] === 'clamd' ? 'running clamd (' . $s['conf'] . ')'
+                             : ($s['mode'] === 'clamscan' ? 'clamscan (no clamd running)' : 'clamd not running, clamscan not installed');
         case 'maldet':  return $s['bin'];
         case 'imunify': return $s['bin'] . ', results only';
     }
@@ -232,7 +284,13 @@ if ($mode === 'list') {
         $list[] = ['id' => $id, 'name' => $s['name'] ?? $names[$id], 'installed' => (bool)$s,
                    'instant' => !empty($s['instant']), 'detail' => $s ? scanner_detail($s) : ''];
     }
-    out(['scanners' => $list]);
+    // Scan engines for the settings page (see VtScanEngine: only one of them is ever used)
+    $engines = [];
+    foreach (['clamav', 'maldet'] as $id) {
+        $s = $found[$id] ?? null;
+        $engines[$id] = $s ? ['installed' => true] + array_diff_key($s, ['id' => 1, 'name' => 1]) : ['installed' => false];
+    }
+    out(['scanners' => $list, 'engines' => $engines]);
 }
 if ($mode === 'wpconfigs') {
     // Which database and table prefix every WordPress install on the server uses (read-only)
@@ -310,12 +368,20 @@ $id   = (string)($argv[2] ?? '');
 $host = strtolower(trim((string)($argv[3] ?? '')));
 if (!in_array($id, SCANNERS, true)) out(['error' => 'Unknown scanner']);
 if (!preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z0-9\-]{2,}$/', $host)) out(['error' => 'Invalid site name']);
-$scanner = scanners()[$id] ?? null;
+$all     = scanners();
+$scanner = $all[$id] ?? null;
 if (!$scanner) out(['error' => $id . ' is not installed on this server']);
 
 $resultFile = DATA . '/vt_scan_' . $id . '_' . preg_replace('/[^a-z0-9]/', '_', $host) . '.json';
 $lockFile   = DATA . '/vt_scan.lock';
 $base       = ['domain' => $host, 'scanner' => $id, 'name' => $scanner['name']];
+
+// One scan engine only: with ClamAV installed, Maldet never runs (ClamAV already uses Maldet's signatures)
+if ($id === 'maldet' && isset($all['clamav'])) {
+    $msg = 'Maldet is not used while ClamAV is installed: the ClamAV scan includes the Maldet signatures';
+    if ($mode === '--run') { save($resultFile, $base + ['status' => 'error', 'finished' => time(), 'message' => $msg]); exit(0); }
+    out(['error' => $msg]);
+}
 
 if ($mode === 'start') {
     $prev = json_decode((string)@file_get_contents($resultFile), true);

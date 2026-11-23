@@ -254,7 +254,8 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-scanbar{display:inline-flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .vt-sbtn{padding:4px 9px;border:0;border-left:1px solid var(--border);background:var(--gray-bg);color:#374151;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .vt-sbtn:first-child{border-left:0}
-.vt-sbtn:hover{color:var(--blue);background:var(--blue-bg)}
+.vt-sbtn:disabled{cursor:not-allowed;color:#6b7280;background:#f3f4f6}
+.vt-sbtn:not(:disabled):hover{color:var(--blue);background:var(--blue-bg)}
 .vt-sbtn.open{color:var(--blue);background:var(--blue-bg);box-shadow:inset 0 -2px 0 var(--blue)}
 .vt-sbtn .n{background:var(--red);color:#fff;border-radius:8px;padding:0 5px;font-size:10px}
 .vt-sbtn .ok{color:var(--green,#16a34a)}
@@ -281,6 +282,8 @@ tr.vt-fs-row>td{background:var(--gray-bg);border-top:0;padding:10px 13px 12px}
 .vt-fs-tbl td:first-child{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
 .vt-fs-tbl td:last-child{color:var(--red);white-space:nowrap}
 .vt-fs-tbl tr.handled td{color:var(--muted)!important;text-decoration:line-through}
+.vt-sc-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 2px}
+.vt-sc-sub:first-child{margin-top:0}
 .vt-sc-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--border)}
 .vt-sc-row:first-child{border-top:0}
 .vt-sc-row .vt-sc-name{font-weight:700;min-width:80px}
@@ -856,8 +859,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <div class="vt-card">
       <h3 style="display:flex;align-items:center;gap:10px">Internal serverside file scanners
         <div style="flex:1"></div>
-        <button class="vt-btn ghost" type="button" onclick="vtDetectScanners()" id="vt-sc-detect">Detect again</button></h3>
-      <div class="hint" style="margin-bottom:10px">Enable each detected scanner separately. The rate limits how often a scan can start; file scans still run one at a time. Imunify only reads existing results.</div>
+        <button class="vt-btn ghost" type="button" onclick="vtDetectScanners()" id="vt-sc-detect">Re-detect engines</button></h3>
+      <div class="hint" style="margin-bottom:10px">A file scan uses one engine, chosen automatically: ClamAV when it is installed (with Maldet installed too, ClamAV already uses the Maldet signatures), otherwise Maldet if you enable it. File scans run one at a time and only when you click the button in a site's details. The rate limits how often a scan can start. Imunify only reads existing results.</div>
       <div id="vt-sc-list"><span class="hint">Loading…</span></div>
       <span class="vt-smsg" id="vt-sc-msg"></span>
       <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button><span class="hint">Scanner switches save immediately. Save settings to apply request limits.</span></div>
@@ -2267,34 +2270,49 @@ function loadSettingsForm(cfg){
 
 // ── File scanners on/off (server-wide, administrator) ─────────
 let scIsAdmin=false, checkRates={};
-function vtRenderScanners(list,isAdmin){
+// One scan engine only (see VtScanEngine): ClamAV when installed, else Maldet when "Maldet enabled" is on.
+function vtRenderScanners(sc,isAdmin){
   scIsAdmin=isAdmin;
   const el=document.getElementById('vt-sc-list');
   document.getElementById('vt-sc-detect').style.display=isAdmin?'':'none';
-  if(!list.length){el.innerHTML='<span class="hint">Could not ask the server which scanners are installed.</span>';return;}
-  const found=list.filter(s=>s.installed);
-  if(!found.length){el.innerHTML='<span class="hint">No supported internal scanners found. Install ClamAV, Maldet or Imunify, then choose Detect again.</span>';return;}
-  el.innerHTML=found.map(s=>{
-    const info=s.installed
-      ?'Installed: '+vtEsc(s.detail||'')+(s.instant?' · shows the results of Imunify scans, starts no scan':'')
-      :'Not installed on this server';
-    return '<div class="vt-sc-row'+(s.installed?'':' missing')+'">'
-      +'<label class="vt-sw" title="'+(isAdmin?'Switch on or off':'Set by the administrator')+'"><input type="checkbox" '+(s.installed&&s.enabled?'checked ':'')
-      +((!s.installed||!isAdmin)?'disabled ':'')+'onchange="vtToggleScanner(\''+s.id+'\',this.checked)"><span></span></label>'
-      +'<span class="vt-sc-name">'+vtBrandIco(s.id)+vtEsc(s.name)+'</span>'
-      +'<span class="vt-sc-info">'+info+(s.installed&&!s.enabled?' · <strong>switched off</strong>':'')+'</span>'
-      +'<label class="vt-rate" for="vt-rate-'+s.id+'"><input type="number" id="vt-rate-'+s.id+'" data-check-rate="'+s.id+'" min="1" max="5" step="1" value="'+(checkRates[s.id]||2)+'" '+(!isAdmin?'disabled ':'')+'aria-label="'+vtEsc(s.name)+' requests per minute"> / minute</label></div>';
-  }).join('')+(isAdmin?'':'<div class="hint" style="margin-top:6px">Only the administrator can switch scanners on or off.</div>');
+  if(!sc||!sc.engines||sc.failed){el.innerHTML='<span class="hint">Could not ask the server which scanners are installed.</span>';return;}
+  const c=sc.engines.clamav||{}, m=sc.engines.maldet||{}, a=sc.active||{}, i=sc.imunify||{};
+  const rate=(id,name)=>'<label class="vt-rate" for="vt-rate-'+id+'"><input type="number" id="vt-rate-'+id+'" data-check-rate="'+id+'" min="1" max="5" step="1" value="'+(checkRates[id]||2)+'" '+(!isAdmin?'disabled ':'')+'aria-label="'+name+' scans per minute"> / minute</label>';
+  const sw=(id,on,can,title)=>'<label class="vt-sw" title="'+title+'"><input type="checkbox" '+(on?'checked ':'')+(can&&isAdmin?'':'disabled ')+'onchange="vtToggleScanner(\''+id+'\',this.checked)"><span></span></label>';
+  let h='<div class="vt-sc-sub">Scan engine</div>';
+  h+='<div class="vt-sc-row'+(c.installed?'':' missing')+'"><span class="vt-sc-name">'+vtBrandIco('clamav')+'ClamAV</span><span class="vt-sc-info">'
+    +(c.installed?'<strong>Installed</strong>'+(c.version?' · version '+vtEsc(c.version):'')+' · daemon running: <strong>'+(c.daemon?'yes':'no')+'</strong>'+(sc.clamav_detail?' · '+vtEsc(sc.clamav_detail):'')
+                 :'Not installed')+'</span>'+(c.installed?rate('clamav','ClamAV'):'')+'</div>';
+  h+='<div class="vt-sc-row'+(m.installed?'':' missing')+'">'+sw('maldet',sc.maldet_enabled,m.installed,'Maldet enabled')
+    +'<span class="vt-sc-name">'+vtBrandIco('maldet')+'Maldet</span><span class="vt-sc-info">'
+    +(m.installed?'<strong>Installed</strong>'+(m.version?' · version '+vtEsc(m.version):''):'Not installed')
+    +' · Maldet enabled: <strong>'+(sc.maldet_enabled?'on':'off')+'</strong>'
+    +(c.installed?'<br>Ignored while ClamAV is installed: ClamAV already scans with the Maldet signatures, so Maldet never runs.':'<br>Used only when ClamAV is not installed.')
+    +'</span>'+(m.installed&&!c.installed?rate('maldet','Maldet'):'')+'</div>';
+  if(c.installed&&m.installed){
+    const r=c.rfxn||{}, miss=Object.keys(r).filter(k=>!r[k]);
+    h+='<div class="vt-sc-row"><span class="vt-sc-name">Signatures</span><span class="vt-sc-info">Maldet signatures in ClamAV'+(c.sigdir?' (<code>'+vtEsc(c.sigdir)+'</code>)':'')+': '
+      +Object.keys(r).map(k=>'<code>'+vtEsc(k)+'</code> '+(r[k]?'<span style="color:var(--green,#16a34a)">✓</span>':'<span style="color:var(--red)">missing</span>')).join(' · ')
+      +(miss.length?'<br><span style="color:var(--red)">Run <code>maldet -u</code> on the server: it copies the Maldet signatures into ClamAV.</span>':'')+'</span></div>';
+  }
+  h+='<div class="vt-sc-row"><span class="vt-sc-name">Active engine</span><span class="vt-sc-info">'
+    +(a.id?'<strong>'+vtEsc(a.name)+'</strong> · button in the site details: <strong>'+vtEsc(a.label)+'</strong>':'<strong style="color:var(--red)">None</strong> · '+vtEsc(a.message||''))+'</span></div>';
+  if(i.installed){
+    h+='<div class="vt-sc-sub">Other results</div><div class="vt-sc-row">'+sw('imunify',i.enabled,true,isAdmin?'Switch on or off':'Set by the administrator')
+      +'<span class="vt-sc-name">'+vtBrandIco('imunify')+'Imunify</span><span class="vt-sc-info">Installed: '+vtEsc(i.detail||'')+' · shows the results of Imunify\'s own scans, starts no scan'+(i.enabled?'':' · <strong>switched off</strong>')+'</span>'
+      +rate('imunify','Imunify')+'</div>';
+  }
+  el.innerHTML=h+(isAdmin?'':'<div class="hint" style="margin-top:6px">Only the administrator can change these.</div>');
 }
 function vtScMsg(ok,text){
   const m=document.getElementById('vt-sc-msg');
   m.style.display='inline';m.className='vt-smsg '+(ok?'ok':'err');m.textContent=text;
   setTimeout(()=>{m.style.display='none';},4000);
 }
-function vtApplyScanners(list){
+function vtApplyScanners(sc){
   document.querySelectorAll('[data-check-rate]').forEach(input=>{checkRates[input.dataset.checkRate]=input.value;});
-  scanners=list.filter(s=>s.installed&&s.enabled).map(s=>({id:s.id,name:s.name,instant:s.instant}));
-  vtRenderScanners(list,scIsAdmin);
+  scanners=sc.buttons||[];
+  vtRenderScanners(sc,scIsAdmin);
   renderTable();
 }
 window.vtToggleScanner=async function(id,on){
@@ -2308,8 +2326,8 @@ window.vtDetectScanners=async function(){
   const b=document.getElementById('vt-sc-detect');b.disabled=true;b.textContent='Detecting…';
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
   const res=await fetch(BASE+'?action=detect-scanners',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken}}).then(r=>r.json()).catch(()=>({error:'Network error'}));
-  b.disabled=false;b.textContent='Detect again';
-  if(res.scanners){vtApplyScanners(res.scanners);vtScMsg(true,res.scanners.filter(s=>s.installed).length+' scanner(s) found');}
+  b.disabled=false;b.textContent='Re-detect engines';
+  if(res.scanners&&!res.scanners.failed){vtApplyScanners(res.scanners);const a=res.scanners.active||{};vtScMsg(!!a.id,a.id?'Active engine: '+a.name:a.message);}
   else vtScMsg(false,res.error||'Could not detect');
 };
 
@@ -2419,19 +2437,22 @@ function fsMarkHTML(domain){
 }
 function fsToolsHTML(domain){
   if(!scanners.length||relSet.has(domain)) return '';
-  return '<div class="vt-fs-tools"><span>Check the files on the server <span class="hint">(for further investigation; starts only when you click)</span></span>'+fsBarHTML(domain)+'</div>';
+  const off=scanners.find(sc=>sc.disabled);
+  return '<div class="vt-fs-tools"><span>Check the files on the server <span class="hint">(for further investigation; starts only when you click)</span></span>'+fsBarHTML(domain)
+    +(off?'<span class="hint">'+vtEsc(off.message||'')+'</span>':'')+'</div>';
 }
 function fsBarHTML(domain){
   if(!scanners.length) return '';
   const e=vtEsca(domain);
   return '<span class="vt-scanbar">'+scanners.map(sc=>{
+    if(sc.disabled) return '<button type="button" class="vt-sbtn" disabled title="'+vtEsc(sc.message||'')+'">'+vtEsc(sc.label||'Scan')+'</button>';
     const r=fsGet(domain,sc.id);
     let mark='';
     if(fsBusy(domain,sc.id)) mark='<span class="vt-spin"></span>';
     else if(r?.status==='done') mark=r.infected?'<span class="n">'+r.infected+'</span>':'<span class="ok">✓</span>';
     else if(r) mark='<span style="color:var(--red)">!</span>';
     const open=fsOpen[domain]===sc.id;
-    return '<button type="button" class="vt-sbtn'+(open?' open':'')+'" title="Scan the files of this site with '+vtEsc(sc.name)+'" onclick="vtFsClick(\''+e+'\',\''+sc.id+'\')">'+vtEsc(sc.name)+mark+'</button>';
+    return '<button type="button" class="vt-sbtn'+(open?' open':'')+'" title="'+(sc.instant?'Show the results of Imunify\'s own scans of this site':'Scan the files of this site with '+vtEsc(sc.name))+'" onclick="vtFsClick(\''+e+'\',\''+sc.id+'\')">'+vtEsc(sc.label||sc.name)+mark+'</button>';
   }).join('')+'</span>';
 }
 // ── Why flagged, and how to get delisted after cleaning ─────────
@@ -2730,7 +2751,7 @@ function vtSiteHistHTML(domain){
 function fsRowHTML(domain,st){
   const id=fsOpen[domain]; if(!id) return '';
   if(id==='vt') return vtWhyRowHTML(domain,st);
-  const r=fsGet(domain,id), full=fsFull[domain+'|'+id], name=vtEsc(fsName(id)), e=vtEsca(domain);
+  const r=fsGet(domain,id), full=fsFull[domain+'|'+id], name=vtEsc(fsGet(domain,id)?.name||fsName(id)), e=vtEsca(domain);
   const close='<a onclick="vtWhyClick(\''+e+'\')">&larr; Details</a> · <a onclick="vtFsClose(\''+e+'\')">Close</a>';
   let h;
   if(!r){

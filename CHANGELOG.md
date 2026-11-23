@@ -3,6 +3,11 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.3.0 — 2026-11-23
+- **Real progress for file scans.** A ClamAV scan now shows a bar that fills up, with *X of Y files*, the percentage and an estimate of the time left (from the speed so far). ClamAV scans from a list of the site's files, so it reports every file; this is as fast as before.
+- When Imunify is scanning the site itself, **Imunify results** waits for it and shows Imunify's own percentage and phase, then the results.
+- Site list: **Site**, **VT**, **Panel** and **Copy** are now small icons (globe, VirusTotal logo, control panel, copy), with a tooltip; Copy turns into a green check when copied.
+
 ## 2.2.2 — 2026-11-23
 - Site list: next to **Site** and **VT**, two more small buttons: **Panel** opens the site in Plesk (Websites & Domains), and **Copy** copies the domain name.
 

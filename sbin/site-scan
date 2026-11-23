@@ -85,24 +85,46 @@ function clamav_detect(): ?array
             'clamscan' => $clamscan, 'daemon' => (bool)$daemonConf, 'version' => $version, 'sigdir' => $sigdir, 'rfxn' => $rfxn];
 }
 
+/** Report progress of a running scan: done of total files (set by --run, throttled there) */
+function progress(int $done, int $total, string $phase = ''): void
+{
+    if (isset($GLOBALS['on_progress'])) ($GLOBALS['on_progress'])($done, $total, $phase);
+}
+
 function clamav_scan(array $s, string $root): array
 {
     if ($s['mode'] === 'none') {
         return ['found' => [], 'errors' => 1, 'timeout' => false, 'files' => 0,
                 'message' => 'clamd is not running and clamscan is not installed: start clamd or install clamscan'];
     }
+    // Scan from a list of the site's files: then ClamAV reports every file, which gives the real progress
+    // (a folder scan only reports the infected ones). Same speed as a folder scan.
+    $paths = array_values(array_filter(explode("\0", (string)shell_exec('find ' . escapeshellarg($root) . ' -type f -print0 2>/dev/null')),
+                                       fn($f) => $f !== '' && strpos($f, "\n") === false));
+    $total = count($paths);
+    $list  = tempnam(sys_get_temp_dir(), 'sst');
+    chmod($list, 0600);
+    file_put_contents($list, implode("\n", $paths) . "\n");
+    unset($paths);
+    progress(0, $total);
     $cmd = $s['mode'] === 'clamd'
-        ? escapeshellarg($s['clamdscan']) . ' -c ' . escapeshellarg($s['conf']) . ' --fdpass --infected --no-summary ' . escapeshellarg($root)
-        : escapeshellarg($s['clamscan']) . ' -r --infected --no-summary ' . escapeshellarg($root);
-    exec('timeout ' . TIMEOUT . ' nice -n 19 ionice -c3 ' . $cmd . ' 2>&1', $lines, $code);
-    $found = []; $errors = 0;
-    foreach ($lines as $line) {
-        if (preg_match('/^(.*): (\S+) FOUND$/', $line, $m)) $found[] = ['file' => $m[1], 'signature' => $m[2]];
-        elseif (stripos($line, 'ERROR') !== false || stripos($line, 'failed') !== false) $errors++;
+        ? escapeshellarg($s['clamdscan']) . ' -c ' . escapeshellarg($s['conf']) . ' --fdpass --no-summary --file-list=' . escapeshellarg($list)
+        : escapeshellarg($s['clamscan']) . ' --no-summary --file-list=' . escapeshellarg($list);
+    $proc = proc_open('exec timeout ' . TIMEOUT . ' nice -n 19 ionice -c3 ' . $cmd . ' 2>&1', [1 => ['pipe', 'w']], $pipes);
+    $found = []; $errors = 0; $done = 0;
+    while ($proc && ($line = fgets($pipes[1])) !== false) {
+        $line = rtrim($line, "\n");
+        if (substr($line, -4) === ': OK') $done++;
+        elseif (preg_match('/^(.*): (\S+) FOUND$/', $line, $m)) { $found[] = ['file' => $m[1], 'signature' => $m[2]]; $done++; }
+        elseif (stripos($line, 'ERROR') !== false || stripos($line, 'failed') !== false) { $errors++; $done++; }
+        progress($done, $total);
     }
+    if ($proc) fclose($pipes[1]);
+    $code = $proc ? proc_close($proc) : 1;
+    @unlink($list);
     $note = maldet_detect() && !in_array(false, $s['rfxn'] ?? [false], true)
         ? 'Scanned with ClamAV, including the Maldet signatures (rfxn.*) in its database.' : '';
-    return ['found' => $found, 'errors' => $errors, 'timeout' => $code === 124, 'files' => count_files($root), 'note' => $note];
+    return ['found' => $found, 'errors' => $errors, 'timeout' => $code === 124, 'files' => $total, 'note' => $note];
 }
 
 /** Linux Malware Detect (maldet), from rfxn.com. Only used when ClamAV is not installed. */
@@ -158,6 +180,16 @@ function imunify_json(array $s, string $args): array
 
 function imunify_scan(array $s, string $root): array
 {
+    // Is Imunify scanning this site (or a folder around or inside it) right now? Then wait for it,
+    // showing Imunify's own progress, and read the results when it is done.
+    for ($t = 0; $t < TIMEOUT; $t += 3) {
+        $st = imunify_json($s, 'malware on-demand status')['items'] ?? [];
+        $p  = rtrim((string)($st['path'] ?? ''), '/');
+        if (($st['status'] ?? '') !== 'running' || $p === ''
+            || (strpos($root . '/', $p . '/') !== 0 && strpos($p . '/', $root . '/') !== 0)) break;
+        progress((int)($st['progress'] ?? 0), 100, 'Imunify: ' . (string)($st['phase'] ?? 'scanning'));
+        sleep(3);
+    }
     // Latest Imunify scan of this folder or of the subscription that contains it
     $last = null;
     foreach (imunify_json($s, 'malware on-demand list --limit 100000')['items'] ?? [] as $it) {
@@ -742,6 +774,15 @@ if (!$root) {
     exit(0);
 }
 save($resultFile, $base + ['status' => 'running', 'started' => $started, 'root' => substr($root, strlen(VHOSTS))]);
+
+// Progress for the page: written at most every 2 seconds
+$GLOBALS['on_progress'] = function (int $done, int $total, string $phase) use ($resultFile, $base, $started, $root) {
+    static $last = 0;
+    if (microtime(true) - $last < 2 && $done < $total) return;
+    $last = microtime(true);
+    save($resultFile, $base + ['status' => 'running', 'started' => $started, 'root' => substr($root, strlen(VHOSTS)),
+                               'done' => $done, 'total' => $total, 'phase' => $phase]);
+};
 
 save($resultFile, finish($base, $id, $scanner, $root, $started));
 ftruncate($lock, 0);

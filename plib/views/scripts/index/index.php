@@ -153,8 +153,10 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-domain-age.new-1y{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
 .vt-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600;margin:1px 1px 0 0;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
 .vt-dlinks{display:inline-flex;gap:5px;margin-left:7px}
-.vt-dlinks a{font-size:11px;color:var(--blue);text-decoration:none;padding:1px 5px;border:1px solid var(--blue-border);border-radius:4px;background:var(--blue-bg)}
+.vt-dlinks a{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;box-sizing:border-box;font-size:11px;color:var(--blue);text-decoration:none;padding:1px 5px;border:1px solid var(--blue-border);border-radius:4px;background:var(--blue-bg)}
 .vt-dlinks a:hover{background:var(--blue);color:#fff}
+.vt-dlinks a img{display:block;border-radius:2px}
+.vt-dlinks a.done{background:var(--green,#16a34a);border-color:var(--green,#16a34a);color:#fff}
 .vt-score{display:flex;align-items:center;gap:7px}
 .vt-sbar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;min-width:50px}
 .vt-sbar-fill{height:100%;border-radius:3px}
@@ -272,6 +274,8 @@ tr.vt-fs-row>td{background:var(--gray-bg);border-top:0;padding:10px 13px 12px}
 .vt-fs-head .sp{flex:1}
 .vt-fs-head a{cursor:pointer;color:var(--blue);font-weight:600}
 .vt-fs-bar{height:6px;border-radius:3px;margin-top:8px;background:repeating-linear-gradient(45deg,var(--blue) 0 10px,#93c5fd 10px 20px);background-size:28px 28px;animation:vtFsMove 1s linear infinite;opacity:.8}
+.vt-fs-prog{height:8px;border-radius:4px;margin-top:8px;background:#e2e8f0;overflow:hidden}
+.vt-fs-prog>div{height:100%;background:var(--blue);border-radius:4px;transition:width .8s ease}
 .vt-fs-bar.wait{background:repeating-linear-gradient(45deg,#cbd5e1 0 10px,#e2e8f0 10px 20px);background-size:28px 28px}
 @keyframes vtFsMove{to{background-position:28px 0}}
 .vt-fs .bad{color:var(--red);font-weight:600}
@@ -1494,9 +1498,11 @@ function rowHTML(domain,data){
   // IP address
   const ipHtml=data?.ip?'<div class="vt-domain-ip">'+vtEsc(data.ip)+'</div>':'';
   const vtId=btoa('https://'+domain).replace(/=/g,'');
-  let domainCell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+ageHtml+'<span class="vt-dlinks"><a href="https://'+vtEsc(domain)+'" target="_blank" rel="noopener">Site</a><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">VT</a>'
-    +(panelUrl[domain]?'<a href="'+vtEsc(panelUrl[domain])+'" target="_blank" rel="noopener" title="Open this site in Plesk (Websites &amp; Domains)">Panel</a>':'')
-    +'<a href="#" data-copy="'+vtEsc(domain)+'" onclick="return vtCopyDomain(this)" title="Copy the domain name">Copy</a></span>'+ipHtml;
+  let domainCell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+ageHtml+'<span class="vt-dlinks">'
+    +'<a href="https://'+vtEsc(domain)+'" target="_blank" rel="noopener" title="Open the website" aria-label="Open the website">'+ICO.site+'</a>'
+    +'<a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener" title="VirusTotal report" aria-label="VirusTotal report"><img src="'+BRAND_IMG+'virustotal.png" alt="" width="14" height="14"></a>'
+    +(panelUrl[domain]?'<a href="'+vtEsc(panelUrl[domain])+'" target="_blank" rel="noopener" title="Open this site in Plesk (Websites &amp; Domains)" aria-label="Open in Plesk">'+ICO.panel+'</a>':'')
+    +'<a href="#" data-copy="'+vtEsc(domain)+'" onclick="return vtCopyDomain(this)" title="Copy the domain name" aria-label="Copy the domain name">'+ICO.copy+'</a></span>'+ipHtml;
 
   if(relSet.has(domain)) domainCell+=orphanInfoHTML(domain);
 
@@ -2430,11 +2436,18 @@ function vtAgo(ts){
   return new Date(ts*1000).toLocaleDateString();
 }
 let panelUrl={}; // site → its page in Plesk
+const svgI=d=>'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+const ICO={
+  site: svgI('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),        // globe
+  panel:svgI('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 13h4M7 16h7"/>'),                          // control panel window
+  copy: svgI('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'),                       // two sheets
+  ok:   svgI('<path d="M5 12.5l4.5 4.5L19 7"/>'),
+};
 // Copy within the click itself (works without window focus); the Clipboard API only as a fallback
 window.vtCopyDomain=function(el){
-  const name=el.dataset.copy, done=()=>{el.textContent='Copied ✓'; setTimeout(()=>{el.textContent='Copy';},1500);};
+  const name=el.dataset.copy, done=()=>{el.innerHTML=ICO.ok; el.classList.add('done'); el.title='Copied'; setTimeout(()=>{el.innerHTML=ICO.copy; el.classList.remove('done'); el.title='Copy the domain name';},1500);};
   if(vtCopyNow(name)) done();
-  else navigator.clipboard?.writeText(name).then(done,()=>{el.textContent='Copy failed'; setTimeout(()=>{el.textContent='Copy';},1500);});
+  else navigator.clipboard?.writeText(name).then(done,()=>{el.title='Copy failed';});
   return false;
 };
 function vtCopyNow(text){
@@ -2929,8 +2942,12 @@ function fsRowHTML(domain,st){
   }else if(r.status==='queued'){
     h='<div class="vt-fs-head"><strong>'+name+'</strong> waiting: another scan is running on the server; this one starts right after it.<span class="sp"></span>'+close+'</div><div class="vt-fs-bar wait"></div>';
   }else if(r.status==='running'){
-    h='<div class="vt-fs-head"><span class="vt-spin"></span> <strong>'+name+'</strong> is scanning the files in <code>'+vtEsc(r.root||'')+'</code> · started '+vtAgo(r.started)+'<span class="sp"></span>'+close+'</div>'
-     +'<div class="vt-fs-bar"></div><div class="vt-fs-note">A large site can take several minutes. You can leave this page; the scan keeps running.</div>';
+    const pr=fsProgress(r);
+    h='<div class="vt-fs-head"><span class="vt-spin"></span> <strong>'+name+'</strong> '+(r.phase?vtEsc(r.phase):'is scanning the files in <code>'+vtEsc(r.root||'')+'</code>')+' · started '+vtAgo(r.started)+'<span class="sp"></span>'+close+'</div>'
+     +(pr?'<div class="vt-fs-prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pr.pct+'"><div style="width:'+pr.pct+'%"></div></div>'
+          +'<div class="vt-fs-note"><strong>'+pr.pct+'%</strong>'+(pr.files?' · '+pr.files:'')+(pr.left?' · '+pr.left:'')+'</div>'
+        :'<div class="vt-fs-bar"></div>')
+     +'<div class="vt-fs-note">You can leave this page; the scan keeps running.</div>';
   }else if(r.status==='done'){
     const inst=scanners.find(x=>x.id===id)?.instant;
     const again='<a onclick="vtFsScan(\''+e+'\',\''+id+'\')">'+(inst?'Refresh':'Scan again')+'</a>';
@@ -2961,6 +2978,22 @@ function fsRowHTML(domain,st){
      +'<a onclick="vtFsScan(\''+e+'\',\''+id+'\')">Try again</a> · '+close+'</div>';
   }
   return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')+'><td colspan="5"><div class="vt-fs">'+fsToolsHTML(domain)+h+'</div></td></tr>';
+}
+/** Progress of a running file scan: {pct, files, left} or null when the scanner does not report it */
+function fsProgress(r){
+  const total=+r.total||0, done=Math.min(+r.done||0,total);
+  if(!total) return null;
+  const pct=Math.min(99,Math.floor(done/total*100));
+  const imu=String(r.phase||'').startsWith('Imunify');   // Imunify reports a percentage, not files
+  const files=imu?'':done.toLocaleString()+' of '+total.toLocaleString()+' files';
+  // Time left from the speed so far, once there is enough to go on
+  const el=Date.now()/1000-(+r.started||0);
+  let left='';
+  if(done>0&&el>=6&&done/total>=0.03){
+    const s=Math.max(0,Math.round((total-done)*el/done));
+    left=s<60?'less than a minute left':s<5400?'about '+Math.round(s/60)+' min left':'about '+(s/3600).toFixed(1)+' h left';
+  }
+  return {pct,files,left};
 }
 function vtFsRefresh(domain){updateRow(domain,results[domain]||null);}
 window.vtFsClose=function(domain){delete fsOpen[domain];vtFsRefresh(domain);};
@@ -3005,16 +3038,16 @@ async function vtFsPoll(domain,id){
   fsPolling.add(key);
   try{
     for(;;){
-      await delay(5000);
+      await delay(scans[domain]?.[id]?.status==='running'?3000:5000);
       const r=await vtFetch('?action=file-result&scanner='+id+'&domain='+encodeURIComponent(domain)).catch(()=>null);
       if(!r?.result) continue;
-      const prev=scans[domain]?.[id]?.status;
+      const prev=scans[domain]?.[id]?.status, prevDone=scans[domain]?.[id]?.done;
       (scans[domain]=scans[domain]||{})[id]=r.result;
       if(r.result.status==='running') updateFsJob(domain,id,'running',null,'');
       else if(r.result.status==='queued') updateFsJob(domain,id,'queued',null,'');
       else if(r.result.status==='done') updateFsJob(domain,id,'done',r.result,'');
       else updateFsJob(domain,id,'failed',null,r.result.message||r.result.status||'Error');
-      if(['running','queued'].includes(r.result.status)){ if(prev!==r.result.status) vtFsRefresh(domain); continue; }
+      if(['running','queued'].includes(r.result.status)){ if(prev!==r.result.status||prevDone!==r.result.done) vtFsRefresh(domain); continue; }
       fsFull[key]=r.result; vtFsRefresh(domain);
       if(fsOpen[domain]!==id){ // panel closed meanwhile: tell the user
         if(r.result.status==='done') vtToast(fsName(id)+' '+domain+': '+(r.result.infected?r.result.infected+' infected file(s) found':'no infected files'),r.result.infected?'error':'success');

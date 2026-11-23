@@ -651,13 +651,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             <button onclick="vtMenuAction('rescan','pending')">Rescan</button>
           </div>
         </div>
-        <div class="vt-fgroup" data-f="error">
-          <button class="vt-fbtn" data-f="error" onclick="vtSetFilter('error')"><span class="vt-dot dot-gr"></span> Error <strong id="vt-cnt-error">0</strong></button>
-          <button class="vt-fcaret" onclick="vtToggleMenu(event,'error')" aria-label="Error options">&#9662;</button>
-          <div class="vt-fmenu" id="vt-fmenu-error">
-            <button onclick="vtMenuAction('rescan','error')">Rescan</button>
-          </div>
-        </div>
         <div class="vt-fgroup" data-f="orphan" id="vt-fgroup-orphan" style="display:none">
           <button class="vt-fbtn" data-f="orphan" onclick="vtSetFilter('orphan')" title="Leftover WordPress databases for hostnames that no longer exist"><span class="vt-dot dot-gr"></span> Orphan DBs <strong id="vt-cnt-orphan">0</strong></button>
         </div>
@@ -1760,7 +1753,6 @@ function updateCounts(){
   vtSet('vt-cnt-suspicious',c.suspicious);
   vtSet('vt-cnt-clean',c.clean);
   vtSet('vt-cnt-pending',c.pending);
-  vtSet('vt-cnt-error',c.error);
 }
 
 // ── Rescan queue ──────────────────────────────────────────────

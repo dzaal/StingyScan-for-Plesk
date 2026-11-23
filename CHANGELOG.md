@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.4.1 — 2026-11-23
+- The **Error** filter button above the site list is gone. Sites without a result still show *No result* in the list and can be rescanned from their row.
+
 ## 2.4.0 — 2026-11-23
 - A file that is quarantined or cleaned **no longer counts as infected**: the *files infected* badges and counts go down right away, and the file stays in the list, struck through, with Restore / Undo. After a restore it counts again. Imunify results also skip files that no longer exist.
 - **Quarantined files are deleted after 30 days** (Settings → Quarantine; 0 = keep them until you delete them), by the nightly scan. Each site's list of quarantined files shows the date.

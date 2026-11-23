@@ -203,6 +203,7 @@ function imunify_scan(array $s, string $root): array
     foreach (imunify_json($s, 'malware malicious list --limit 1000 --search ' . escapeshellarg($root))['items'] ?? [] as $it) {
         $file = (string)($it['file'] ?? '');
         if (strpos($file, $root . '/') !== 0) continue;
+        if (!file_exists($file) && !is_link($file)) continue; // no longer there (quarantined or deleted): not infected any more
         $st = (string)($it['status'] ?? '');
         $handled = strpos($st, 'cleanup_done') === 0 || strpos($st, 'cleanup_removed') === 0 || strpos($st, 'restored') === 0;
         if (!$handled) $active++;
@@ -420,6 +421,10 @@ const QDIR = '/var/lib/stingyscan/quarantine'; // root only (0700); never under 
 if ($mode === 'fileact') {
     $op = (string)($argv[2] ?? '');
     if ($op === 'unquarantine') fa_out(q_restore((string)($argv[3] ?? '')));
+    if ($op === 'qinfo')        out(q_info());
+    if ($op === 'qdelete')      out(q_delete((string)($argv[3] ?? '')));
+    if ($op === 'qpurge')       out(q_purge(max(1, (int)($argv[3] ?? 0))));  // older than N days
+    if ($op === 'qdeleteall')   out(q_purge(0));
     $host = strtolower(trim((string)($argv[3] ?? '')));
     if (!preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z0-9\-]{2,}$/', $host)) out(['error' => 'Invalid site name']);
     if ($op === 'qlist') out(['items' => q_list($host)]);
@@ -689,6 +694,44 @@ function q_list(string $host): array
     }
     usort($out, fn($a, $b) => $b['at'] <=> $a['at']);
     return $out;
+}
+
+/** Number and total size of the quarantined files */
+function q_info(): array
+{
+    $n = 0; $bytes = 0; $oldest = 0;
+    foreach (glob(QDIR . '/*/meta.json') ?: [] as $f) {
+        $m = q_meta(basename(dirname($f)));
+        if (!$m) continue;
+        $n++; $bytes += (int)@filesize(QDIR . '/' . $m['qid'] . '/file');
+        $oldest = $oldest ? min($oldest, (int)$m['at']) : (int)$m['at'];
+    }
+    return ['count' => $n, 'bytes' => $bytes, 'oldest' => $oldest, 'dir' => QDIR];
+}
+
+/** Delete one quarantined file for good */
+function q_delete(string $qid): array
+{
+    $m = q_meta($qid);
+    if (!$m) return ['error' => 'This file is no longer in quarantine'];
+    $dir = QDIR . '/' . $qid;
+    @unlink($dir . '/file'); @unlink($dir . '/meta.json'); @rmdir($dir);
+    return is_dir($dir) ? ['error' => 'Could not delete the quarantined file']
+                        : ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel']];
+}
+
+/** Delete quarantined files older than $days days (0 = all of them) */
+function q_purge(int $days): array
+{
+    $cut = $days > 0 ? time() - $days * 86400 : PHP_INT_MAX;
+    $deleted = [];
+    foreach (glob(QDIR . '/*/meta.json') ?: [] as $f) {
+        $m = q_meta(basename(dirname($f)));
+        if (!$m || (int)$m['at'] >= $cut) continue;
+        $r = q_delete($m['qid']);
+        if (!empty($r['ok'])) $deleted[] = ['qid' => $m['qid'], 'domain' => $m['domain'], 'rel' => $m['rel']];
+    }
+    return ['ok' => true, 'deleted' => $deleted] + q_info();
 }
 
 function q_restore(string $qid): array

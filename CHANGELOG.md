@@ -3,6 +3,11 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.4.0 — 2026-11-23
+- A file that is quarantined or cleaned **no longer counts as infected**: the *files infected* badges and counts go down right away, and the file stays in the list, struck through, with Restore / Undo. After a restore it counts again. Imunify results also skip files that no longer exist.
+- **Quarantined files are deleted after 30 days** (Settings → Quarantine; 0 = keep them until you delete them), by the nightly scan. Each site's list of quarantined files shows the date.
+- **Delete** a quarantined file for good from the site's details, or **Delete all quarantined files** in Settings → Quarantine, which also shows how many files (and how much space) are in quarantine. Both ask first and warn that deleted files cannot be restored. Every deletion is in the site history and the log.
+
 ## 2.3.0 — 2026-11-23
 - **Real progress for file scans.** A ClamAV scan now shows a bar that fills up, with *X of Y files*, the percentage and an estimate of the time left (from the speed so far). ClamAV scans from a list of the site's files, so it reports every file; this is as fast as before.
 - When Imunify is scanning the site itself, **Imunify results** waits for it and shows Imunify's own percentage and phase, then the results.

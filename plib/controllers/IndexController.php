@@ -250,7 +250,7 @@ class IndexController extends pm_Controller_Action
             'budget'  => $budgetInfo,
             'scans'    => self::scanResults($domains),
             'scanners' => self::enabledScanners(),
-            'fileact'  => ['admin' => $this->role() === 'admin',
+            'fileact'  => ['admin' => $this->role() === 'admin', 'qdays' => (int)(new VtSettings('admin'))->get('quarantine_days', 30),
                            'imunify' => (bool)array_filter(self::scanners(), fn($s) => $s['id'] === 'imunify' && !empty($s['installed']) && !empty($s['cleanup']))],
             'reviews' => VtReviews::forDomains(array_merge($domains, $related)),
             'history'  => array_values(array_intersect(VtSiteLog::domains(), array_merge($domains, $related))),
@@ -492,6 +492,63 @@ class IndexController extends pm_Controller_Action
         return is_array($out) ? $out : ['error' => 'No answer from the server helper'];
     }
 
+    /**
+     * A file was cleaned or quarantined ($action), or put back ($action null): mark it in the stored
+     * results of every file scanner of the site, so it no longer counts as infected (and counts again after a restore).
+     */
+    private static function faMarkResults(string $domain, string $file, ?string $action): void
+    {
+        foreach (['clamav', 'maldet', 'imunify'] as $sid) {
+            $f = self::scanFile($sid, $domain);
+            $d = json_decode((string)@file_get_contents($f), true);
+            if (!is_array($d) || empty($d['found'])) continue;
+            $changed = false;
+            foreach ($d['found'] as &$e) {
+                if (($e['file'] ?? '') !== $file) continue;
+                $had = !empty($e['action']);
+                if ($action !== null) {
+                    $e['action'] = $action;
+                    if (!$had && empty($e['handled'])) $d['infected'] = max(0, (int)($d['infected'] ?? 0) - 1);
+                } elseif ($had) {
+                    unset($e['action']);
+                    if (empty($e['handled'])) $d['infected'] = (int)($d['infected'] ?? 0) + 1;
+                }
+                $changed = true;
+            }
+            unset($e);
+            if ($changed) @file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+    }
+
+    /** Quarantine: number and size of the files, and how long they are kept (Settings, administrator) */
+    private static function quarantineInfo(): array
+    {
+        return self::faSbin(['qinfo']) + ['days' => (int)(new VtSettings('admin'))->get('quarantine_days', 30)];
+    }
+
+    /** Current number and size of the quarantined files (Settings, when the tab is opened) */
+    public function quarantineInfoAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['quarantine' => null]); return; }
+        $this->respond(['quarantine' => self::quarantineInfo()]);
+    }
+
+    /** Delete every quarantined file for good (Settings, administrator) */
+    public function quarantineDeleteAllAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can do this']); return; }
+        $r  = self::faSbin(['qdeleteall']);
+        $by = $this->resolveUserId();
+        foreach ($r['deleted'] ?? [] as $q) {
+            VtSiteLog::fileAction($q['domain'], 'qdelete', $q['rel'], $by, 'deleted from quarantine (delete all)');
+            self::faMarkResults($q['domain'], $q['rel'], 'deleted');
+        }
+        $this->appendLog('[files] quarantine emptied by ' . $by . ': ' . count($r['deleted'] ?? []) . ' file(s) deleted');
+        $this->respond(['ok' => empty($r['error']), 'deleted' => count($r['deleted'] ?? []), 'quarantine' => self::quarantineInfo()]
+                       + (isset($r['error']) ? ['error' => $r['error']] : []));
+    }
+
     /** Cleaned and quarantined files of a site: [{file, action: cleaned|quarantined, at, by?, status?, qid?}] */
     private static function faHandled(string $domain): array
     {
@@ -533,13 +590,13 @@ class IndexController extends pm_Controller_Action
         $op   = (string)$this->_getParam('op', '');
         $file = (string)$this->_getParam('file', '');
         $by   = $this->resolveUserId();
-        if (!in_array($op, ['check', 'diff', 'clean', 'restore', 'quarantine', 'unquarantine'], true)) { $this->respond(['error' => 'Unknown action']); return; }
-        if ($op === 'unquarantine') {
+        if (!in_array($op, ['check', 'diff', 'clean', 'restore', 'quarantine', 'unquarantine', 'qdelete'], true)) { $this->respond(['error' => 'Unknown action']); return; }
+        if ($op === 'unquarantine' || $op === 'qdelete') {
             $qid = (string)$this->_getParam('qid', '');
             $own = array_column(self::faSbin(['qlist', $domain])['items'] ?? [], 'rel', 'qid');
             if (!isset($own[$qid])) { $this->respond(['error' => 'This file is no longer in quarantine']); return; }
             $file = $own[$qid];
-            $r = self::faSbin(['unquarantine', $qid]);
+            $r = self::faSbin([$op, $qid]);
         } else {
             if ($file === '' || strlen($file) > 4000) { $this->respond(['error' => 'Invalid file path']); return; }
             $r = self::faSbin($op === 'quarantine' ? [$op, $domain, $file, $by] : [$op, $domain, $file]);
@@ -556,24 +613,33 @@ class IndexController extends pm_Controller_Action
                     $what = strpos($st, 'cleanup_removed') === 0 ? 'removed the malicious file content' : 'cleaned the file';
                     VtSiteLog::fileAction($domain, 'clean', $file, $by, 'Imunify ' . $what . ($sig ? ' (' . $sig . ')' : ''));
                     $this->appendLog("[files] Imunify cleaned $domain/$file ($st) by $by");
+                    self::faMarkResults($domain, $file, 'cleaned');
                     break;
                 case 'restore':
                     self::faStore(function ($d) use ($domain, $file) { unset($d[$domain][$file]); if (empty($d[$domain])) unset($d[$domain]); return $d; });
                     VtSiteLog::fileAction($domain, 'unclean', $file, $by, 'original restored by Imunify');
                     $this->appendLog("[files] Imunify restored the original of $domain/$file by $by");
+                    self::faMarkResults($domain, $file, null);
                     break;
                 case 'quarantine':
                     VtSiteLog::fileAction($domain, 'quarantine', $file, $by, 'moved to quarantine (' . (int)($r['item']['size'] ?? 0) . ' bytes)');
                     $this->appendLog("[files] quarantined $domain/$file by $by");
+                    self::faMarkResults($domain, $file, 'quarantined');
                     break;
                 case 'unquarantine':
                     VtSiteLog::fileAction($domain, 'unquarantine', $file, $by, 'put back from quarantine' . (!empty($r['note']) ? '; ' . $r['note'] : ''));
                     $this->appendLog("[files] restored $domain/$file from quarantine by $by");
+                    self::faMarkResults($domain, $file, null);
+                    break;
+                case 'qdelete':
+                    VtSiteLog::fileAction($domain, 'qdelete', $file, $by, 'deleted from quarantine for good');
+                    $this->appendLog("[files] deleted $domain/$file from quarantine by $by");
+                    self::faMarkResults($domain, $file, 'deleted');
                     break;
             }
             $r['handled'] = self::faHandled($domain);
-        } elseif (in_array($op, ['clean', 'restore', 'quarantine', 'unquarantine'], true)) {
-            $verb = ['clean' => 'clean', 'restore' => 'undo the cleanup of', 'quarantine' => 'quarantine', 'unquarantine' => 'restore'][$op];
+        } elseif (in_array($op, ['clean', 'restore', 'quarantine', 'unquarantine', 'qdelete'], true)) {
+            $verb = ['clean' => 'clean', 'restore' => 'undo the cleanup of', 'quarantine' => 'quarantine', 'unquarantine' => 'restore', 'qdelete' => 'delete from quarantine'][$op];
             $this->appendLog("[files] could not $verb $domain/$file: " . ($r['error'] ?? 'unknown error') . " (by $by)");
         }
         $this->respond($r);
@@ -797,6 +863,7 @@ class IndexController extends pm_Controller_Action
         $s['avast_products']   = VtAvastStore::products();
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
+        if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         unset($s['gsb_api_key']); // the Google key never goes to the browser
         if ($this->role() === 'admin') {
             $s['gsb'] = ['enabled' => (bool)(new VtSettings('admin'))->get('gsb_enabled', false),
@@ -887,9 +954,10 @@ class IndexController extends pm_Controller_Action
             else (new VtSettings('admin'))->setAll($gsb);
         }
 
-        // Log rotation: server-wide settings of the administrator
+        // Log rotation and quarantine: server-wide settings of the administrator
         if ($this->role() === 'admin') {
             $logCfg = [];
+            if (isset($input['quarantine_days'])) $logCfg['quarantine_days'] = max(0, min(3650, (int)$input['quarantine_days']));
             foreach (array_keys(VtLogRotate::DEFAULTS) as $k) {
                 if (isset($input[$k])) $logCfg[$k] = VtLogRotate::clamp($k, $input[$k]);
             }

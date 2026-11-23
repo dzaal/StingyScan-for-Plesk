@@ -29,6 +29,22 @@ require_once $plibDir . '/VtSafeBrowsing.php';
 // Keep the scan logs small (log rotation settings in Settings)
 try { VtLogRotate::run(); } catch (\Throwable $e) {}
 
+// Quarantined files older than the set number of days are deleted for good (Settings → Quarantine; 0 = keep)
+try {
+    require_once $plibDir . '/VtSiteLog.php';
+    $qdays = (int)(new VtSettings('admin'))->get('quarantine_days', 30);
+    if ($qdays > 0) {
+        $res  = pm_ApiCli::callSbin('site-scan', ['fileact', 'qpurge', (string)$qdays], pm_ApiCli::RESULT_FULL);
+        $gone = json_decode(trim((string)($res['stdout'] ?? '')), true)['deleted'] ?? [];
+        foreach ($gone as $q) {
+            VtSiteLog::fileAction($q['domain'], 'qdelete', $q['rel'], 'automatic', "deleted from quarantine after $qdays days");
+        }
+        if ($gone) log_msg('[quarantine] ' . count($gone) . " file(s) older than $qdays days deleted");
+    }
+} catch (\Throwable $e) {
+    log_msg('[quarantine] cleanup failed: ' . $e->getMessage());
+}
+
 $settings = new VtSettings();
 $apiKey   = $settings->get('api_key');
 

@@ -931,6 +931,23 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
+    <div class="vt-card" id="vt-q-card" style="display:none">
+      <h3>Quarantine</h3>
+      <div class="hint">Files you move to quarantine from a site's file scan are kept in <code>/var/lib/stingyscan/quarantine</code>, a folder only root can open. <strong>Restore</strong> in the site's details puts a file back; deleted files are gone for good.</div>
+      <div id="vt-q-info" style="margin:12px 0;font-size:13px"></div>
+      <div class="vt-settings-numbers">
+        <div class="vt-field">
+          <label for="vt-s-q-days">Delete quarantined files after (days)</label>
+          <input type="number" id="vt-s-q-days" min="0" max="3650" value="30">
+        </div>
+      </div>
+      <div class="hint">0 = keep them until you delete them. Checked every night.</div>
+      <div id="vt-q-del" style="margin-top:14px"></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
 
   </div>
 
@@ -1157,6 +1174,9 @@ window.vtShowTab=function(name){
   document.querySelectorAll('.vt-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('vtab-'+name).classList.add('active');
   document.getElementById('vtpanel-'+name).classList.add('active');
+  // Settings: the quarantine can change from a site's details, so show its current state
+  if(name==='settings'&&document.getElementById('vt-q-card').style.display!=='none')
+    vtFetch('?action=quarantine-info').then(r=>{ if(r?.quarantine) vtRenderQuarantine(r.quarantine); }).catch(()=>{});
 };
 
 // ── Scan pump ─────────────────────────────────────────────────
@@ -2268,6 +2288,7 @@ function loadSettingsForm(cfg){
     vtSet('vt-gsb-stored',cfg.gsb.key?'stored key '+cfg.gsb.key:'no key stored');
     document.getElementById('vt-gsb-key').value='';
   }
+  vtRenderQuarantine(cfg.quarantine||null);
   const lr=cfg.log_rotation;
   document.getElementById('vt-lr-card').style.display=lr?'':'none';
   if(lr){
@@ -2277,6 +2298,35 @@ function loadSettingsForm(cfg){
   }
   document.querySelectorAll('[data-check-rate]').forEach(input=>{input.value=cfg.check_rates?.[input.dataset.checkRate]||2;input.disabled=cfg.role!=='admin';});
 }
+
+// ── Quarantine (Settings, administrator) ──────────────────────
+let qInfo=null;
+function vtQSize(b){return b<1024?b+' bytes':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
+function vtRenderQuarantine(q){
+  qInfo=q;
+  const card=document.getElementById('vt-q-card'); card.style.display=q?'':'none'; if(!q) return;
+  document.getElementById('vt-s-q-days').value=q.days??30;
+  const info=document.getElementById('vt-q-info'), del=document.getElementById('vt-q-del');
+  if(q.error){info.innerHTML='<span style="color:var(--red)">'+vtEsc(q.error)+'</span>'; del.innerHTML=''; return;}
+  info.innerHTML='<strong>'+q.count+' file'+(q.count===1?'':'s')+'</strong> in quarantine'
+    +(q.count?' · '+vtQSize(q.bytes||0)+' · oldest from '+new Date(q.oldest*1000).toLocaleDateString():'');
+  del.innerHTML=q.count?'<button type="button" class="vt-btn danger" onclick="vtQAsk()">Delete all quarantined files</button>':'';
+}
+window.vtQAsk=function(){
+  const n=qInfo?.count||0;
+  document.getElementById('vt-q-del').innerHTML='<div class="vt-fa-q err"><strong>Delete all '+n+' quarantined file'+(n===1?'':'s')+' permanently?</strong> '
+    +'They cannot be restored afterwards, not even by Stingy Scanner.</div>'
+    +'<button type="button" class="vt-btn danger" onclick="vtQDeleteAll()">Delete permanently</button> '
+    +'<button type="button" class="vt-btn ghost" onclick="vtRenderQuarantine(qInfo)">Cancel</button>';
+};
+window.vtQDeleteAll=async function(){
+  const el=document.getElementById('vt-q-del'); el.innerHTML='<span class="vt-spin"></span> Deleting…';
+  const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  const r=await fetch(BASE+'?action=quarantine-delete-all',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken}}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.quarantine) vtRenderQuarantine(r.quarantine);
+  handled={}; // the per-site lists are loaded again when a site is opened
+  el.insertAdjacentHTML('beforeend','<div class="vt-fa-q '+(r.ok?'ok':'err')+'">'+(r.ok?r.deleted+' file'+(r.deleted===1?'':'s')+' deleted for good.':vtEsc(r.error||'Failed'))+'</div>');
+};
 
 // ── File scanners on/off (server-wide, administrator) ─────────
 let scIsAdmin=false, checkRates={};
@@ -2363,6 +2413,11 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
+  if(document.getElementById('vt-q-card').style.display!=='none'){
+    const qd=parseInt(document.getElementById('vt-s-q-days').value);
+    payload.quarantine_days=isNaN(qd)?30:Math.max(0,Math.min(3650,qd));
+    fileact.qdays=payload.quarantine_days;
+  }
   if(document.getElementById('vt-lr-card').style.display!=='none'){
     payload.log_max_mb=parseInt(document.getElementById('vt-s-log-mb').value)||5;
     payload.log_keep=parseInt(document.getElementById('vt-s-log-keep').value)||5;
@@ -2773,7 +2828,7 @@ function vtSiteHistHTML(domain){
     else if(e.type==='av'){what=e.to?pill('bad',vtEsc(e.product)+': '+vtEsc(e.to.replace(/^URL:/,''))):pill('good',vtEsc(e.product)+': none');
       text=e.to?vtEsc(e.product)+' classifies the site as <strong>'+vtEsc(e.to)+'</strong>'+(e.detection?' (<code>'+vtEsc(e.detection)+'</code>)':'')+(e.from?', was '+vtEsc(e.from):'')
                :vtEsc(e.product)+(e.observed?' check returned no classification':' no longer classifies the site')+(e.from?' (was '+vtEsc(e.from)+')':'');}
-    else if(e.type==='file'){const L={clean:['good','Cleaned'],unclean:['warn','Cleanup undone'],quarantine:['good','Quarantined'],unquarantine:['warn','Restored']}[e.action]||['',vtEsc(e.action)];
+    else if(e.type==='file'){const L={clean:['good','Cleaned'],unclean:['warn','Cleanup undone'],quarantine:['good','Quarantined'],unquarantine:['warn','Restored'],qdelete:['','Deleted']}[e.action]||['',vtEsc(e.action)];
       what=pill(L[0],L[1]);text='<code>'+vtEsc(e.file)+'</code>'+(e.detail?' · '+vtEsc(e.detail):'')+(e.by?' · by '+vtEsc(e.by):'');}
     else if(e.type==='unreview'){what=pill('','Undone');text='review request for <strong>'+vtEsc(e.vendor)+'</strong> undone'+(e.by?' · by '+vtEsc(e.by):'');}
     return '<div class="vt-sh-row"><div class="vt-sh-time">'+when+'</div><div class="vt-sh-what">'+what+'</div><div class="vt-sh-text">'+text+'</div></div>';
@@ -2801,6 +2856,8 @@ function faCellHTML(domain,id,i,f){
   const e=vtEsca(domain), hd=faHandledOf(domain,f.file), st=faState[faKey(domain,f.file)];
   const a=(fn,label)=>'<a onclick="'+fn+'(\''+e+'\',\''+id+'\','+i+')">'+label+'</a>';
   if(st?.busy) return '<span class="vt-spin"></span> '+vtEsc(st.busy);
+  if(!hd&&f.action==='deleted') return '<span class="vt-fa-done">Deleted from quarantine</span>';
+  if(!hd&&f.action) return '<span class="vt-fa-done">'+(f.action==='cleaned'?'Cleaned':'In quarantine')+'</span>';
   if(hd){const j=handled[domain].indexOf(hd);
     return hd.action==='cleaned'?'<span class="vt-fa-done">Cleaned by Imunify</span> · <a onclick="vtFaAskH(\''+e+'\','+j+')">Undo</a>'
                                 :'<span class="vt-fa-done">In quarantine</span> · <a onclick="vtFaAskH(\''+e+'\','+j+')">Restore</a>';}
@@ -2852,6 +2909,7 @@ window.vtFaCleanGo=async function(domain,id,i){
   faSet(domain,file,{busy:'Imunify is cleaning…'});
   const r=await faPost({op:'clean',domain,file});
   if(r.handled) handled[domain]=r.handled;
+  if(r.ok) faReloadResults(domain);
   faSet(domain,file,r.ok?{ok:true,msg:(String(r.status||'').startsWith('cleanup_removed')?'Imunify removed the malicious content; the file is now empty.':'Imunify cleaned the file.')+' Undo puts the original back. Check the site, then scan again.'}:{msg:r.error||'Cleaning failed'});
 };
 window.vtFaQuarGo=async function(domain,id,i){
@@ -2859,24 +2917,38 @@ window.vtFaQuarGo=async function(domain,id,i){
   faSet(domain,file,{busy:'Moving to quarantine…'});
   const r=await faPost({op:'quarantine',domain,file});
   if(r.handled) handled[domain]=r.handled;
-  faSet(domain,file,r.ok?{ok:true,msg:'The file is in quarantine. Restore puts it back. Check the site, then scan again.'}:{msg:r.error||'Could not move the file'});
+  if(r.ok) faReloadResults(domain);
+  faSet(domain,file,r.ok?{ok:true,msg:'The file is in quarantine'+(fileact.qdays>0?' (deleted automatically after '+fileact.qdays+' days)':'')+'. Restore puts it back. Check the site, then scan again.'}:{msg:r.error||'Could not move the file'});
 };
 // Undo a cleanup / restore from quarantine: puts the infected file back, so it asks first
 window.vtFaAskH=function(domain,j){const hd=handled[domain]?.[j]; if(!hd) return; faNote[domain]={ask:j,file:hd.file,action:hd.action}; vtFsRefresh(domain);};
 window.vtFaNoteClose=function(domain){delete faNote[domain]; vtFsRefresh(domain);};
-window.vtFaGoH=async function(domain,j){
+window.vtFaAskD=function(domain,j){const hd=handled[domain]?.[j]; if(!hd) return; faNote[domain]={ask:j,file:hd.file,action:'qdelete'}; vtFsRefresh(domain);};
+window.vtFaGoH=async function(domain,j,del){
   const hd=handled[domain]?.[j]; if(!hd) return;
-  faNote[domain]={busy:hd.action==='cleaned'?'Imunify is restoring the original…':'Putting the file back…'}; vtFsRefresh(domain);
-  const r=await faPost(hd.action==='cleaned'?{op:'restore',domain,file:hd.file}:{op:'unquarantine',domain,qid:hd.qid});
+  faNote[domain]={busy:del?'Deleting…':hd.action==='cleaned'?'Imunify is restoring the original…':'Putting the file back…'}; vtFsRefresh(domain);
+  const r=await faPost(del?{op:'qdelete',domain,qid:hd.qid}:hd.action==='cleaned'?{op:'restore',domain,file:hd.file}:{op:'unquarantine',domain,qid:hd.qid});
   if(r.handled) handled[domain]=r.handled;
   delete faState[faKey(domain,hd.file)];
-  faNote[domain]=r.ok?{ok:true,msg:hd.file+(hd.action==='cleaned'?': Imunify put the original back.':': the file is back in place.')+(r.note?' '+r.note:'')}:{msg:r.error||'Failed'};
-  vtFsRefresh(domain);
+  faNote[domain]=r.ok?{ok:true,msg:hd.file+(del?': deleted for good.':hd.action==='cleaned'?': Imunify put the original back.':': the file is back in place.')+(r.note?' '+r.note:'')}:{msg:r.error||'Failed'};
+  vtFsRefresh(domain); faReloadResults(domain);
 };
+/** After cleaning, quarantine or restore: fetch the stored scan results again, so the infected counts follow */
+async function faReloadResults(domain){
+  for(const id of Object.keys(scans[domain]||{})){
+    const r=await vtFetch('?action=file-result&scanner='+id+'&domain='+encodeURIComponent(domain)).catch(()=>null);
+    if(!r?.result) continue;
+    scans[domain][id]=r.result; if(fsFull[domain+'|'+id]) fsFull[domain+'|'+id]=r.result;
+  }
+  vtFsRefresh(domain);
+}
 function faNoteHTML(domain){
   const n=faNote[domain]; if(!n) return '';
   const e=vtEsca(domain);
   if(n.busy) return '<div class="vt-fa-q"><span class="vt-spin"></span> '+vtEsc(n.busy)+'</div>';
+  if(n.ask!==undefined&&n.action==='qdelete') return '<div class="vt-fa-q err"><strong>Delete <code>'+vtEsc(n.file)+'</code> from quarantine for good?</strong> '
+    +'It cannot be restored afterwards.</div><button type="button" class="vt-btn danger" onclick="vtFaGoH(\''+e+'\','+n.ask+',1)">Delete permanently</button> '
+    +'<button type="button" class="vt-btn ghost" onclick="vtFaNoteClose(\''+e+'\')">Cancel</button>';
   if(n.ask!==undefined) return '<div class="vt-fa-q"><strong>'+(n.action==='cleaned'?'Undo the cleanup of':'Restore')+' <code>'+vtEsc(n.file)+'</code>?</strong> '
     +'This puts the infected file back on the site.</div><button type="button" class="vt-btn primary" onclick="vtFaGoH(\''+e+'\','+n.ask+')">'+(n.action==='cleaned'?'Undo cleanup':'Restore file')+'</button> '
     +'<button type="button" class="vt-btn ghost" onclick="vtFaNoteClose(\''+e+'\')">Cancel</button>';
@@ -2890,7 +2962,10 @@ function faHandledHTML(domain){
   let h='<div class="vt-fa-handled"><div class="vt-tr-title" style="margin-top:12px">Cleaned and quarantined files</div>'+faNoteHTML(domain);
   if(list.length) h+='<table class="vt-fs-tbl"><thead><tr><th>File</th><th>What happened</th><th></th></tr></thead><tbody>'
     +list.map((hd,j)=>'<tr><td>'+vtEsc(hd.file)+'</td><td class="vt-fa-cell">'+(hd.action==='cleaned'?'Cleaned by Imunify':'In quarantine')
-      +' · '+vtAgo(hd.at)+(hd.by?' · by '+vtEsc(hd.by):'')+'</td><td class="vt-fa-cell"><a onclick="vtFaAskH(\''+e+'\','+j+')">'+(hd.action==='cleaned'?'Undo':'Restore')+'</a></td></tr>').join('')+'</tbody></table>';
+      +' · '+vtAgo(hd.at)+(hd.by?' · by '+vtEsc(hd.by):'')
+      +(hd.action==='quarantined'&&fileact.qdays>0?' · <span class="hint">deleted automatically on '+new Date((hd.at+fileact.qdays*86400)*1000).toLocaleDateString()+'</span>':'')
+      +'</td><td class="vt-fa-cell"><a onclick="vtFaAskH(\''+e+'\','+j+')">'+(hd.action==='cleaned'?'Undo':'Restore')+'</a>'
+      +(hd.action==='quarantined'?' · <a class="vt-fa-del" onclick="vtFaAskD(\''+e+'\','+j+')">Delete</a>':'')+'</td></tr>').join('')+'</tbody></table>';
   return h+'</div>';
 }
 // Clean all / quarantine all files in a result, one by one
@@ -2926,6 +3001,7 @@ window.vtFaBulkGo=async function(domain,id){
     if(r.handled) handled[domain]=r.handled;
     if(r.ok) done++; else fails.push(file+': '+(r.error||'failed'));
   }
+  faReloadResults(domain);
   faBulk[domain]={ok:!fails.length,msg:(what==='clean'?'Cleaned ':'Quarantined ')+done+' of '+todo.length+'.'
     +(skipped?' '+skipped+' not recognised by Imunify (use Quarantine for those).':'')
     +(fails.length?' Not done: '+fails.join(' · ')+'.':'')+' Check the site, then scan again.'};
@@ -2962,7 +3038,7 @@ function fsRowHTML(domain,st){
       const act=fileact.admin;
       h+=faBulkHTML(domain,id,found)
         +'<table class="vt-fs-tbl"><thead><tr><th>File (in <code>'+vtEsc(r.root||'')+'</code>)</th><th>Signature</th>'+(act?'<th>Action</th>':'')+'</tr></thead><tbody>'
-        +found.map((f,i)=>'<tr'+(f.handled||(act&&faHandledOf(domain,f.file))?' class="handled"':'')+'><td>'+vtEsc(f.file)+'</td><td class="vt-fa-sig">'+vtEsc(f.signature)+'</td>'
+        +found.map((f,i)=>'<tr'+(f.handled||f.action||(act&&faHandledOf(domain,f.file))?' class="handled"':'')+'><td>'+vtEsc(f.file)+'</td><td class="vt-fa-sig">'+vtEsc(f.signature)+'</td>'
           +(act?'<td class="vt-fa-cell">'+(f.handled?'':faCellHTML(domain,id,i,f))+'</td></tr>'+faPanelHTML(domain,id,i,f):'</tr>')).join('')+'</tbody></table>';
       if((r.listed||r.infected)>found.length) h+='<div class="vt-fs-note">Showing the first '+found.length+' of '+(r.listed||r.infected)+'.</div>';
       h+='<div class="vt-fs-note">'+(act

@@ -122,6 +122,8 @@ In the list of infected files, the administrator gets an **Action** column. Noth
 
 - **Clean** (needs ImunifyAV+ or Imunify360): Stingy Scanner first asks Imunify whether it recognises the file; if Imunify has not seen it yet, it scans only that file (detection only). It then shows **what Imunify will change** (removed lines in red) before you confirm. Imunify removes the malicious code, or empties the file when the whole file is malicious, and keeps the original: **Undo** puts it back. Files Imunify does not recognise cannot be cleaned; use Quarantine for those. This also works for files ClamAV found.
 - **Quarantine** (any server): the file is moved to `/var/lib/stingyscan/quarantine`, a folder only root can open, together with its original place, permissions, date and checksum. **Restore** puts it back exactly, and never overwrites a file that is there again.
+- A quarantined or cleaned file **no longer counts as infected**: the counts and badges go down right away; after a restore it counts again.
+- **Quarantined files are kept 30 days**, then the nightly scan deletes them (**Settings → Quarantine**; 0 = keep them until you delete them). **Delete** removes one file for good from the site's details; **Settings → Quarantine** shows how many files are in quarantine and has **Delete all quarantined files**. Deleted files cannot be restored; both ask first.
 ![Infected files with Clean and Quarantine, and Imunify's preview of what cleaning changes](docs/screenshots/file-actions.png)
 
 - **Clean all with Imunify** / **Quarantine all** handle every listed file one by one and report what was skipped.

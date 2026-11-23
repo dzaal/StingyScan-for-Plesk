@@ -248,6 +248,9 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-n-email:focus{border-color:var(--blue)}
 .vt-n-group.hint{color:var(--muted)}
 /* File scanners (ClamAV, maldet, …) */
+.vt-fs-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:12px;font-weight:600}
+.vt-fs-tools .hint{font-weight:400}
+.vt-fs-n{background:var(--red);color:#fff;border-radius:8px;padding:0 5px;font-size:10px;font-weight:700}
 .vt-scanbar{display:inline-flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;vertical-align:middle;margin-right:6px}
 .vt-sbtn{padding:4px 9px;border:0;border-left:1px solid var(--border);background:var(--gray-bg);color:#374151;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .vt-sbtn:first-child{border-left:0}
@@ -1498,8 +1501,9 @@ function rowHTML(domain,data){
     score='<div class="vt-score"><div class="vt-sbar"><div class="vt-sbar-fill '+c+'" style="width:'+pct+'%"></div></div><span class="vt-snum '+c+'">'+scoreNum+'</span></div>';
     const avFlag=(avast.products||[]).some(pr=>avast.results?.[domain]?.[pr.id]?.findings?.length)||!!(gsb.enabled&&gsb.results?.[domain]?.threats?.length);
     const flagged=data.malicious>0||st==='suspicious'||(data.flagged_by||[]).length||avFlag;
-    if(flagged||histSites.has(domain)||avast.products?.length||gsb.enabled){
-      score='<button type="button" class="vt-why-btn'+(fsOpen[domain]==='vt'?' open':'')+'" title="'+(flagged?'Which vendors flag this site, how to get it reviewed after cleaning, and its history':'History of this site')+'" onclick="vtWhyClick(\''+vtEsca(domain)+'\')">'+score+'<span class="vt-why-lbl">'+(flagged?'Why?':histSites.has(domain)?'History':'Details')+' ▾</span></button>';
+    const fsOn=scanners.length&&!relSet.has(domain);
+    if(flagged||histSites.has(domain)||avast.products?.length||gsb.enabled||fsOn){
+      score='<button type="button" class="vt-why-btn'+(fsOpen[domain]==='vt'?' open':'')+'" title="'+(flagged?'Which vendors flag this site, how to get it reviewed after cleaning, and its history':'History of this site')+'" onclick="vtWhyClick(\''+vtEsca(domain)+'\')">'+score+'<span class="vt-why-lbl">'+(flagged?'Why?':histSites.has(domain)?'History':'Details')+fsMarkHTML(domain)+' ▾</span></button>';
     }
   }else if(isScanning){score='<span class="vt-spin"></span>';}
   else if(st==='loading'){score='<span class="vt-spin"></span>';}
@@ -1527,7 +1531,8 @@ function rowHTML(domain,data){
   }else{
     actionBtn='<button class="vt-row-btn" id="vrb-'+rid(domain)+'" onclick="vtReanalyzeSingle(\''+vtEsca(domain)+'\')">Rescan</button>';
   }
-  actionBtn=(relSet.has(domain)?orphanBtns(domain):fsBarHTML(domain))+actionBtn; // orphan databases have no files to scan
+  // File scanners are for further investigation: their buttons are in the details (click the site), never started by a scan or rescan
+  if(relSet.has(domain)) actionBtn=orphanBtns(domain)+actionBtn; // orphan databases have no files to scan
 
   const own=owners[domain];
   return '<tr id="vtr-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')
@@ -2405,6 +2410,17 @@ function vtAgo(ts){
 function fsGet(d,id){return scans[d]?.[id]||null;}
 function fsBusy(d,id){return ['running','queued'].includes(fsGet(d,id)?.status);}
 function fsName(id){return scanners.find(x=>x.id===id)?.name||id;}
+/** Small mark on a site's Details button: a file scan is running, or found infected files */
+function fsMarkHTML(domain){
+  if(!scanners.length) return '';
+  if(scanners.some(sc=>fsBusy(domain,sc.id))) return ' <span class="vt-spin"></span>';
+  const n=scanners.reduce((t,sc)=>{const r=fsGet(domain,sc.id);return t+(r?.status==='done'?(r.infected||0):0);},0);
+  return n?' <span class="vt-fs-n" title="Infected files found by the file scanners">'+n+'</span>':'';
+}
+function fsToolsHTML(domain){
+  if(!scanners.length||relSet.has(domain)) return '';
+  return '<div class="vt-fs-tools"><span>Check the files on the server <span class="hint">(for further investigation; starts only when you click)</span></span>'+fsBarHTML(domain)+'</div>';
+}
 function fsBarHTML(domain){
   if(!scanners.length) return '';
   const e=vtEsca(domain);
@@ -2554,6 +2570,7 @@ function vtWhyRowHTML(domain,st){
     +(d.last_scan?'<span>last checked '+vtEsc(d.last_scan)+'</span>':'')
     +(list.length?'<span>review requested at '+list.filter(([v])=>reviews[domain]?.[v]).length+' of '+list.length+'</span>':'')
     +'<span class="sp"></span><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">Full report ↗</a> · '+close+'</div>';
+  h+=fsToolsHTML(domain);
   h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
@@ -2564,7 +2581,7 @@ function vtWhyRowHTML(domain,st){
   h+='<div class="vt-sh"><div class="vt-tr-title" style="margin-top:12px">History of this site <span class="hint">(newest first)</span></div><div id="vtsh-'+rid(domain)+'">'+vtSiteHistHTML(domain)+'</div></div>';
   if(!list.length) return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
   h+='<ol class="vt-why-steps">'
-    +'<li><strong>Clean the site first.</strong> Use the scanner buttons to find infected files. Update WordPress, plugins and themes, remove plugins you don\'t use, change all passwords (admin, FTP/SFTP, database, hosting) and remove admin users you don\'t know. Otherwise the site is infected again soon and the vendors list it again.</li>'
+    +'<li><strong>Clean the site first.</strong> Use the file scanner buttons above to find infected files. Update WordPress, plugins and themes, remove plugins you don\'t use, change all passwords (admin, FTP/SFTP, database, hosting) and remove admin users you don\'t know. Otherwise the site is infected again soon and the vendors list it again.</li>'
     +'<li><strong>Click Rescan.</strong> VirusTotal then checks the site address again with all vendors (this uses one manual call). The score shown here comes from the VirusTotal report for the whole domain, which follows when the vendors update their own lists, so it does not always drop right away.</li>'
     +'<li><strong>Ask the vendors that still flag it for a review.</strong> Opening a review link copies the site URL to your clipboard. Paste it into the form and mention that it has been cleaned and what you did. Most answer within a few days.</li>'
     +'<li><strong>Google:</strong> if Chrome shows a red warning, the site owner can ask Google for a review in <a href="https://search.google.com/search-console/security-issues" target="_blank" rel="noopener">Search Console → Security issues</a>. Google usually handles this within a few days.</li>'
@@ -2714,7 +2731,7 @@ function fsRowHTML(domain,st){
   const id=fsOpen[domain]; if(!id) return '';
   if(id==='vt') return vtWhyRowHTML(domain,st);
   const r=fsGet(domain,id), full=fsFull[domain+'|'+id], name=vtEsc(fsName(id)), e=vtEsca(domain);
-  const close='<a onclick="vtFsClose(\''+e+'\')">Close</a>';
+  const close='<a onclick="vtWhyClick(\''+e+'\')">&larr; Details</a> · <a onclick="vtFsClose(\''+e+'\')">Close</a>';
   let h;
   if(!r){
     h='<div class="vt-fs-head"><span class="vt-spin"></span> <strong>'+name+'</strong> starting…<span class="sp"></span>'+close+'</div><div class="vt-fs-bar"></div>';
@@ -2744,12 +2761,12 @@ function fsRowHTML(domain,st){
     h='<div class="vt-fs-head"><strong>'+name+'</strong><span class="bad">'+vtEsc(r.message||r.status)+'</span><span class="sp"></span>'
      +'<a onclick="vtFsScan(\''+e+'\',\''+id+'\')">Try again</a> · '+close+'</div>';
   }
-  return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')+'><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
+  return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')+'><td colspan="5"><div class="vt-fs">'+fsToolsHTML(domain)+h+'</div></td></tr>';
 }
 function vtFsRefresh(domain){updateRow(domain,results[domain]||null);}
 window.vtFsClose=function(domain){delete fsOpen[domain];vtFsRefresh(domain);};
 window.vtFsClick=function(domain,id){
-  if(fsOpen[domain]===id){vtFsClose(domain);return;}   // click again: fold away
+  if(fsOpen[domain]===id){vtWhyClick(domain);return;}  // click again: back to the details
   fsOpen[domain]=id;
   const r=fsGet(domain,id);
   if(!r) return vtFsScan(domain,id);                   // never scanned: start

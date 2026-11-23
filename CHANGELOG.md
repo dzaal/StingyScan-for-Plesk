@@ -3,6 +3,9 @@
 Every version of StingyScan for Plesk (called VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.0.3 — 2026-11-23
+- The file scanners (ClamAV, Maldet, Imunify) are for further investigation only. Their buttons are no longer on every site row; click a site (or its **Details** button) to see them. A scan or rescan never starts a file scan; a file scan starts only when you click its button. While a file scan runs, or when it found infected files, the Details button shows that.
+
 ## 2.0.2 — 2026-11-22
 - New home: [dzaal/StingyScan-for-Plesk](https://github.com/dzaal/StingyScan-for-Plesk). The old repository dzaal/VT-Scanner-for-Plesk stays, so existing installations keep finding their updates.
 - An installed VT Site Scanner now updates to StingyScan **in place**: `virustotal-extension.zip` is the same StingyScan, packaged under the old extension id (`bash build.sh legacy`). Settings, keys, results, history and the panel address stay as they are. Updates then come from the new repository.

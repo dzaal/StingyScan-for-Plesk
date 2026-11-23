@@ -105,7 +105,9 @@ VirusTotal judges a site from the outside (its URL and domain). To look inside a
 - **Maldet** ([Linux Malware Detect](https://www.rfxn.com/projects/linux-malware-detect/)) runs `maldet -a` on the document root only (the temp folders maldet normally adds are skipped). It is refused while ClamAV is installed.
 - **Imunify results** (ImunifyAV / Imunify360) is not a scan engine: it **starts no scan** and shows the result of Imunify's own latest scan of the site, including files Imunify has already cleaned.
 
-A click opens the result under the site: the scan while it runs, then the result (labelled with the engine that was used) and the list of infected files with the signature that matched. **← Details** goes back to the site details. While a file scan runs, or when it found infected files, the site's **Details** button shows a spinner or a red number. **Scan again** runs a new scan.
+![A ClamAV scan in progress: 35%, 2,165 of 6,116 files](docs/screenshots/file-scan-progress.png)
+
+A click opens the result under the site: the scan while it runs (with a progress bar, the number of files done and an estimate of the time left), then the result (labelled with the engine that was used) and the list of infected files with the signature that matched. **← Details** goes back to the site details. While a file scan runs, or when it found infected files, the site's **Details** button shows a spinner or a red number. **Scan again** runs a new scan.
 
 - **On demand only.** One scan runs at a time on the server; a click while another scan is busy waits its turn and starts by itself. You can leave the page; the scan keeps running.
 - **Detection only.** The extension asks the scanner to report, never to clean, quarantine or delete. maldet runs with its own quarantine setting, which is off by default; leave `quarantine_hits=0` in `/usr/local/maldetect/conf.maldet`.
@@ -120,6 +122,8 @@ In the list of infected files, the administrator gets an **Action** column. Noth
 
 - **Clean** (needs ImunifyAV+ or Imunify360): Stingy Scanner first asks Imunify whether it recognises the file; if Imunify has not seen it yet, it scans only that file (detection only). It then shows **what Imunify will change** (removed lines in red) before you confirm. Imunify removes the malicious code, or empties the file when the whole file is malicious, and keeps the original: **Undo** puts it back. Files Imunify does not recognise cannot be cleaned; use Quarantine for those. This also works for files ClamAV found.
 - **Quarantine** (any server): the file is moved to `/var/lib/stingyscan/quarantine`, a folder only root can open, together with its original place, permissions, date and checksum. **Restore** puts it back exactly, and never overwrites a file that is there again.
+![Infected files with Clean and Quarantine, and Imunify's preview of what cleaning changes](docs/screenshots/file-actions.png)
+
 - **Clean all with Imunify** / **Quarantine all** handle every listed file one by one and report what was skipped.
 - **Cleaned and quarantined files** in the site details lists everything that was handled, with Undo / Restore. Each action is written to the site history and the Log tab.
 
@@ -143,7 +147,7 @@ The switches save right away and apply to the whole server; only the administrat
 
 ## Settings
 
-![Settings: VirusTotal with its daily budget, Google Safe Browsing, and the experimental AVG / Avast checks](docs/screenshots/settings.png)
+![Settings: VirusTotal with its daily budget, Google Safe Browsing, the experimental AVG / Avast checks, and the scan engine](docs/screenshots/settings.png)
 
 The **Settings** tab, from top to bottom (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
 

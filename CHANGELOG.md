@@ -3,6 +3,10 @@
 Every version of StingyScan for Plesk (called VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.1.1 — 2026-11-23
+- Site list: the status column is wider, so every detection (file scans, Avast/AVG, Google) stays on one line.
+- On the site rows, *Infected* now reads **Infected Reputation**: it is the reputation of the site address (VirusTotal and the other online services), not a file scan. The filter buttons keep the short name.
+
 ## 2.1.0 — 2026-11-23
 - **Clean and quarantine infected files** (administrator), in the list of infected files of a file scan:
   - **Clean** with Imunify (ImunifyAV+ or Imunify360): shows first what Imunify will change, then cleans after your confirmation. Imunify keeps the original: **Undo** puts it back. Works for files ClamAV found too (Imunify checks that one file first).

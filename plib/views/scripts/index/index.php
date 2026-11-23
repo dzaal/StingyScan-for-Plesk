@@ -144,7 +144,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-badge.nokey{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
 .vt-badge.scanning,.vt-badge.waiting{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 .vt-badge.loading,.vt-badge.unchecked,.vt-badge.error,.vt-badge.ratelimit,.vt-badge.quota_exceeded,.vt-badge.budget_exceeded{background:var(--gray-bg);color:var(--gray);border:1px solid var(--border)}
-.vt-fs-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);cursor:pointer;margin-top:3px}
+.vt-fs-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);cursor:pointer;margin-top:3px;white-space:nowrap}
 .vt-fs-badge:hover{background:var(--red);color:#fff}
 .vt-domain-name{font-weight:600;font-size:13px;color:var(--heading)}
 .vt-domain-ip{font-size:11px;color:var(--muted);margin-top:1px}
@@ -674,7 +674,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <table>
         <thead id="vt-thead-main">
           <tr>
-            <th style="width:120px">Status</th>
+            <th style="width:230px">Status</th>
             <th data-col="domain">Domain</th>
             <th style="width:155px" data-col="score">Score</th>
             <th style="width:135px" data-col="lastscan">Last scan</th>
@@ -696,7 +696,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <table>
         <thead>
           <tr>
-            <th style="width:120px">Status</th>
+            <th style="width:230px">Status</th>
             <th>Domain</th>
             <th style="width:155px">Score</th>
             <th style="width:135px">Last scan</th>
@@ -1456,7 +1456,8 @@ function rowHTML(domain,data){
     badge='<span class="vt-badge '+st+'"><span class="vt-spin"></span> '+(LABELS[st]??st)+'</span>';
   }else{
     const dot=dc?'<span class="vt-dot '+dc+'"></span>':'';
-    badge='<span class="vt-badge '+st+'">'+dot+(LABELS[st]??st)+'</span>';
+    // On the rows: this status is the site's reputation (VirusTotal and the other services), not its files
+    badge='<span class="vt-badge '+st+'" title="Reputation of the site address (VirusTotal and the other online services), not a file scan">'+dot+(st==='infected'?'Infected Reputation':(LABELS[st]??st))+'</span>';
   }
 
   // Dangerous tags

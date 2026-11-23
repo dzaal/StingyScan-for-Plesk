@@ -2886,7 +2886,7 @@ window.vtFaBulkClose=function(domain){delete faBulk[domain]; vtFsRefresh(domain)
 window.vtFaBulkGo=async function(domain,id){
   const what=faBulk[domain]?.ask, found=fsFull[domain+'|'+id]?.found||[];
   const todo=found.filter(f=>!faHandledOf(domain,f.file)&&!f.handled).map(f=>f.file);
-  let done=0, skipped=0, failed=0;
+  let done=0, skipped=0; const fails=[];
   for(let n=0;n<todo.length;n++){
     const file=todo[n];
     faBulk[domain]={busy:(what==='clean'?'Cleaning':'Moving')+' '+(n+1)+' of '+todo.length+': '+file}; vtFsRefresh(domain);
@@ -2897,10 +2897,11 @@ window.vtFaBulkGo=async function(domain,id){
       r=await faPost({op:'clean',domain,file});
     }else r=await faPost({op:'quarantine',domain,file});
     if(r.handled) handled[domain]=r.handled;
-    if(r.ok) done++; else failed++;
+    if(r.ok) done++; else fails.push(file+': '+(r.error||'failed'));
   }
-  faBulk[domain]={ok:!failed,msg:(what==='clean'?'Cleaned ':'Quarantined ')+done+' of '+todo.length+'.'
-    +(skipped?' '+skipped+' not recognised by Imunify (use Quarantine for those).':'')+(failed?' '+failed+' failed (see the Log tab).':'')+' Check the site, then scan again.'};
+  faBulk[domain]={ok:!fails.length,msg:(what==='clean'?'Cleaned ':'Quarantined ')+done+' of '+todo.length+'.'
+    +(skipped?' '+skipped+' not recognised by Imunify (use Quarantine for those).':'')
+    +(fails.length?' Not done: '+fails.join(' · ')+'.':'')+' Check the site, then scan again.'};
   vtFsRefresh(domain);
 };
 function fsRowHTML(domain,st){

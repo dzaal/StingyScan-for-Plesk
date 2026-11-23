@@ -123,7 +123,7 @@ In the list of infected files, the administrator gets an **Action** column. Noth
 - **Clean all with Imunify** / **Quarantine all** handle every listed file one by one and report what was skipped.
 - **Cleaned and quarantined files** in the site details lists everything that was handled, with Undo / Restore. Each action is written to the site history and the Log tab.
 
-Safety: the file must be inside the site's document root (no `..`, no symbolic links), and every read, write and delete of a site file runs as the subscription's own system user, never as root. A file the site user cannot read (for example one owned by root) is not moved. Cleaning is done by Imunify itself. Check the site after cleaning: a cleaned or removed file can break it until you undo. Cleaning removes the symptom, not the hole; update the site and change passwords too.
+Safety: the file must be inside the site's document root (no `..`, no symbolic links). Quarantine and Restore work for any file owner (site user, `apache`, root), and do the file work without following links: the path is opened folder by folder from `/var/www/vhosts`, a link anywhere in it stops the action, files with extra hard links are refused, and only the exact file that was copied is removed. Restore never overwrites a file and puts back the original owner, permissions and date. Cleaning is done by Imunify itself. Check the site after cleaning: a cleaned or removed file can break it until you undo. Cleaning removes the symptom, not the hole; update the site and change passwords too.
 
 ### Settings and request rates
 

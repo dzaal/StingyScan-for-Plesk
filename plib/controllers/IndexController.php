@@ -571,6 +571,9 @@ class IndexController extends pm_Controller_Action
                     break;
             }
             $r['handled'] = self::faHandled($domain);
+        } elseif (in_array($op, ['clean', 'restore', 'quarantine', 'unquarantine'], true)) {
+            $verb = ['clean' => 'clean', 'restore' => 'undo the cleanup of', 'quarantine' => 'quarantine', 'unquarantine' => 'restore'][$op];
+            $this->appendLog("[files] could not $verb $domain/$file: " . ($r['error'] ?? 'unknown error') . " (by $by)");
         }
         $this->respond($r);
     }

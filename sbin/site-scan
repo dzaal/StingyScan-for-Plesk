@@ -377,9 +377,9 @@ if ($mode === 'dump') {
 //
 // Safety:
 //  - The path must stay inside the site's document root (no "..", no symlink, realpath checked).
-//  - Every read, write and delete of a site file runs as the subscription's system user (runuser),
-//    never as root. A symlink swapped in by the site can therefore never make this touch a file
-//    the site user could not touch anyway.
+//  - Quarantine and restore walk the path folder by folder without following any link and refuse
+//    hard links (see py_fileop_src), so a link swapped in by the site never makes root touch a file
+//    outside the site.
 //  - Cleaning is done by Imunify itself, which keeps the original (restore-original = Undo).
 //  - Quarantine moves the file to a root-only folder with its original place, mode and time,
 //    so Restore puts it back exactly. Nothing is ever deleted for good.
@@ -426,13 +426,6 @@ function fa_site(string $host, string $rel, bool $mustExist = true): array
         if (!$dir || strpos($dir . '/', $root . '/') !== 0) out(['error' => 'The folder of the file no longer exists in the website']);
     }
     return ['host' => $host, 'root' => $root, 'rel' => $rel, 'path' => $path, 'user' => $pw['name']];
-}
-
-/** Run a command as the site user; returns [exit code, output] */
-function as_user(string $user, string $cmd): array
-{
-    exec('runuser -u ' . escapeshellarg($user) . ' -- ' . $cmd . ' 2>&1', $lines, $code);
-    return [$code, implode("\n", $lines)];
 }
 
 // ── Imunify ────────────────────────────────────────────────────
@@ -528,38 +521,123 @@ function imu_restore(array $site): array
 }
 
 // ── Quarantine ─────────────────────────────────────────────────
+// Root moves the file, so it works whoever owns it (the site user, apache, root). To make that safe
+// against a site that swaps in symbolic links, a small Python helper does the file work with
+// directory file descriptors: it walks from /var/www/vhosts one folder at a time without following
+// any link (O_NOFOLLOW), opens the file without following a link, refuses hard links, copies it,
+// and deletes exactly the file it copied (same inode). Restore creates the file only if nothing is
+// there (O_EXCL), again without following links, with the original owner, permissions and date.
+
+function py_fileop_src(): string
+{
+    return <<<'PY'
+import errno, json, os, stat, sys
+
+def walk(base, parts):
+    fd = os.open(base, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    for p in parts:
+        if p in ('', '.', '..'):
+            raise ValueError('Invalid file path')
+        nfd = os.open(p, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        os.close(fd)
+        fd = nfd
+    return fd
+
+def copy(r, w):
+    while True:
+        b = r.read(1 << 20)
+        if not b:
+            break
+        w.write(b)
+
+def main():
+    op, base, rel = sys.argv[1], sys.argv[2], sys.argv[3]
+    parts = rel.split('/')
+    name = parts[-1]
+    if name in ('', '.', '..'):
+        raise ValueError('Invalid file path')
+    pfd = walk(base, parts[:-1])
+    if op == 'take':
+        out = sys.argv[4]
+        fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=pfd)
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode):
+            raise ValueError('This is not a regular file')
+        if st.st_nlink > 1:
+            raise ValueError('The file has other hard links, so it was not moved')
+        with os.fdopen(fd, 'rb') as r, os.fdopen(os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as w:
+            copy(r, w)
+        now = os.stat(name, dir_fd=pfd, follow_symlinks=False)
+        if (now.st_ino, now.st_dev) != (st.st_ino, st.st_dev) or os.path.getsize(out) != st.st_size:
+            os.unlink(out)
+            raise ValueError('The file changed while it was being moved, so nothing was changed')
+        os.unlink(name, dir_fd=pfd)
+        print(json.dumps({'ok': True, 'uid': st.st_uid, 'gid': st.st_gid, 'mode': '%04o' % stat.S_IMODE(st.st_mode),
+                          'mtime': int(st.st_mtime), 'size': st.st_size}))
+    elif op == 'put':
+        src, uid, gid, mode, mtime = sys.argv[4], int(sys.argv[5]), int(sys.argv[6]), int(sys.argv[7], 8), int(sys.argv[8])
+        fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=pfd)
+        with open(src, 'rb') as r, os.fdopen(fd, 'wb') as w:
+            copy(r, w)
+            w.flush()
+            os.fchown(w.fileno(), uid, gid)
+            os.fchmod(w.fileno(), mode)
+            os.utime(w.fileno(), (mtime, mtime))
+        print(json.dumps({'ok': True}))
+    else:
+        raise ValueError('Unknown operation')
+
+try:
+    main()
+except FileExistsError:
+    print(json.dumps({'error': 'There is a file at this place again. Rename or remove it first, then restore.'}))
+except FileNotFoundError:
+    print(json.dumps({'error': 'The file or one of its folders no longer exists'}))
+except OSError as e:
+    if e.errno in (errno.ELOOP, errno.ENOTDIR, errno.EMLINK):
+        print(json.dumps({'error': 'A link was found in the path, so nothing was changed'}))
+    else:
+        print(json.dumps({'error': e.strerror or str(e)}))
+except Exception as e:
+    print(json.dumps({'error': str(e)}))
+PY;
+}
+
+/** Run the helper: take <base> <rel> <out> | put <base> <rel> <src> <uid> <gid> <mode> <mtime> */
+function py_fileop(array $args): array
+{
+    $py = bin_path('python3');
+    if (!$py) return ['error' => 'python3 is needed for the quarantine and is not installed'];
+    $out = (string)shell_exec(escapeshellarg($py) . ' -I -c ' . escapeshellarg(py_fileop_src()) . ' '
+                            . implode(' ', array_map('escapeshellarg', $args)) . ' 2>&1');
+    $lines = array_values(array_filter(array_map('trim', explode("\n", $out))));
+    $d = json_decode((string)end($lines), true);
+    return is_array($d) ? $d : ['error' => 'The quarantine helper failed: ' . substr($out, 0, 300)];
+}
+
+/** Path of a site file relative to /var/www/vhosts, for the helper */
+function vh_rel(string $path): string
+{
+    return substr($path, strlen(VHOSTS));
+}
 
 function q_add(array $site, string $by = ''): array
 {
     if (!is_dir(QDIR)) { @mkdir(QDIR, 0700, true); @chmod(dirname(QDIR), 0700); }
-    $st  = lstat($site['path']);
     $qid = date('Ymd-His') . '-' . bin2hex(random_bytes(4));
     $dir = QDIR . '/' . $qid;
     if (!@mkdir($dir, 0700)) return ['error' => 'Could not create the quarantine folder'];
-    // Copy as the site user (it can only read what the site can read), then compare
     $copy = $dir . '/file';
-    // (the redirect is done by root's shell into the root-only folder; only the reading runs as the site user)
-    exec('runuser -u ' . escapeshellarg($site['user']) . ' -- cat -- ' . escapeshellarg($site['path']) . ' > ' . escapeshellarg($copy) . ' 2>/dev/null', $o, $code);
-    clearstatcache();
-    if ($code !== 0 || !is_file($copy) || filesize($copy) !== $st['size']) {
-        @unlink($copy); @rmdir($dir);
-        return ['error' => 'The site user cannot read this file, so it was not moved (it may belong to root or another user)'];
-    }
-    chmod($copy, 0600);
+    $r = py_fileop(['take', rtrim(VHOSTS, '/'), vh_rel($site['path']), $copy]);
+    if (empty($r['ok'])) { @unlink($copy); @rmdir($dir); return ['error' => $r['error'] ?? 'The file could not be moved']; }
     $meta = [
         'qid' => $qid, 'domain' => $site['host'], 'rel' => $site['rel'], 'path' => $site['path'], 'user' => $site['user'],
-        'owner' => posix_getpwuid($st['uid'])['name'] ?? (string)$st['uid'], 'mode' => sprintf('%04o', $st['mode'] & 07777),
-        'mtime' => $st['mtime'], 'size' => $st['size'], 'sha256' => hash_file('sha256', $copy), 'at' => time(), 'by' => $by,
+        'owner' => posix_getpwuid((int)$r['uid'])['name'] ?? (string)$r['uid'], 'uid' => (int)$r['uid'], 'gid' => (int)$r['gid'],
+        'mode' => (string)$r['mode'], 'mtime' => (int)$r['mtime'], 'size' => (int)$r['size'],
+        'sha256' => hash_file('sha256', $copy), 'at' => time(), 'by' => $by,
     ];
     file_put_contents($dir . '/meta.json', json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     chmod($dir . '/meta.json', 0600);
-    // Remove the original, again as the site user
-    [$code, $msg] = as_user($site['user'], 'rm -f -- ' . escapeshellarg($site['path']));
-    clearstatcache();
-    if ($code !== 0 || file_exists($site['path'])) {
-        @unlink($copy); @unlink($dir . '/meta.json'); @rmdir($dir);
-        return ['error' => 'The file could not be removed from the site, so nothing was changed' . ($msg ? ': ' . $msg : '')];
-    }
     return ['ok' => true, 'qid' => $qid, 'item' => array_diff_key($meta, ['path' => 1])];
 }
 
@@ -586,20 +664,16 @@ function q_restore(string $qid): array
     $m = q_meta($qid);
     if (!$m) return ['error' => 'This file is no longer in quarantine'];
     $site = fa_site($m['domain'], $m['rel'], false);
-    if (file_exists($site['path']) || is_link($site['path'])) {
-        return ['error' => 'There is a file at ' . $m['rel'] . ' again. Rename or remove it first, then restore.'];
-    }
     $copy = QDIR . '/' . $qid . '/file';
     if (hash_file('sha256', $copy) !== $m['sha256']) return ['error' => 'The quarantined copy has changed; not restored'];
-    // Write as the site user; conv=excl never overwrites a file that appeared in the meantime
-    exec('runuser -u ' . escapeshellarg($site['user']) . ' -- dd ' . escapeshellarg('of=' . $site['path']) . ' conv=excl status=none < ' . escapeshellarg($copy) . ' 2>&1', $lines, $code);
-    clearstatcache();
-    if ($code !== 0 || !is_file($site['path'])) return ['error' => 'Could not write the file back: ' . implode(' ', $lines)];
-    as_user($site['user'], 'chmod ' . escapeshellarg(preg_match('/^0?[0-7]{3,4}$/', $m['mode']) ? $m['mode'] : '0644') . ' -- ' . escapeshellarg($site['path']));
-    as_user($site['user'], 'touch -d ' . escapeshellarg('@' . (int)$m['mtime']) . ' -- ' . escapeshellarg($site['path']));
+    // Original owner; quarantines made before 2.2.1 have no uid/gid: the site user then
+    $uid = isset($m['uid']) ? (int)$m['uid'] : (int)(posix_getpwnam($m['owner'])['uid'] ?? posix_getpwnam($site['user'])['uid']);
+    $gid = isset($m['gid']) ? (int)$m['gid'] : (int)(posix_getgrnam('psacln')['gid'] ?? 0);
+    $mode = preg_match('/^0?[0-7]{3,4}$/', (string)$m['mode']) ? (string)$m['mode'] : '0644';
+    $r = py_fileop(['put', rtrim(VHOSTS, '/'), vh_rel($site['path']), $copy, (string)$uid, (string)$gid, $mode, (string)(int)$m['mtime']]);
+    if (empty($r['ok'])) return ['error' => str_replace('this place', $m['rel'], $r['error'] ?? 'Could not write the file back')];
     @unlink($copy); @unlink(QDIR . '/' . $qid . '/meta.json'); @rmdir(QDIR . '/' . $qid);
-    $note = $m['owner'] !== $site['user'] ? 'Restored as ' . $site['user'] . ' (it belonged to ' . $m['owner'] . ')' : '';
-    return ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel'], 'note' => $note];
+    return ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel'], 'note' => ''];
 }
 
 if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | wpconfigs | dump <db> [prefix] | start <scanner> <hostname> | fileact <op> <hostname> <file>']);

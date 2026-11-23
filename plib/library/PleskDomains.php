@@ -355,6 +355,36 @@ class PleskDomains
         return $out;
     }
 
+    /**
+     * Address of each site's page in Plesk (Websites & Domains → the domain): [domain => url].
+     * Administrator and reseller go through the subscription (as Plesk's own domain list does);
+     * a customer opens the domain page directly. Hostnames without their own domain entry
+     * (WordPress subsites) open the domain they fall under.
+     */
+    public static function panelUrls(array $domains, string $role): array
+    {
+        $pdo = self::pleskPdo();
+        if (!$pdo || !$domains) return [];
+        try {
+            $rows = $pdo->query("SELECT LOWER(name), id, COALESCE(NULLIF(webspace_id,0), id) FROM domains")->fetchAll(\PDO::FETCH_NUM);
+        } catch (\PDOException $e) {
+            return [];
+        }
+        $byName = [];
+        foreach ($rows as [$n, $id, $ws]) $byName[$n] = [(int)$id, (int)$ws];
+        $out = [];
+        foreach ($domains as $d) {
+            for ($n = $d; $n !== '' && substr_count($n, '.') >= 1; $n = substr($n, strpos($n, '.') + 1)) {
+                if (!isset($byName[$n])) continue;
+                [$id, $ws] = $byName[$n];
+                $page = '/smb/web/overview/id/' . $id . '/type/domain';
+                $out[$d] = $role === 'client' ? $page : '/admin/subscription/login/id/' . $ws . '?pageUrl=' . rawurlencode($page);
+                break;
+            }
+        }
+        return $out;
+    }
+
     /** Database id and the subscription (webspace) it belongs to, from Plesk: [db name => [id, webspace]] */
     public static function pleskDatabases(): array
     {

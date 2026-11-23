@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.2.2 — 2026-11-23
+- Site list: next to **Site** and **VT**, two more small buttons: **Panel** opens the site in Plesk (Websites & Domains), and **Copy** copies the domain name.
+
 ## 2.2.1 — 2026-11-23
 - Quarantine now works for every file, also for files owned by root or another user (before, only files the site user could read). Root does the file work without following any link: the path is opened folder by folder, a link anywhere stops it, hard links are refused, and only the exact file that was copied is removed. Restore puts back the original owner, permissions and date, and never overwrites a file.
 - When cleaning or quarantine fails, the log says why, and *Clean all* / *Quarantine all* name the reason per file.

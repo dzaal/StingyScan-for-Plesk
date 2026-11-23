@@ -1071,7 +1071,7 @@ async function init(){
 
   // Phase 2 — full data: results, owners, scanners, history
   const data=await vtFetch('?action=all').catch(()=>({}));
-  domains=data.domains||domains; related=data.related||[]; relSet=new Set(related); orphans=data.orphans||{}; owners=data.owners||{}; results=data.results||{};
+  panelUrl=data.panel||{}; domains=data.domains||domains; related=data.related||[]; relSet=new Set(related); orphans=data.orphans||{}; owners=data.owners||{}; results=data.results||{};
   for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
   for(const d in scans) for(const id in scans[d]) if(fsBusy(d,id)) vtFsPoll(d,id);
   vtSet('vt-cnt-all',domains.length);
@@ -1494,7 +1494,9 @@ function rowHTML(domain,data){
   // IP address
   const ipHtml=data?.ip?'<div class="vt-domain-ip">'+vtEsc(data.ip)+'</div>':'';
   const vtId=btoa('https://'+domain).replace(/=/g,'');
-  let domainCell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+ageHtml+'<span class="vt-dlinks"><a href="https://'+vtEsc(domain)+'" target="_blank" rel="noopener">Site</a><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">VT</a></span>'+ipHtml;
+  let domainCell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+ageHtml+'<span class="vt-dlinks"><a href="https://'+vtEsc(domain)+'" target="_blank" rel="noopener">Site</a><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">VT</a>'
+    +(panelUrl[domain]?'<a href="'+vtEsc(panelUrl[domain])+'" target="_blank" rel="noopener" title="Open this site in Plesk (Websites &amp; Domains)">Panel</a>':'')
+    +'<a href="#" data-copy="'+vtEsc(domain)+'" onclick="return vtCopyDomain(this)" title="Copy the domain name">Copy</a></span>'+ipHtml;
 
   if(relSet.has(domain)) domainCell+=orphanInfoHTML(domain);
 
@@ -2426,6 +2428,18 @@ function vtAgo(ts){
   if(s<3600) return Math.round(s/60)+' min ago';
   if(s<86400) return Math.round(s/3600)+' h ago';
   return new Date(ts*1000).toLocaleDateString();
+}
+let panelUrl={}; // site → its page in Plesk
+// Copy within the click itself (works without window focus); the Clipboard API only as a fallback
+window.vtCopyDomain=function(el){
+  const name=el.dataset.copy, done=()=>{el.textContent='Copied ✓'; setTimeout(()=>{el.textContent='Copy';},1500);};
+  if(vtCopyNow(name)) done();
+  else navigator.clipboard?.writeText(name).then(done,()=>{el.textContent='Copy failed'; setTimeout(()=>{el.textContent='Copy';},1500);});
+  return false;
+};
+function vtCopyNow(text){
+  const t=document.createElement('textarea'); t.value=text; t.setAttribute('readonly',''); t.style.position='fixed'; t.style.top='-1000px';
+  document.body.appendChild(t); t.select(); let ok=false; try{ok=document.execCommand('copy');}catch(e){} t.remove(); return ok;
 }
 function fsGet(d,id){return scans[d]?.[id]||null;}
 function fsBusy(d,id){return ['running','queued'].includes(fsGet(d,id)?.status);}

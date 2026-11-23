@@ -244,6 +244,7 @@ class IndexController extends pm_Controller_Action
             'domains' => $domains,
             'related' => $related,
             'owners'  => $this->role() === 'client' ? [] : PleskDomains::owners(array_merge($domains, $related)),
+            'panel'   => PleskDomains::panelUrls($domains, $this->role()),
             'orphans' => $this->role() === 'admin' ? self::orphanInfo($related) : [],
             'results' => $results,
             'budget'  => $budgetInfo,

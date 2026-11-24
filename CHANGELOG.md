@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.0 — 2026-11-24
+- Dashboard budget strip replaced by three compact donut charts: **Auto** (blue), **Manual left** (green) and **VT quota** (amber), with the daily limit and date alongside.
+- File scanner jobs in the Scan Monitor now show real progress: ClamAV reports *X of Y files · ~N min left*; Imunify shows its own phase and percentage. Duration is shown when the scan finishes.
+
 ## 2.4.1 — 2026-11-23
 - The **Error** filter button above the site list is gone. Sites without a result still show *No result* in the list and can be rescanned from their row.
 

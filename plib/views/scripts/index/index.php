@@ -67,13 +67,22 @@ body:has(#vt-wrap) .pul-page-header.page-content-header{display:none}
 .vt-alert a{font-weight:600;color:inherit;text-decoration:underline;cursor:pointer}
 
 /* Budget strip */
-.vt-budget{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
-.vt-b-cell{flex:1;padding:12px 16px;border-right:1px solid var(--border)}
-.vt-b-cell:last-child{border-right:none}
-.vt-b-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
-.vt-b-num{font-size:20px;font-weight:800;color:var(--heading);line-height:1}
-.vt-b-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.vt-b-track{height:4px;background:var(--border);border-radius:2px;margin-top:7px;overflow:hidden}
+.vt-budget{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;padding:10px 20px}
+.vt-bc-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
+.vt-bc-wrap{position:relative;width:56px;height:56px}
+.vt-bc-svg{width:56px;height:56px;transform:rotate(-90deg)}
+.vt-bc-track{fill:none;stroke:var(--border);stroke-width:3.5}
+.vt-bc-arc{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:0 100;transition:stroke-dasharray .5s}
+.vt-bc-arc.auto{stroke:#2563eb}
+.vt-bc-arc.manual{stroke:#16a34a}
+.vt-bc-arc.quota{stroke:#d97706}
+.vt-bc-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--heading)}
+.vt-bc-name{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.vt-bc-sub{font-size:10px;color:var(--muted)}
+.vt-bc-sep{width:1px;height:56px;background:var(--border);align-self:center}
+.vt-bc-meta{flex:1;padding-left:4px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.vt-bc-meta strong{color:var(--heading);font-weight:700}
+.vt-bc-mlbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:3px}
 .vt-b-fill{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
 .vt-b-fill.warn{background:var(--yellow)}.vt-b-fill.crit{background:var(--red)}
 
@@ -222,6 +231,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-q-steps span.bad{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
 .vt-q-pbar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;max-width:260px}
 .vt-q-pbar div{height:100%;background:var(--blue);transition:width .4s}
+.vt-q-item.vt-q-fs .vt-q-pbar div{background:#f59e0b}
 .vt-q-right{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
 .vt-q-right .vt-badge{margin-bottom:2px}
 
@@ -582,33 +592,35 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-budget">
-      <div class="vt-b-cell">
-        <div class="vt-b-label">Auto scans today</div>
-        <div class="vt-b-num" id="vt-auto-num">—</div>
-        <div class="vt-b-sub" id="vt-auto-sub">of — calls</div>
-        <div class="vt-b-track"><div class="vt-b-fill" id="vt-auto-bar" style="width:0%"></div></div>
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc auto" id="vt-auto-ring" cx="18" cy="18" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-auto-num">—</div>
+        </div>
+        <div class="vt-bc-name">Auto</div>
+        <div class="vt-bc-sub" id="vt-auto-sub">of —</div>
       </div>
-      <div class="vt-b-cell">
-        <div class="vt-b-label">Manual remaining</div>
-        <div class="vt-b-num" id="vt-manual-num">—</div>
-        <div class="vt-b-sub" id="vt-manual-sub">of — available</div>
-        <div class="vt-b-track"><div class="vt-b-fill" id="vt-manual-bar" style="width:0%"></div></div>
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc manual" id="vt-manual-ring" cx="18" cy="18" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-manual-num">—</div>
+        </div>
+        <div class="vt-bc-name">Manual left</div>
+        <div class="vt-bc-sub" id="vt-manual-sub">of —</div>
       </div>
-      <div class="vt-b-cell">
-        <div class="vt-b-label">VT quota used today</div>
-        <div class="vt-b-num" id="vt-quota-num">—</div>
-        <div class="vt-b-sub" id="vt-quota-sub">of 500 requests</div>
-        <div class="vt-b-track"><div class="vt-b-fill" id="vt-quota-bar" style="width:0%"></div></div>
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc quota" id="vt-quota-ring" cx="18" cy="18" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-quota-num">—</div>
+        </div>
+        <div class="vt-bc-name">VT quota</div>
+        <div class="vt-bc-sub" id="vt-quota-sub">of 500</div>
       </div>
-      <div class="vt-b-cell">
-        <div class="vt-b-label">Daily limit</div>
-        <div class="vt-b-num" id="vt-daily-total">—</div>
-        <div class="vt-b-sub">requests per day</div>
-      </div>
-      <div class="vt-b-cell">
-        <div class="vt-b-label">Date</div>
-        <div class="vt-b-num" id="vt-budget-date" style="font-size:14px;padding-top:3px">—</div>
-        <div class="vt-b-sub">resets at midnight UTC</div>
+      <div class="vt-bc-sep"></div>
+      <div class="vt-bc-meta">
+        <div><span class="vt-bc-mlbl">Limit</span> <strong id="vt-daily-total">—</strong> req/day</div>
+        <div><span class="vt-bc-mlbl">Date</span> <strong id="vt-budget-date">—</strong></div>
+        <div style="font-size:10px">resets at midnight UTC</div>
       </div>
     </div>
 
@@ -1233,17 +1245,17 @@ function updateBudget(){
   const au=budget.auto_used??0, am=budget.auto_max;
   const mu=budget.manual_used??0, mm=budget.manual_max;
   vtSet('vt-auto-num',    au);
-  vtSet('vt-auto-sub',    'of '+am+' calls');
+  vtSet('vt-auto-sub',    'of '+am);
   vtSet('vt-manual-num',  mm-mu);
-  vtSet('vt-manual-sub',  'of '+mm+' available');
+  vtSet('vt-manual-sub',  'of '+mm);
   vtSet('vt-daily-total', am+mm);
   vtSet('vt-budget-date', budget.date??'—');
-  vtBar('vt-auto-bar',   Math.round(au/am*100));
-  vtBar('vt-manual-bar', Math.round(mu/mm*100));
+  vtRing('vt-auto-ring',   Math.round(au/am*100));
+  vtRing('vt-manual-ring', Math.round((mm-mu)/mm*100));
   const qused=budget.vt_quota_used??0;
   vtSet('vt-quota-num', qused);
-  vtSet('vt-quota-sub', 'of 500 requests');
-  vtBar('vt-quota-bar', Math.round(qused/500*100));
+  vtSet('vt-quota-sub', 'of 500');
+  vtRing('vt-quota-ring', Math.round(qused/500*100));
   vtSet('vts-auto-label',   au+' / '+am);
   vtSet('vts-manual-label', mu+' / '+mm);
   vtSet('vts-date', budget.date??'—');
@@ -1302,6 +1314,12 @@ function vtBar(id,pct){
   if(!el) return;
   el.style.width=pct+'%';
   el.className='vt-b-fill'+(pct>85?' crit':pct>65?' warn':'');
+}
+function vtRing(id,pct){
+  const el=document.getElementById(id); if(!el) return;
+  const p=Math.max(0,Math.min(100,pct));
+  el.setAttribute('stroke-dasharray',p+' 100');
+  if(p>85) el.style.stroke='#dc2626'; else el.style.removeProperty('stroke');
 }
 
 // ── Table ─────────────────────────────────────────────────────
@@ -2110,12 +2128,12 @@ let fsJobs=[];
 function getFsJob(domain,id){return fsJobs.find(j=>j.domain===domain&&j.scanner===id&&!j.endedAt);}
 function addFsJob(domain,id){
   fsJobs=fsJobs.filter(j=>!(j.domain===domain&&j.scanner===id)); // drop any old entry
-  const j={id:'fs-'+(++jobSeq),domain,scanner:id,state:'running',startedAt:Date.now(),endedAt:null,result:null,msg:''};
+  const j={id:'fs-'+(++jobSeq),domain,scanner:id,state:'running',startedAt:Date.now(),endedAt:null,result:null,msg:'',progress:null};
   fsJobs.push(j); startQTicker(); return j;
 }
-function updateFsJob(domain,id,state,result,msg){
+function updateFsJob(domain,id,state,result,msg,progress){
   const j=getFsJob(domain,id); if(!j) return;
-  j.state=state; if(result) j.result=result; if(msg) j.msg=msg;
+  j.state=state; if(result) j.result=result; if(msg) j.msg=msg; if(progress!==undefined) j.progress=progress;
   if(state==='done'||state==='failed') j.endedAt=Date.now();
   renderQueue();
 }
@@ -2125,25 +2143,48 @@ function fsJobHTML(j){
   else if(j.state==='failed') icon='<div class="vt-q-icon bad">✕</div>';
   else if(j.state==='queued') icon='<div class="vt-q-icon">…</div>';
   else icon='<div class="vt-q-icon"><span class="vt-spin"></span></div>';
+
+  const prog=j.state==='running'&&j.progress?fsProgress(j.progress):null;
+
   let msg=j.msg;
   if(!msg){
-    if(j.state==='running')      msg='Scanning files…';
+    if(j.state==='running'){
+      if(prog){
+        const imu=String(j.progress?.phase||'').startsWith('Imunify');
+        msg=imu?(j.progress.phase+(prog.pct?' · '+prog.pct+'%':''))
+               :(prog.files+(prog.left?' · '+prog.left:''));
+      } else {
+        msg='Scanning files…';
+      }
+    }
     else if(j.state==='queued')  msg='Waiting — another scan is running on the server';
     else if(j.state==='done')    msg=j.result?(j.result.infected?j.result.infected+' infected file(s) found in '+(j.result.files||0).toLocaleString()+' files':'No infected files in '+(j.result.files||0).toLocaleString()+' files'):'Scan complete';
     else                         msg='Scan failed';
   }
+
+  let pbar='';
+  if(prog){
+    pbar='<div class="vt-q-pbar"><div style="width:'+prog.pct+'%"></div></div>';
+  }else if(j.state==='running'){
+    const pct=Math.min(90,Math.round((Date.now()-j.startedAt)/300000*100));
+    pbar='<div class="vt-q-pbar"><div style="width:'+pct+'%"></div></div>';
+  }else if(j.state==='done'){
+    pbar='<div class="vt-q-pbar"><div style="width:100%"></div></div>';
+  }
+
   let right='';
   if(j.state==='done'&&j.result){
-    right=j.result.infected
+    const dur=(j.endedAt&&j.startedAt)?'<div>'+fmtSecs(j.endedAt-j.startedAt)+'</div>':'';
+    right=dur+(j.result.infected
       ?'<span class="vt-badge infected"><span class="vt-dot dot-r"></span>'+j.result.infected+' infected</span>'
-      :'<span class="vt-badge clean"><span class="vt-dot dot-g"></span>Clean</span>';
+      :'<span class="vt-badge clean"><span class="vt-dot dot-g"></span>Clean</span>');
   }else if(j.state==='running'){
     right='<div>'+fmtSecs(Date.now()-j.startedAt)+'</div>';
   }
   return '<div class="vt-q-item vt-q-fs '+j.state+'">'+icon
     +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(j.domain)
     +'<span class="vt-q-kind fs">'+vtEsc(fsName(j.scanner))+'</span></div>'
-    +'<div class="vt-q-msg">'+vtEsc(msg)+'</div></div>'
+    +'<div class="vt-q-msg">'+vtEsc(msg)+'</div>'+pbar+'</div>'
     +'<div class="vt-q-right">'+right+'</div></div>';
 }
 
@@ -3111,10 +3152,10 @@ async function vtFsPoll(domain,id){
       if(!r?.result) continue;
       const prev=scans[domain]?.[id]?.status, prevDone=scans[domain]?.[id]?.done;
       (scans[domain]=scans[domain]||{})[id]=r.result;
-      if(r.result.status==='running') updateFsJob(domain,id,'running',null,'');
-      else if(r.result.status==='queued') updateFsJob(domain,id,'queued',null,'');
-      else if(r.result.status==='done') updateFsJob(domain,id,'done',r.result,'');
-      else updateFsJob(domain,id,'failed',null,r.result.message||r.result.status||'Error');
+      if(r.result.status==='running') updateFsJob(domain,id,'running',null,'',r.result);
+      else if(r.result.status==='queued') updateFsJob(domain,id,'queued',null,'',null);
+      else if(r.result.status==='done') updateFsJob(domain,id,'done',r.result,'',null);
+      else updateFsJob(domain,id,'failed',null,r.result.message||r.result.status||'Error',null);
       if(['running','queued'].includes(r.result.status)){ if(prev!==r.result.status||prevDone!==r.result.done) vtFsRefresh(domain); continue; }
       fsFull[key]=r.result; vtFsRefresh(domain);
       if(fsOpen[domain]!==id){ // panel closed meanwhile: tell the user

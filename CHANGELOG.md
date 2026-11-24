@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.1 — 2026-11-24
+- Installing or upgrading to Stingy Scanner now automatically removes the old VT Site Scanner extension (`virustotal-extension`) if it is still installed. Settings, results and history are copied over first.
+
 ## 2.5.0 — 2026-11-24
 - Dashboard budget strip replaced by three compact donut charts: **Auto** (blue), **Manual left** (green) and **VT quota** (amber), with the daily limit and date alongside.
 - File scanner jobs in the Scan Monitor now show real progress: ClamAV reports *X of Y files · ~N min left*; Imunify shows its own phase and percentage. Duration is shown when the scan finishes.

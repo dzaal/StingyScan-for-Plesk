@@ -573,7 +573,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <img class="vt-brand-logo" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/logo-128.png') ?>" alt="" width="48" height="48">
     <div class="vt-brand-text">
       <div class="vt-brand-name">Stingy Scanner<?php if ($this->version): ?> <span class="vt-brand-ver">v<?= htmlspecialchars($this->version) ?></span><?php endif; ?></div>
-      <div class="vt-brand-tag">Malware, phishing and spam monitoring for every hosted website on this server, powered by VirusTotal</div>
+      <div class="vt-brand-tag">Reputation scanner for every website on this server: finds malware, phishing and hacked admin accounts, and helps a site win its good name back after an attack</div>
     </div>
     <a class="vt-brand-by" href="#about" onclick="vtShowTab('about');return false;" title="About the maker">
       <span>by</span> <strong>Digizaal</strong>

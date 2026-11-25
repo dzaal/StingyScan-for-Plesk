@@ -16,7 +16,7 @@ class Modules_Stingyscan_CustomButtons extends pm_Hook_CustomButtons
         return [[
             'place'       => $places,
             'title'       => 'Stingy Scanner',
-            'description' => 'Malware, phishing and spam monitoring for your websites',
+            'description' => 'Reputation scanner for your websites, and help to recover after an attack',
             'icon'        => pm_Context::getBaseUrl() . 'images/icon.png',
             'link'        => pm_Context::getActionUrl('index'),
         ]];

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/VtServerName.php';
 require_once __DIR__ . '/VtDataDir.php';
 require_once __DIR__ . '/VtSettings.php';
 require_once __DIR__ . '/VtCache.php';
@@ -231,7 +232,7 @@ class VtNotifier
         $L[] = 'Stingy Scanner: ' . self::panelUrl();
         $L[] = '';
         $L[] = '-- ';
-        $L[] = 'Stingy Scanner on ' . self::host() . '. Change or switch off these e-mails in Settings.';
+        $L[] = 'Stingy Scanner on ' . VtServerName::label() . '. Change or switch off these e-mails in Settings.';
         return [$subject, implode("\n", $L) . "\n"];
     }
 
@@ -250,11 +251,11 @@ class VtNotifier
 
     private static function host(): string
     {
-        return (string)(gethostname() ?: 'localhost');
+        return VtServerName::used();
     }
 
     private static function panelUrl(): string
     {
-        return 'https://' . self::host() . ':8443/modules/stingyscan/';
+        return VtServerName::panelUrl();
     }
 }

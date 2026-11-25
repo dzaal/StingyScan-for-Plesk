@@ -2,6 +2,7 @@
 require_once __DIR__ . '/VtPwned.php';
 require_once __DIR__ . '/VtNotifier.php';
 require_once __DIR__ . '/PleskDomains.php';
+require_once __DIR__ . '/VtServerName.php';
 
 /**
  * VtPwnedMail: the e-mail to a WordPress administrator whose address is in known data breaches,
@@ -19,7 +20,7 @@ class VtPwnedMail
     /** Name and address of the sender: the server administrator (company name from Plesk) */
     public static function sender(): array
     {
-        $email = VtNotifier::emailOfLogin('admin') ?: ('noreply@' . (gethostname() ?: 'localhost'));
+        $email = VtNotifier::emailOfLogin('admin') ?: ('noreply@' . VtServerName::used());
         $name  = '';
         try {
             $pdo  = PleskDomains::pdo();
@@ -96,7 +97,7 @@ class VtPwnedMail
             . '</ul>'
             . '<p style="margin-top:22px">Questions? Just reply to this e-mail.</p>'
             . '<p>Kind regards,<br>' . $e($from) . '</p>'
-            . '<p style="font-size:11px;color:#9ca3af;margin-top:24px">Breach data: ' . $e($src) . '. Only your e-mail address was looked up; no passwords were sent anywhere.</p>'
+            . '<p style="font-size:11px;color:#9ca3af;margin-top:24px">Sent by the hosting server ' . $e(VtServerName::label()) . '. Breach data: ' . $e($src) . '. Only your e-mail address was looked up; no passwords were sent anywhere.</p>'
             . '</div>';
 
         // ── Plain text ──
@@ -113,7 +114,7 @@ class VtPwnedMail
                 . (!empty($b['data']) ? ': ' . implode(', ', $b['data']) : '') . "\n";
         }
         $t .= "\nAlso change your password at those services and anywhere else you used it, use a password manager, and turn on two-factor login.\n\n"
-            . "Questions? Just reply to this e-mail.\n\nKind regards,\n$from\n";
+            . "Questions? Just reply to this e-mail.\n\nKind regards,\n$from\n\n-- \nSent by the hosting server " . VtServerName::label() . "\n";
         return [$subject, $h, $t];
     }
 

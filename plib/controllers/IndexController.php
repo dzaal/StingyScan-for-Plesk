@@ -22,6 +22,7 @@ require_once $_vtLib . '/VtLogRotate.php';
 require_once $_vtLib . '/VtSafeBrowsing.php';
 require_once $_vtLib . '/VtExternal.php';
 require_once $_vtLib . '/VtPwned.php';
+require_once $_vtLib . '/VtServerName.php';
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -87,6 +88,8 @@ class IndexController extends pm_Controller_Action
     {
         // Browser tab title; Plesk's own page header is hidden by the view (branded header instead)
         $this->view->pageTitle = 'Stingy Scanner';
+        // The server name the administrator uses (for e-mails and links; the machine's own name can differ)
+        if ($this->role() === 'admin') VtServerName::remember((string)($_SERVER['HTTP_HOST'] ?? ''));
         $this->view->baseUrl   = pm_Context::getBaseUrl();
         $version = $this->installedVersion();
         $this->view->version   = $version;
@@ -1166,7 +1169,7 @@ class IndexController extends pm_Controller_Action
             $to = strtolower(trim((string)$this->_getParam('to', '')));
             if ($mode === 'test' && !filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Enter a valid address to send the test to']); return; }
             [$subject, $html, $text] = VtPwnedMail::build($email, $sites, $res, $mode === 'test' ? $email : null);
-            if ($mode === 'preview') { $this->respond(['ok' => true, 'subject' => $subject, 'html' => $html, 'sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'cms' => $s['cms'], 'ready' => $s['cms'] === 'WordPress' && $s['id'] > 0 && $s['path'] !== ''], $all), 'from' => VtPwnedMail::sender()]); return; }
+            if ($mode === 'preview') { $this->respond(['ok' => true, 'subject' => $subject, 'html' => $html, 'sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'cms' => $s['cms'], 'ready' => $s['cms'] === 'WordPress' && $s['id'] > 0 && $s['path'] !== ''], $all), 'from' => VtPwnedMail::sender(), 'server' => VtServerName::label()]); return; }
             $ok = VtPwnedMail::send($to, $subject, $html, $text);
             $this->appendLog('[pwned] test e-mail for ' . $email . ' sent to ' . $to . ' by ' . $by . ($ok ? '' : ' (FAILED)'));
             $this->respond($ok ? ['ok' => true, 'sent_to' => $to] : ['error' => 'The mail server did not accept the message']);

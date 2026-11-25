@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.8.1 — 2026-11-25
+- E-mails and links name the server **as you open it** in the browser (for example *server22.example.com*), with the machine's internal name in brackets when it differs: in the Pwned? fix e-mail ("Sent by the hosting server …"), the fix panel, the notification e-mails and their link to Stingy Scanner. The name is remembered each time the administrator opens Stingy Scanner.
+
 ## 2.8.0 — 2026-11-25
 - **Pwned? covers more than WordPress:** administrators of **Joomla** (groups *Administrator* and *Super Users*), **Drupal** 7–11 (role *administrator* and user 1) and **Wotan / phpwotan** (users with admin rights, directly or through their group) are listed and tested too, with a small label showing the system. Only the install in a site's document root counts, so old copies next to it are skipped; only databases on this server are read, read-only.
 - *Fix…* resets WordPress passwords only; accounts in other systems are listed in the fix panel to change by hand.

@@ -2853,7 +2853,7 @@ function vtPwFixRender(){
     const ready=d.sites.filter(s=>s.ready), n=d.sites.length;
     h+='<ol class="vt-pw-steps"><li><strong>Reset the password</strong> of this administrator on '+(n===1?'this site':'these '+n+' sites')+' to an unknown random password, and log them out everywhere:'
       +'<ul>'+d.sites.map(s=>'<li>'+vtEsc(s.host)+' <span class="hint">as '+vtEsc(s.login)+(s.cms&&s.cms!=='WordPress'?' · '+vtEsc(s.cms)+': not reset automatically, change it in the site itself':s.ready?'':' · WordPress install not found on disk, skipped')+'</span></li>').join('')+'</ul></li>'
-      +'<li><strong>E-mail '+vtEsc(f.email)+'</strong> from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>: what was found, why the password was reset, and a link per site to choose a new password themselves.</li></ol>'
+      +'<li><strong>E-mail '+vtEsc(f.email)+'</strong> from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>, sent by the server <strong>'+vtEsc(d.server||'')+'</strong>: what was found, why the password was reset, and a link per site to choose a new password themselves.</li></ol>'
       +(fx?'<div class="vt-fs-note">Already fixed on '+new Date(fx.at*1000).toLocaleString()+(fx.by?' by '+vtEsc(fx.by):'')+'.</div>':'')
       +'<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'
       +'<iframe class="vt-pw-prev" sandbox="" title="Preview of the e-mail"></iframe>'

@@ -866,7 +866,7 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         unset($s['gsb_api_key']); // the Google key never goes to the browser
         if ($this->role() === 'admin') {
-                $s['emailrep_key_set'] = (string)((new VtSettings('admin'))->get('emailrep_api_key', '')) !== '';
+                $s['xon_enabled'] = true; // XposedOrNot breach check — free, no key
             $s['gsb'] = ['enabled' => (bool)(new VtSettings('admin'))->get('gsb_enabled', false),
                          'key' => VtSafeBrowsing::maskedKey(), 'calls' => VtSafeBrowsing::callsToday(), 'last' => VtSafeBrowsing::lastStatus()];
         }
@@ -938,14 +938,6 @@ class IndexController extends pm_Controller_Action
             sort($ps);
             if ($this->settings->getUserId() === 'admin') $save['avast_products'] = $ps; // same file: saved below
             else (new VtSettings('admin'))->set('avast_products', $ps);
-        }
-        // EmailRep.io API key (admin only, server-wide, optional — free registration raises limit from 100 to 1000/day)
-        if ($this->role() === 'admin' && isset($input['emailrep_api_key'])) {
-            $ek = trim((string)$input['emailrep_api_key']);
-            if ($ek !== '') {
-                $adminSettings = $this->settings->getUserId() === 'admin' ? $this->settings : new VtSettings('admin');
-                $adminSettings->set('emailrep_api_key', $ek);
-            }
         }
 
         // Google Safe Browsing: server-wide settings of the administrator; a new key is tested first
@@ -1180,16 +1172,107 @@ class IndexController extends pm_Controller_Action
         $this->respond($result);
     }
 
-    private static function fetchWpAdmins(string $domain): array
+    /**
+     * Resolve the WordPress install for a domain and return DB connection details.
+     * Throws \RuntimeException on any error.
+     * @return array{pdo:\PDO, db:string, prefix:string, wp_path:string}
+     */
+    /** Activity log for one WordPress admin user: recent logins, post edits, and plugin log if present */
+    public function wpUserActivityAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        $userId = (int)$this->_getParam('user_id', 0);
+        if (!$domain || !$userId) { $this->respond(['error' => 'Missing parameters']); return; }
+        try {
+            $this->respond(['ok' => true] + self::fetchWpUserActivity($domain, $userId));
+        } catch (\RuntimeException $e) {
+            $this->respond(['error' => $e->getMessage()]);
+        }
+    }
+
+    private static function fetchWpUserActivity(string $domain, int $userId): array
+    {
+        ['pdo' => $pdo, 'db' => $db, 'prefix' => $prefix] = self::getWpInstall($domain);
+
+        // 1. Recent logins — WordPress stores session tokens in usermeta; each session has a 'login' timestamp
+        $logins = [];
+        $tokenRaw = $pdo->query(
+            "SELECT meta_value FROM `$db`.`{$prefix}usermeta`
+             WHERE user_id = $userId AND meta_key = 'session_tokens' LIMIT 1"
+        )->fetchColumn();
+        if ($tokenRaw) {
+            $sessions = @unserialize((string)$tokenRaw);
+            if (is_array($sessions)) {
+                $list = [];
+                foreach ($sessions as $sess) {
+                    if (isset($sess['login'])) {
+                        $list[] = ['ts' => (int)$sess['login'], 'ip' => (string)($sess['ip'] ?? '')];
+                    }
+                }
+                usort($list, fn($a, $b) => $b['ts'] - $a['ts']);
+                $logins = array_slice($list, 0, 5);
+            }
+        }
+
+        // 2. Recent post / page edits by this user
+        $posts = [];
+        $stmt = $pdo->query(
+            "SELECT post_title, post_type, post_status, post_modified, post_date
+             FROM `$db`.`{$prefix}posts`
+             WHERE post_author = $userId
+               AND post_type IN ('post','page')
+               AND post_status NOT IN ('auto-draft','trash','inherit')
+             ORDER BY post_modified DESC LIMIT 10"
+        );
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $posts[] = [
+                'title'    => (string)$row['post_title'],
+                'type'     => (string)$row['post_type'],
+                'status'   => (string)$row['post_status'],
+                'modified' => (string)$row['post_modified'],
+                'created'  => (string)$row['post_date'],
+            ];
+        }
+
+        // 3. Stream plugin activity log (if installed) — covers logins, edits, password changes
+        $stream = [];
+        try {
+            $tables = $pdo->query("SHOW TABLES FROM `$db` LIKE '{$prefix}stream'")->fetchAll(\PDO::FETCH_COLUMN);
+            if ($tables) {
+                $stmt = $pdo->query(
+                    "SELECT created, type, action, context, summary
+                     FROM `$db`.`{$prefix}stream`
+                     WHERE user_id = $userId
+                       AND (action IN ('login','login_failed','updated','created','deleted','password_reset')
+                            OR type IN ('authentication','posts','users'))
+                     ORDER BY created DESC LIMIT 20"
+                );
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $stream[] = [
+                        'ts'      => strtotime((string)$row['created']),
+                        'type'    => (string)$row['type'],
+                        'action'  => (string)$row['action'],
+                        'context' => (string)$row['context'],
+                        'summary' => (string)($row['summary'] ?? ''),
+                    ];
+                }
+            }
+        } catch (\PDOException $e) { /* stream plugin not present or incompatible */ }
+
+        return ['logins' => $logins, 'posts' => $posts, 'stream' => $stream];
+    }
+
+    private static function getWpInstall(string $domain): array
     {
         $sources = PleskDomains::wordPressSources();
-        if ($sources === null) return ['error' => 'Could not query WordPress databases', 'users' => []];
+        if ($sources === null) throw new \RuntimeException('Could not query WordPress databases');
 
         $install = null;
         foreach ($sources as $s) {
             if ($s['host'] === $domain || $s['host'] === 'www.' . $domain) { $install = $s; break; }
         }
-        if (!$install) return ['error' => 'No WordPress install found for this domain', 'users' => []];
+        if (!$install) throw new \RuntimeException('No WordPress install found for this domain');
 
         $wpPath = '';
         foreach (self::wpConfigs() ?? [] as $c) {
@@ -1199,12 +1282,23 @@ class IndexController extends pm_Controller_Action
         }
 
         $pdo = PleskDomains::pdo();
-        if (!$pdo) return ['error' => 'Database unavailable', 'users' => []];
+        if (!$pdo) throw new \RuntimeException('Database unavailable');
 
         $db     = $install['db'];
         $prefix = $install['prefix'];
         if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $db) || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-            return ['error' => 'Invalid database or table prefix', 'users' => []];
+            throw new \RuntimeException('Invalid database or table prefix');
+        }
+
+        return ['pdo' => $pdo, 'db' => $db, 'prefix' => $prefix, 'wp_path' => $wpPath];
+    }
+
+    private static function fetchWpAdmins(string $domain): array
+    {
+        try {
+            ['pdo' => $pdo, 'db' => $db, 'prefix' => $prefix, 'wp_path' => $wpPath] = self::getWpInstall($domain);
+        } catch (\RuntimeException $e) {
+            return ['error' => $e->getMessage(), 'users' => []];
         }
 
         try {
@@ -1234,16 +1328,20 @@ class IndexController extends pm_Controller_Action
             ];
         }
 
-        // EmailRep.io: check each admin email for data breaches (free, no key required)
-        $emailRepKey = (string)((new VtSettings('admin'))->get('emailrep_api_key', ''));
+        // XposedOrNot: check each admin email for data breaches (free, no key required)
         foreach ($users as &$user) {
-            $rep = self::emailRepCheck($user['email'], $emailRepKey);
-            if ($rep !== null && (!empty($rep['data_breach']) || !empty($rep['credentials_leaked']))) {
+            $breaches = self::xonCheck($user['email']);
+            if ($breaches !== null && count($breaches) > 0) {
+                $n         = count($breaches);
+                $listShown = array_slice($breaches, 0, 5);
+                $extra     = $n > 5 ? ' and ' . ($n - 5) . ' more' : '';
                 $user['flags'][] = [
                     'code'   => 'hibp_breach',
-                    'label'  => !empty($rep['credentials_leaked']) ? 'Credentials leaked' : 'Found in data breach',
+                    'label'  => 'Found in ' . $n . ' breach' . ($n === 1 ? '' : 'es'),
                     'detail' => 'The email address ' . htmlspecialchars($user['email'])
-                        . ' was found in known data breach records (source: EmailRep.io). '
+                        . ' appears in ' . $n . ' known data breach' . ($n === 1 ? '' : 'es')
+                        . ' (source: XposedOrNot): '
+                        . htmlspecialchars(implode(', ', $listShown) . $extra) . '. '
                         . 'If the same or a similar password is used for this WordPress admin account, '
                         . 'attackers can log in and infect every site on this server. '
                         . 'Reset this admin\'s password immediately with the button below.',
@@ -1256,13 +1354,13 @@ class IndexController extends pm_Controller_Action
     }
 
     /**
-     * Check one email against EmailRep.io — free, no key required (100 req/day without key,
-     * 1000/day with a free key from emailrep.io). Returns relevant detail fields, or null on error.
-     * Results are cached per email for 24 hours.
+     * Check one email against XposedOrNot — completely free, no API key required.
+     * Rate limit: 25 requests/hour per IP (results cached 24 h to stay well within it).
+     * Returns array of breach names if found, empty array if clean, null on rate-limit/error.
      */
-    private static function emailRepCheck(string $email, string $apiKey = ''): ?array
+    private static function xonCheck(string $email): ?array
     {
-        $cacheFile = VtDataDir::path('vt_emailrep_cache.json');
+        $cacheFile = VtDataDir::path('vt_xon_cache.json');
         $cache     = is_file($cacheFile) ? (json_decode((string)file_get_contents($cacheFile), true) ?: []) : [];
         $cacheKey  = md5(strtolower(trim($email)));
         $now       = time();
@@ -1271,30 +1369,29 @@ class IndexController extends pm_Controller_Action
             return $cache[$cacheKey]['d'];
         }
 
-        $headers = ['User-Agent: Stingy-Scanner-for-Plesk/2.5'];
-        if ($apiKey !== '') $headers[] = 'Key: ' . $apiKey;
-
-        $ch = curl_init('https://emailrep.io/' . rawurlencode(strtolower(trim($email))));
+        $ch = curl_init('https://api.xposedornot.com/v1/check-email/' . rawurlencode(strtolower(trim($email))));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 10,
-            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_HTTPHEADER     => ['User-Agent: Stingy-Scanner-for-Plesk/2.5'],
         ]);
         $body = (string)curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($code !== 200) return null; // rate limited or API error — do not cache
+        if ($code === 429) return null; // rate limited — do not cache
 
         $data = json_decode($body, true);
         if (!is_array($data)) return null;
 
-        $detail = $data['details'] ?? [];
-        $result = [
-            'data_breach'          => !empty($detail['data_breach']),
-            'credentials_leaked'   => !empty($detail['credentials_leaked']),
-            'credentials_leaked_recent' => !empty($detail['credentials_leaked_recent']),
-        ];
+        if (isset($data['Error'])) {
+            $result = []; // "Not found" — clean email, cache it
+        } else {
+            // breaches field is [[name1, name2, ...]] — unwrap outer array
+            $raw    = $data['breaches'] ?? [];
+            $inner  = (is_array($raw) && isset($raw[0]) && is_array($raw[0])) ? $raw[0] : $raw;
+            $result = array_values(array_filter($inner, 'is_string'));
+        }
 
         $cache[$cacheKey] = ['t' => $now, 'd' => $result];
         @file_put_contents($cacheFile, json_encode($cache));

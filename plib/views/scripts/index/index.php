@@ -529,12 +529,13 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-toast.warn{background:#fffbeb;border-color:#fcd34d;color:#92400e}
 @keyframes vtspin{to{transform:rotate(360deg)}}
 @keyframes vt-tin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+/* Collapsible sections in details panel */
+.vt-collapsible,.vt-wu-collapsible{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+.vt-collapsible>summary,.vt-wu-collapsible>summary{cursor:pointer;font-size:13px;font-weight:600;padding:4px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:8px}
+.vt-collapsible>summary::-webkit-details-marker,.vt-wu-collapsible>summary::-webkit-details-marker{display:none}
+.vt-collapsible>summary::before,.vt-wu-collapsible>summary::before{content:'▶';font-size:15px;color:var(--accent,#2563eb);flex-shrink:0;line-height:1}
+.vt-collapsible[open]>summary::before,.vt-wu-collapsible[open]>summary::before{content:'▼'}
 /* WordPress admin user scan */
-.vt-wu-collapsible{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
-.vt-wu-collapsible>summary{cursor:pointer;font-size:13px;font-weight:600;padding:2px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:6px}
-.vt-wu-collapsible>summary::-webkit-details-marker{display:none}
-.vt-wu-collapsible>summary::before{content:'▸';font-size:10px;color:var(--muted);flex-shrink:0}
-.vt-wu-collapsible[open]>summary::before{content:'▾'}
 .vt-wu-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
 .vt-wu-tbl th{text-align:left;padding:4px 8px;border-bottom:2px solid var(--border);font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .vt-wu-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
@@ -914,16 +915,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <li><strong>Generic username</strong> — names like <code>admin2</code>, <code>wpuser</code>, <code>backup</code>, <code>support</code>, etc. that bots commonly use.</li>
           <li><strong>Free email provider</strong> — Gmail, Yahoo, Hotmail etc. Attackers use throwaway accounts that cannot be traced.</li>
           <li><strong>Foreign email domain</strong> — email domain unrelated to the site domain. Combined with other flags this is suspicious.</li>
-          <li><strong>Have I Been Pwned</strong> — email address found in a known data breach. If the same password is reused, the attacker can log straight in.</li>
+          <li><strong>Have I Been Pwned</strong> — email address found in one or more known data breaches. If the same password is reused, the attacker can log straight in.</li>
         </ul>
         A flag is a reason to investigate, not proof. Always verify before deleting an account.
       </div>
-      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin email is automatically checked against <a href="https://emailrep.io" target="_blank" rel="noopener">EmailRep.io</a> — free, no key needed (100 checks/day). A red badge appears when an email was found in known breach data. Results are cached 24 hours.</div>
-      <div class="vt-field" style="margin-top:10px;max-width:480px">
-        <label for="vt-s-emailrep-key">EmailRep.io API key <span id="vt-emailrep-keystate" class="vt-key-state"></span> <span class="hint">(optional — raises limit to 1000/day)</span></label>
-        <input type="password" id="vt-s-emailrep-key" autocomplete="new-password" placeholder="Free key from emailrep.io — optional">
-        <div class="hint" style="margin-top:4px">Register for free at <a href="https://emailrep.io" target="_blank" rel="noopener">emailrep.io</a> to get an API key with a higher daily limit.</div>
-      </div>
+      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin email is automatically checked against <a href="https://xposedornot.com" target="_blank" rel="noopener">XposedOrNot</a> — free, no key needed (25 checks/hour per server). A red badge appears when an email was found in known breach data, with the breach names in the tooltip. Results are cached 24 hours.</div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
       </div>
@@ -2333,8 +2329,6 @@ function loadSettingsForm(cfg){
   savedWpOnly=!!cfg.wordpress_only;
   document.getElementById('vt-s-rogue-scan').checked=cfg.wp_rogue_scan!==false;
   if(cfg.role==='admin'){
-    const ks=document.getElementById('vt-emailrep-keystate');
-    if(ks){ks.className='vt-key-state'+(cfg.emailrep_key_set?' ok':' off');ks.textContent=cfg.emailrep_key_set?'key set':'no key (using free tier)';}
   }
   // Notifications: only offer the recipients this role may use
   document.getElementById('vt-n-enabled').checked=!!cfg.notify_enabled;
@@ -2497,8 +2491,6 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
-  const emailrepKey=document.getElementById('vt-s-emailrep-key')?.value.trim();
-  if(emailrepKey) payload.emailrep_api_key=emailrepKey;
   if(document.getElementById('vt-q-card').style.display!=='none'){
     const qd=parseInt(document.getElementById('vt-s-q-days').value);
     payload.quarantine_days=isNaN(qd)?30:Math.max(0,Math.min(3650,qd));
@@ -2610,6 +2602,18 @@ function fsToolsHTML(domain){
   const off=scanners.find(sc=>sc.disabled);
   return '<div class="vt-fs-tools"><span>Check the files on the server <span class="hint">(for further investigation; starts only when you click)</span></span>'+fsBarHTML(domain)
     +(off?'<span class="hint">'+vtEsc(off.message||'')+'</span>':'')+'</div>';
+}
+function fsScanCollHTML(domain){
+  if(!scanners.length||relSet.has(domain)) return '';
+  const e=vtEsca(domain), isOpen=!!fsScanCollOpen[domain];
+  const off=scanners.find(sc=>sc.disabled);
+  return '<details class="vt-collapsible"'+(isOpen?' open':'')+' ontoggle="vtFsScanCollToggle(this,\''+e+'\')">'
+    +'<summary>Check the files on the server</summary>'
+    +'<div style="margin-top:6px"><span class="hint">For further investigation — each scan starts only when you click.</span> '
+    +fsBarHTML(domain)
+    +(off?' <span class="hint">'+vtEsc(off.message||'')+'</span>':'')
+    +'</div>'
+    +'</details>';
 }
 function fsBarHTML(domain){
   if(!scanners.length) return '';
@@ -2763,7 +2767,7 @@ function vtWhyRowHTML(domain,st){
     +(d.last_scan?'<span>last checked '+vtEsc(d.last_scan)+'</span>':'')
     +(list.length?'<span>review requested at '+list.filter(([v])=>reviews[domain]?.[v]).length+' of '+list.length+'</span>':'')
     +'<span class="sp"></span><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">Full report ↗</a> · '+close+'</div>';
-  h+=fsToolsHTML(domain)+faHandledHTML(domain);
+  h+=faHandledHTML(domain);
   h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
@@ -2771,17 +2775,26 @@ function vtWhyRowHTML(domain,st){
     h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th>Vendor</th><th>Verdict</th><th>Ask for a review</th></tr></thead><tbody>'+vtGsbRow(domain)+vtAvastRow(domain)
       +list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')+'</tbody></table>';
   }
-  h+='<div class="vt-sh"><div class="vt-tr-title" style="margin-top:12px">History of this site <span class="hint">(newest first)</span></div><div id="vtsh-'+rid(domain)+'">'+vtSiteHistHTML(domain)+'</div></div>';
-  if(!list.length){h+=vtWpUsersHTML(domain);return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';}
-  h+='<ol class="vt-why-steps">'
-    +'<li><strong>Clean the site first.</strong> Use the file scanner buttons above to find infected files. Update WordPress, plugins and themes, remove plugins you don\'t use, change all passwords (admin, FTP/SFTP, database, hosting) and remove admin users you don\'t know. Otherwise the site is infected again soon and the vendors list it again.</li>'
-    +'<li><strong>Click Rescan.</strong> VirusTotal then checks the site address again with all vendors (this uses one manual call). The score shown here comes from the VirusTotal report for the whole domain, which follows when the vendors update their own lists, so it does not always drop right away.</li>'
-    +'<li><strong>Ask the vendors that still flag it for a review.</strong> Opening a review link copies the site URL to your clipboard. Paste it into the form and mention that it has been cleaned and what you did. Most answer within a few days.</li>'
-    +'<li><strong>Google:</strong> if Chrome shows a red warning, the site owner can ask Google for a review in <a href="https://search.google.com/search-console/security-issues" target="_blank" rel="noopener">Search Console → Security issues</a>. Google usually handles this within a few days.</li>'
-    +'<li><strong>Click Rescan again after a few days</strong> to see which vendors have removed the site from their list. Results of infected sites are refreshed every day by the background scan anyway. '
-    +'When a vendor says it has removed the site but VirusTotal still shows it: VirusTotal keeps separate reports for <code>www.</code> and <code>http://</code> versions of the address; open them on virustotal.com and click <em>Reanalyze</em> on each.</li>'
-    +'</ol><div class="vt-fs-note">Contacts from <a href="'+VT_FP_LIST+'" target="_blank" rel="noopener">VirusTotal\'s list of vendor contacts</a>. Stingy Scanner never changes anything on the site; cleaning is up to you.</div>';
+  h+=fsScanCollHTML(domain);
+  if(list.length){
+    h+='<details class="vt-collapsible"'+(stepsOpen[domain]?' open':'')+' ontoggle="vtStepsToggle(this,\''+e+'\')">'
+      +'<summary>How to clean up and remove VT Flag</summary>'
+      +'<ol class="vt-why-steps">'
+      +'<li><strong>Clean the site first.</strong> Use the file scanner section above to find infected files. Update WordPress, plugins and themes, remove plugins you don\'t use, change all passwords (admin, FTP/SFTP, database, hosting) and remove admin users you don\'t know. Otherwise the site is infected again soon and the vendors list it again.</li>'
+      +'<li><strong>Click Rescan.</strong> VirusTotal then checks the site address again with all vendors (this uses one manual call). The score shown here comes from the VirusTotal report for the whole domain, which follows when the vendors update their own lists, so it does not always drop right away.</li>'
+      +'<li><strong>Ask the vendors that still flag it for a review.</strong> Opening a review link copies the site URL to your clipboard. Paste it into the form and mention that it has been cleaned and what you did. Most answer within a few days.</li>'
+      +'<li><strong>Google:</strong> if Chrome shows a red warning, the site owner can ask Google for a review in <a href="https://search.google.com/search-console/security-issues" target="_blank" rel="noopener">Search Console → Security issues</a>. Google usually handles this within a few days.</li>'
+      +'<li><strong>Click Rescan again after a few days</strong> to see which vendors have removed the site from their list. Results of infected sites are refreshed every day by the background scan anyway. '
+      +'When a vendor says it has removed the site but VirusTotal still shows it: VirusTotal keeps separate reports for <code>www.</code> and <code>http://</code> versions of the address; open them on virustotal.com and click <em>Reanalyze</em> on each.</li>'
+      +'</ol><div class="vt-fs-note">Contacts from <a href="'+VT_FP_LIST+'" target="_blank" rel="noopener">VirusTotal\'s list of vendor contacts</a>. Stingy Scanner never changes anything on the site; cleaning is up to you.</div>'
+      +'</details>';
+  }
+  h+='<details class="vt-collapsible"'+(histOpen[domain]?' open':'')+' ontoggle="vtHistToggle(this,\''+e+'\')">'
+    +'<summary>History of this site <span style="font-weight:400;color:var(--muted)">(newest first)</span></summary>'
+    +'<div id="vtsh-'+rid(domain)+'">'+vtSiteHistHTML(domain)+'</div>'
+    +'</details>';
   h+=vtWpUsersHTML(domain);
+  if(!list.length) return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
   return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')+'><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
 }
 // A click anywhere on a site's row (not on a button, link or field) opens or closes its details
@@ -3251,7 +3264,15 @@ function vtToast(msg,type){
 let wpUsersData={}; // {domain: 'loading' | {users, error, wp_path} | null}
 let wpUsersPwd={}; // {domain+'|'+id: newPassword} — temporary after reset
 let wpUsersOpen={}; // {domain: bool} — tracks open/closed state across re-renders
+let histOpen={};        // {domain: bool} — history collapsible state
+let stepsOpen={};       // {domain: bool} — cleanup steps collapsible state
+let fsScanCollOpen={};    // {domain: bool} — file scanner collapsible state
+let wpUserAct={};         // {'domain|id': 'loading'|{logins,posts,stream}|{error}} — activity cache
+let wpUserActOpen={};     // {'domain|id': bool} — activity row open state
 
+window.vtHistToggle=function(el,domain){histOpen[domain]=el.open;};
+window.vtStepsToggle=function(el,domain){stepsOpen[domain]=el.open;};
+window.vtFsScanCollToggle=function(el,domain){fsScanCollOpen[domain]=el.open;};
 window.vtWpUsersToggle=function(el,domain){
   wpUsersOpen[domain]=el.open;
   if(el.open) vtWpUsersLoad(domain);
@@ -3298,6 +3319,62 @@ window.vtWpUserAction=async function(domain,userId,act){
   vtWpUsersRefresh(domain);
 };
 
+window.vtWpUserActToggle=async function(domain,userId){
+  const key=domain+'|'+userId;
+  wpUserActOpen[key]=!wpUserActOpen[key];
+  if(wpUserActOpen[key]&&!wpUserAct[key]){
+    wpUserAct[key]='loading';
+    vtWpUsersRefresh(domain);
+    const r=await vtFetch('?action=wp-user-activity&domain='+encodeURIComponent(domain)+'&user_id='+userId).catch(()=>null);
+    wpUserAct[key]=r&&r.ok?r:{error:(r&&r.error)||'Failed to load'};
+  }
+  vtWpUsersRefresh(domain);
+};
+
+function vtWpUserActHTML(domain,userId){
+  const key=domain+'|'+userId, d=wpUserAct[key];
+  let h='<div style="padding:6px 8px 10px;font-size:12px">';
+  if(!d||d==='loading'){return h+'<span class="vt-spin"></span> Loading activity…</div>';}
+  if(d.error){return h+'<span style="color:var(--red)">'+vtEsc(d.error)+'</span></div>';}
+
+  // Stream plugin entries (most detailed — covers logins, edits, password changes)
+  if(d.stream&&d.stream.length){
+    h+='<div style="font-weight:600;margin-bottom:4px">Activity log <span class="hint" style="font-weight:400">(Stream plugin)</span></div>';
+    h+=d.stream.map(e=>{
+      const dt=new Date(e.ts*1000).toLocaleString();
+      const icon=e.action==='login'?'🔑':e.action==='password_reset'||e.action==='updated'&&e.type==='users'?'🔒':e.action==='created'?'➕':e.action==='deleted'?'🗑️':'✏️';
+      const label=vtEsc(e.summary||e.action+' '+e.context);
+      return '<div class="vt-sh-row"><div class="vt-sh-time">'+vtEsc(dt)+'</div><div class="vt-sh-text">'+icon+' '+label+'</div></div>';
+    }).join('');
+  } else {
+    // Fallback: logins from session tokens
+    h+='<div style="font-weight:600;margin-bottom:4px">Recent logins <span class="hint" style="font-weight:400">(active sessions)</span></div>';
+    if(!d.logins||!d.logins.length){
+      h+='<div class="hint" style="padding:3px 0">No active sessions recorded.</div>';
+    } else {
+      h+=d.logins.map(l=>{
+        const dt=new Date(l.ts*1000).toLocaleString();
+        return '<div class="vt-sh-row"><div class="vt-sh-time">'+vtEsc(dt)+'</div><div class="vt-sh-text">🔑 Login'+(l.ip?' <span class="hint">from '+vtEsc(l.ip)+'</span>':'')+'</div></div>';
+      }).join('');
+    }
+  }
+
+  // Posts/pages
+  if(d.posts&&d.posts.length){
+    h+='<div style="font-weight:600;margin:8px 0 4px">Recent content activity</div>';
+    h+=d.posts.map(p=>{
+      const isEdited=p.created!==p.modified;
+      const dt=p.modified.substring(0,16).replace('T',' ');
+      return '<div class="vt-sh-row"><div class="vt-sh-time">'+vtEsc(dt)+'</div><div class="vt-sh-text">'+(isEdited?'✏️ Edited':'📝 Created')+' <strong>'+vtEsc(p.title||'(no title)')+'</strong> <span class="hint">'+vtEsc(p.type)+' · '+vtEsc(p.status)+'</span></div></div>';
+    }).join('');
+  } else if(!d.stream||!d.stream.length){
+    h+='<div class="hint" style="margin-top:6px">No post or page activity found for this user.</div>';
+  }
+
+  h+='</div>';
+  return h;
+}
+
 function vtWpUsersHTML(domain){
   if(!scIsAdmin) return '';
   const data=wpUsersData[domain];
@@ -3330,32 +3407,37 @@ function vtWpUsersHTML(domain){
       const nSus=users.filter(u=>u.flags?.length).length;
       if(nSus) inner+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' suspicious account'+(nSus===1?'':'s')+' — hover a badge for the reason.</div>';
       inner+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
+      const shieldSVG='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-6px;margin-right:4px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
       for(const u of users){
         const flags=u.flags||[];
         const isSus=flags.length>0;
+        const hasBreach=flags.some(f=>f.code==='hibp_breach');
         const pwd=wpUsersPwd[domain+'|'+u.id];
         const flagsHTML=flags.length
-          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='hibp_breach'?'bad':f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+vtEsc(f.label)+'</span>').join('')
+          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='hibp_breach'?'bad':f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+(f.code==='hibp_breach'?shieldSVG:'')+vtEsc(f.label)+'</span>').join('')
           : '<span style="color:var(--green);font-size:11px">✓ clean</span>';
         const otherAdmin=users.find(x=>x.id!==u.id);
         const delTitle=otherAdmin?'Posts and pages are reassigned to '+otherAdmin.login:'No other admin — posts will be unassigned. Consider resetting the password instead.';
+        const actKey=domain+'|'+u.id, actIsOpen=!!wpUserActOpen[actKey];
         const actHTML='<div class="vt-wu-actions">'
+          +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Show login and content activity for this user" onclick="vtWpUserActToggle(\''+e+'\','+u.id+')">'+(actIsOpen?'▼':'▶')+' Log</button>'
           +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="'+vtEsc(delTitle)+'" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
           +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Generates a strong random password — copy it immediately" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>'
           +'</div>';
         const login=vtEsc(u.login)+(u.display&&u.display!==u.login?' <span class="hint">'+vtEsc(u.display)+'</span>':'');
         const regDate=u.registered?u.registered.substring(0,10):'—';
         inner+='<tr'+(isSus?' style="background:rgba(239,68,68,.04)"':'')+'>'
-          +'<td><strong>'+login+'</strong></td>'
-          +'<td style="color:var(--muted)">'+vtEsc(u.email)+'</td>'
+          +'<td><strong>'+(hasBreach?'<span style="color:#dc2626;vertical-align:middle">'+shieldSVG+'</span> ':'')+login+'</strong></td>'
+          +'<td style="color:'+(hasBreach?'#dc2626':'var(--muted)')+'">'+vtEsc(u.email)+'</td>'
           +'<td>'+vtEsc(regDate)+'</td>'
           +'<td class="wrap">'+flagsHTML+'</td>'
           +'<td>'+actHTML+'</td>'
           +'</tr>';
+        if(actIsOpen) inner+='<tr><td colspan="5" style="padding:0;border-bottom:1px solid var(--border)">'+vtWpUserActHTML(domain,u.id)+'</td></tr>';
         if(pwd) inner+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
       }
       inner+='</tbody></table>';
-      inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. Breach check by <a href="https://emailrep.io" target="_blank" rel="noopener">EmailRep.io</a> (free, no key needed).</div>';
+      inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. Breach check by <a href="https://xposedornot.com" target="_blank" rel="noopener">XposedOrNot</a> (free, no key needed).</div>';
     }
   }
   return '<details class="vt-wu-collapsible"'+(isOpen?' open':'')+' ontoggle="vtWpUsersToggle(this,\''+e+'\')">'

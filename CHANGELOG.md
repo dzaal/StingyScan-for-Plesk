@@ -3,6 +3,15 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.7 — 2026-11-25
+- **XposedOrNot breach check** (replaces EmailRep.io and HIBP). Each WordPress admin email is now checked against XposedOrNot — free, no API key needed, 25 checks/hour per server. The red badge shows the breach count; hover shows the breach names (e.g. "Adobe, LinkedIn, Dropbox"). Results are cached 24 hours.
+
+## 2.5.6 — 2026-11-25
+- **Have I Been Pwned v3 breach check.** Replaces EmailRep.io. Each WordPress admin email is now checked against the actual HIBP database — the same source everyone checks manually. The red badge shows the breach count; hover shows the breach names (e.g. "Adobe, LinkedIn, Dropbox"). Results are cached 24 hours. Requires a HIBP API key in Settings (personal plan, $3.50/month from haveibeenpwned.com). Without a key the check is skipped.
+
+## 2.5.5 — 2026-11-25
+- **Collapsible cleanup steps and site history.** In the Details panel of a flagged site, the "How to clean up" numbered steps and the "History of this site" section are now collapsible. Both always appear at the bottom. All collapsible sections (including WordPress admin users) now have a larger, more prominent ▶/▼ arrow in accent blue.
+
 ## 2.5.4 — 2026-11-25
 - **Free breach check via EmailRep.io.** Each WordPress admin email is automatically checked against EmailRep.io (free, no key required, 100 checks/day). A red "Credentials leaked" or "Found in data breach" badge appears when an email was found in known breach data; results are cached 24 hours. An optional free EmailRep.io API key raises the limit to 1000/day.
 - **Fix: "Invalid database or table prefix"** for sites whose database name contains a hyphen (common in Plesk-generated names). The validation regex now allows hyphens in database names.

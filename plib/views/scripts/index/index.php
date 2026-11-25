@@ -29,6 +29,7 @@ body:has(#vt-wrap) .pul-page-header.page-content-header{display:none}
 .vt-about .vt-card{max-width:none}
 .vt-about p{font-size:13px;line-height:1.6;color:var(--text);margin:10px 0}
 .vt-about-hero{display:flex;gap:18px;align-items:flex-start}
+.vt-about-logo{flex-shrink:0;width:64px;height:64px}
 .vt-about-mark{width:64px;height:64px;flex-shrink:0;border-radius:16px;background:linear-gradient(135deg,#b91c1c,#7f1d1d);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;letter-spacing:1px}
 .vt-about-sub{font-size:13px;color:var(--muted)}
 .vt-about-sub a{color:#b91c1c;font-weight:600;text-decoration:none}
@@ -1055,17 +1056,23 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
   <div class="vt-panel" id="vtpanel-about">
     <div class="vt-about">
       <div class="vt-card vt-about-hero">
-        <div class="vt-about-mark">DZ</div>
+        <img class="vt-about-logo" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/logo-128.png') ?>" alt="" width="64" height="64">
         <div>
-          <h3 style="margin:0 0 4px">Made by Dirk Zaal</h3>
-          <div class="vt-about-sub"><a href="https://www.digizaal.nl" target="_blank" rel="noopener">Digizaal</a> · web development and hosting, Amsterdam</div>
-          <p>Digizaal builds and hosts websites for its customers, about 600 of them WordPress sites on one Plesk server.
-          I built Stingy Scanner because I needed it myself: one hacked site can hurt its visitors, get the server's
-          IP address blacklisted and drag every other site on the server down with it.</p>
-          <p>I used the VirusTotal scanner that comes with Plesk, but every day it told me the API calls were exhausted:
-          not all sites had been scanned, and the rest stayed unscanned. So I wrote a scanner that spends the free
-          daily quota carefully, remembers results, and gets round to every site.</p>
-          <a class="vt-btn ghost" href="https://www.digizaal.nl" target="_blank" rel="noopener">Visit digizaal.nl &rarr;</a>
+          <h3 style="margin:0 0 4px">Why Stingy Scanner exists</h3>
+          <div class="vt-about-sub">A reputation scanner, and a helper to win a site's good name back</div>
+          <p><strong>What happens when a WordPress administrator is pwned.</strong> Passwords from old data breaches are traded by the billion,
+          and bots try them on every WordPress login page. When an administrator once used the same password elsewhere, the attacker simply logs in.
+          The site gets infected, and its reputation goes down fast: it lands on the blocklists of security vendors, and the
+          web shields that people buy or get with their computer (antivirus suites, browser protection, Chrome and Firefox warnings) block it for every visitor.
+          Even your e-mail suffers: a message can be refused or sent to spam only because it mentions your website, which is now listed as a malware site.
+          And one hacked site can drag down the server's IP address and every other site on it.</p>
+          <p><strong>What this tool does about it.</strong> Stingy Scanner shows the damage to a site's reputation as soon as it happens, and helps you get delisted again
+          after cleaning: which vendors flag the site, a review request per vendor, and the history until every one of them has removed it.
+          It also watches the cause: whether an administrator's e-mail address appears in a known data breach (<a onclick="vtShowTab('pwned');vtLoadPwned()" style="cursor:pointer">Pwned?</a>),
+          and whether a site has a rogue administrator account that an attacker added.</p>
+          <p><strong>Free to run.</strong> Stingy Scanner is built for the free APIs of external services (VirusTotal, Google Safe Browsing, XposedOrNot),
+          and spends their limited quota carefully, so it works completely free of charge. If they are installed on the server, it can also use
+          the server's own malware scanners: Imunify, and the free open-source scanners Maldet and ClamAV.</p>
         </div>
       </div>
 

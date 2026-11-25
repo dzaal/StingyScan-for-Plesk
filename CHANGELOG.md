@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.6 — 2026-11-25
+- About tab: instead of the maker, it now explains what happens when a WordPress administrator is pwned (infection, blocklists and web shields, e-mail refused because it mentions a listed site), what Stingy Scanner does about it, and that it runs entirely on free APIs, optionally with Imunify, Maldet or ClamAV.
+
 ## 2.6.5 — 2026-11-25
 - New subtitle under the name: *Reputation scanner for every website on this server: finds malware, phishing and hacked admin accounts, and helps a site win its good name back after an attack* (also on the Stingy Scanner button in Plesk).
 

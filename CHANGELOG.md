@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.4 — 2026-11-25
+- Pwned?: the red shield of a pwned address is twice as large.
+
 ## 2.6.3 — 2026-11-25
 - Gridinsoft review tip: the form works without an account only for an e-mail address that was not used there before; otherwise you need a free Gridinsoft account.
 

@@ -170,7 +170,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-fs-tbl.vt-pw-tbl td,.vt-fs-tbl.vt-pw-tbl td:last-child{white-space:normal;color:var(--text);word-break:normal;font-family:inherit}.vt-fs-tbl.vt-pw-tbl td:first-child{word-break:break-word}.vt-fs-tbl.vt-pw-tbl td.vt-fa-cell{white-space:nowrap}
 .vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
-.vt-pw-shield{color:#dc2626;display:inline-block;vertical-align:-3px;margin-right:4px;cursor:help}
+.vt-pw-shield{color:#dc2626;display:inline-block;vertical-align:middle;margin-right:5px;cursor:help;line-height:0}
 .vt-pw-tbl td.site small{display:block;font-weight:400;color:var(--muted)}
 .vt-domain-age{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600;margin-left:4px;vertical-align:middle}
 .vt-domain-age.new-30d{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
@@ -2681,7 +2681,7 @@ window.vtExtRemove=async function(domain){
 let pw=null, pwRun=false, pwBusy=null, pwNote='', pwAsk=null, pwFilter='all';
 let pwViewMode=localStorage.getItem('vt_pw_view')||'group', pwSortCol=localStorage.getItem('vt_pw_sort')||'email', pwSortDir=localStorage.getItem('vt_pw_dir')||'asc';
 // Same red shield as in a site's WordPress admin accounts
-const PW_SHIELD='<span class="vt-pw-shield" title="This address is in a known data breach"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></span>';
+const PW_SHIELD='<span class="vt-pw-shield" title="This address is in a known data breach"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></span>';
 /** Status of an address: bad (pwned), ok (not pwned) or new (not checked yet, or the check failed) */
 function pwState(email){const r=pw.results?.[email]; return r?.state==='ok'?(r.breaches?.length?'bad':'ok'):'new';}
 function pwEmailHTML(email){return pwState(email)==='bad'?'<span class="vt-pw-em bad">'+PW_SHIELD+vtEsc(email)+'</span>':vtEsc(email||'—');}

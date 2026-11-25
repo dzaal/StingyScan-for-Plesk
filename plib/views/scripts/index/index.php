@@ -265,6 +265,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-q-pbar div{height:100%;background:var(--blue);transition:width .4s}
 .vt-q-item.vt-q-fs .vt-q-pbar div{background:#f59e0b}
 .vt-q-right{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.vt-q-skip{margin-top:4px}.vt-q-skip:hover{color:var(--red)!important;border-color:var(--red)!important;background:transparent!important}
 .vt-q-right .vt-badge{margin-bottom:2px}
 
 /* Settings */
@@ -2082,6 +2083,22 @@ window.vtReanalyzeInfected=function(){
   vtToast(added?added+' sites added to the scan queue':'All already in the scan queue','info');
 };
 
+// Skip one waiting entry of the Scan Monitor (a VirusTotal rescan or a Pwned? check)
+window.vtQSkip=function(id){
+  const j=jobs.find(x=>x.id===id&&x.state==='queued');
+  if(j){ j.cancelled=true; finishJob(j,'failed','Skipped'); return; } // runJob stops before it calls VirusTotal
+  const p=pwJobs.find(x=>x.id===id&&x.state==='queued');
+  if(p){ p.skipped=true; p.wake&&p.wake(); }
+};
+// Skip a rescan that waits in the server queue (for cron)
+window.vtQSkipSrv=function(domain){
+  if(!domain) return;
+  vtServerPost('dequeue-rescan',domain);
+  srvSkipped[domain]=Date.now(); // a queue poll already on its way may still list it
+  serverQueue=serverQueue.filter(d=>d!==domain);
+  renderQueue(); vtToast(domain+' taken out of the queue','info');
+};
+
 window.vtCancelWaiting=function(){
   jobs.filter(j=>j.state==='queued').forEach(j=>{ j.cancelled=true; finishJob(j,'failed','Cancelled'); });
 };
@@ -2167,6 +2184,7 @@ function jobHTML(j){
     right='<div>was '+scoreTxt(j.prev)+'</div>';
   }else{
     right='<div>'+fmtSecs(Date.now()-(j.startedAt||j.createdAt))+'</div><div>was '+scoreTxt(j.prev)+'</div>';
+    if(j.state==='queued') right+='<button type="button" class="vt-row-btn vt-q-skip" title="Take this entry out of the queue" onclick="event.stopPropagation();vtQSkip('+j.id+')">Skip</button>';
   }
 
   return '<div class="vt-q-item '+j.state+'">'+icon
@@ -2201,7 +2219,7 @@ function applyQueueCollapse(){
 // ── Server-side manual queue ───────────────────────────────────
 // Domains pushed to the server on Rescan, so the cron can finish them if the
 // browser navigates away before the in-browser job completes.
-let serverQueue=[], serverQueueAt={}, serverQueuePoll=null;
+let serverQueue=[], serverQueueAt={}, serverQueuePoll=null, srvSkipped={};
 
 function vtServerPost(action,domain){
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
@@ -2220,7 +2238,7 @@ async function vtPollServerQueue(){
     const data=await vtFetch('?action=queue-status');
     const inBrowser=new Set(jobs.filter(j=>ACTIVE.has(j.state)).map(j=>j.domain));
     const prev=serverQueue.slice();
-    serverQueue=(data.pending||[]).filter(d=>!inBrowser.has(d));
+    serverQueue=(data.pending||[]).filter(d=>!inBrowser.has(d)&&!(Date.now()-(srvSkipped[d]||0)<60000));
     serverQueueAt=data.queued_at||{};
 
     // Domains that cron processed: show them in the monitor as done jobs
@@ -2264,7 +2282,7 @@ function serverJobHTML(domain){
     +'<span class="vt-q-kind srv">Server</span></div>'
     +'<div class="vt-q-msg">Queued on server'+(ago?' — '+ago:'')
     +' — cron will process this within 5 minutes</div></div>'
-    +'<div class="vt-q-right"></div></div>';
+    +'<div class="vt-q-right">'+'<button type="button" class="vt-row-btn vt-q-skip" data-d="'+vtEsc(domain)+'" title="Take this entry out of the queue" onclick="event.stopPropagation();vtQSkipSrv(this.dataset.d)">Skip</button>'+'</div></div>';
 }
 
 // ── File-scanner jobs in the Scan Monitor ──────────────────────
@@ -2341,6 +2359,8 @@ function pwJobStart(email){
   startQTicker(); renderQueue(); return j;
 }
 function pwJobWait(j,secs){j.state='queued'; j.until=Date.now()+secs*1000; renderQueue();}
+// Wait, but stop early when the entry is skipped in the Scan Monitor
+function pwJobDelay(j,ms){return new Promise(res=>{const t=setTimeout(res,ms); j.wake=()=>{clearTimeout(t); res();};});}
 function pwJobEnd(j,state,result,msg){j.state=state; j.result=result||null; j.msg=msg||''; j.endedAt=Date.now(); renderQueue();}
 function pwJobHTML(j){
   const src=pw?.config?.source_name||'breach service';
@@ -2358,7 +2378,7 @@ function pwJobHTML(j){
   if(j.state==='done'&&j.result){
     const n=j.result.breaches?.length||0;
     right=n?'<span class="vt-badge infected"><span class="vt-dot dot-r"></span>Pwned: '+n+'</span>':'<span class="vt-badge clean"><span class="vt-dot dot-g"></span>Not pwned</span>';
-  }else if(!j.endedAt) right='<div>'+fmtSecs(Date.now()-j.startedAt)+'</div>';
+  }else if(!j.endedAt) right='<div>'+fmtSecs(Date.now()-j.startedAt)+'</div>'+(j.state==='queued'?'<button type="button" class="vt-row-btn vt-q-skip" title="Take this entry out of the queue" onclick="event.stopPropagation();vtQSkip(\''+j.id+'\')">Skip</button>':'');
   return '<div class="vt-q-item vt-q-pw '+j.state+'">'+icon
     +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(j.domain)+'<span class="vt-q-kind pw">Pwned?</span></div>'
     +'<div class="vt-q-msg">'+vtEsc(msg)+'</div></div>'
@@ -2997,7 +3017,8 @@ async function pwCheckOne(email,loop){
           return {stop:(day?'Today\'s maximum for this service is reached.':'The service asks to wait '+mins+' minutes (its request limit).')
             +' The rest is tested in the background, a few addresses an hour; you don\'t need to keep this page open.'};
         }
-        pwJobWait(job,s); await delay(s*1000);
+        pwJobWait(job,s); await pwJobDelay(job,s*1000);
+        if(job.skipped){pwJobEnd(job,'failed',null,'Skipped'); return {skipped:true};}
         if(loop&&!pwRun){pwJobEnd(job,'failed',null,'Stopped'); return {stop:'Stopped.'};}
         job.state='running'; renderQueue(); continue;
       }
@@ -3021,6 +3042,7 @@ window.vtPwRun=async function(){
     tried.add(next); // a failed check is not repeated in the same run
     const r=await pwCheckOne(next,true);
     if(r.stop){pwNote=r.stop; break;}
+    if(r.skipped) continue; // skipped in the Scan Monitor: go on with the next address
     if(!r.remaining) break;
   }
   pwRun=false; vtRenderPwned();

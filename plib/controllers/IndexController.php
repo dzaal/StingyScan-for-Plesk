@@ -23,6 +23,7 @@ require_once $_vtLib . '/VtSafeBrowsing.php';
 require_once $_vtLib . '/VtExternal.php';
 require_once $_vtLib . '/VtPwned.php';
 require_once $_vtLib . '/VtServerName.php';
+require_once $_vtLib . '/VtMailSender.php';
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -874,6 +875,11 @@ class IndexController extends pm_Controller_Action
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
+        if ($this->role() === 'admin') {
+            $adm = new VtSettings('admin');
+            $s['mail_sender'] = ['from' => (string)$adm->get('mail_from', ''), 'name' => (string)$adm->get('mail_from_name', ''),
+                                 'default' => VtNotifier::emailOfLogin('admin') ?: ''];
+        }
         unset($s['gsb_api_key'], $s['pwned_hibp_key']); // the Google and HIBP keys never go to the browser
         if ($this->role() === 'admin') {
                 $s['xon_enabled'] = true; // XposedOrNot breach check — free, no key
@@ -970,6 +976,12 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') {
             $logCfg = [];
             if (isset($input['quarantine_days'])) $logCfg['quarantine_days'] = max(0, min(3650, (int)$input['quarantine_days']));
+            if (isset($input['mail_from'])) {
+                $mf = strtolower(trim((string)$input['mail_from']));
+                if ($mf !== '' && !filter_var($mf, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'E-mail sender: please enter a valid e-mail address']); return; }
+                $logCfg['mail_from'] = $mf;
+            }
+            if (isset($input['mail_from_name'])) $logCfg['mail_from_name'] = mb_substr(trim(preg_replace('/[\r\n<>"]+/', ' ', (string)$input['mail_from_name'])), 0, 100);
             foreach (array_keys(VtLogRotate::DEFAULTS) as $k) {
                 if (isset($input[$k])) $logCfg[$k] = VtLogRotate::clamp($k, $input[$k]);
             }
@@ -1030,6 +1042,42 @@ class IndexController extends pm_Controller_Action
         } catch (\Throwable $e) {
             return 'admin';
         }
+    }
+
+    // ── E-mail sender (Settings, administrator) ────────────────
+
+    /** Will receiving mail servers trust the sender address? SPF, DKIM and DMARC of its domain (address=… or the saved one) */
+    public function mailCheckAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can do this']); return; }
+        $addr = strtolower(trim((string)$this->_getParam('address', ''))) ?: VtMailSender::get()[1];
+        if (!filter_var($addr, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Not a valid e-mail address']); return; }
+        $domain = substr(strrchr($addr, '@'), 1);
+        try {
+            $res   = pm_ApiCli::callSbin('site-scan', ['mailcheck', $domain], pm_ApiCli::RESULT_FULL);
+            $local = json_decode(trim((string)($res['stdout'] ?? '')), true) ?: [];
+        } catch (\Throwable $e) {
+            $local = [];
+        }
+        $this->respond(['address' => $addr, 'checks' => VtMailSender::check($addr, $local)]);
+    }
+
+    /** Send a short test e-mail from the sender address (to=…) */
+    public function mailTestAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can do this']); return; }
+        $to = strtolower(trim((string)$this->_getParam('to', '')));
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Enter a valid address to send the test to']); return; }
+        [, $from] = VtMailSender::get();
+        $headers = implode("\r\n", ['From: ' . VtMailSender::fromHeader('Stingy Scanner'), 'MIME-Version: 1.0',
+                                     'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: Stingy Scanner']);
+        $body = "This is a test e-mail from Stingy Scanner on " . VtServerName::label() . ".\n\n"
+              . "Sender: $from\n\nIf it arrived in your inbox (not in spam), e-mails from Stingy Scanner are delivered. "
+              . "In the message source, 'Authentication-Results' shows whether SPF, DKIM and DMARC passed.\n";
+        $ok = @mail($to, 'Stingy Scanner test e-mail', $body, $headers, VtMailSender::envelope());
+        $this->appendLog('[mail] test e-mail from ' . $from . ' to ' . $to . ($ok ? '' : ' FAILED'));
+        $this->respond($ok ? ['ok' => true, 'from' => $from, 'to' => $to] : ['error' => 'The mail server did not accept the message']);
     }
 
     // ── External sites (not hosted on this server) ─────────────

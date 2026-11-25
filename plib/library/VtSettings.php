@@ -55,6 +55,8 @@ class VtSettings
         'log_max_mb'         => 5,      // log rotation (admin only, server-wide): rotate a log larger than this
         'log_keep'           => 5,      // old copies kept (gzipped)
         'log_max_days'       => 90,     // old copies deleted after this many days
+        'mail_from'          => '',     // sender address of every e-mail Stingy Scanner sends ('' = the administrator's Plesk address) (admin only)
+        'mail_from_name'     => '',     // sender name ('' = the company name in Plesk, or "Stingy Scanner")
         'quarantine_days'    => 30,     // quarantined files are deleted after this many days (0 = keep until deleted by hand)
         'pwned_source'       => 'xon',  // breach check of e-mail addresses: '' = off, xon = XposedOrNot (free), hibp = Have I Been Pwned (key) (admin only)
         'pwned_hibp_key'     => '',     // the administrator's Have I Been Pwned key; never sent to the browser

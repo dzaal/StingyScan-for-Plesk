@@ -172,6 +172,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
 .vt-pw-fixlink{font-weight:600}
+.vt-fs-tbl.vt-ms-tbl td,.vt-fs-tbl.vt-ms-tbl td:last-child{white-space:normal;color:var(--text);font-family:inherit;word-break:normal}.vt-ms-tbl td:first-child{width:90px}
 .vt-pw-cms{display:inline-block;font-size:10px;font-weight:600;padding:0 5px;border-radius:4px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;margin-left:4px;vertical-align:middle}
 .vt-pw-fixed{color:var(--green,#16a34a);font-weight:600;cursor:help}
 .vt-pw-fixbox{border:1px solid #fca5a5;background:#fff;border-radius:8px;padding:12px 14px;margin:10px 0 14px}
@@ -1047,6 +1048,23 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </div>
       </div>
       <div class="hint" id="vt-lr-info" style="margin-top:10px"></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
+    <div class="vt-card" id="vt-ms-card" style="display:none">
+      <h3>E-mail sender</h3>
+      <div class="hint">The address every e-mail of Stingy Scanner is sent from: the Pwned? warnings to site administrators and the status notifications.
+        It is also used as the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against this address. Empty = your Plesk administrator address<span id="vt-ms-default"></span>.</div>
+      <div class="vt-settings-numbers" style="margin-top:10px">
+        <div class="vt-field"><label for="vt-ms-from">Sender address</label><input type="email" id="vt-ms-from" placeholder="webmaster@example.com" autocomplete="off" spellcheck="false" style="width:280px"></div>
+        <div class="vt-field"><label for="vt-ms-name">Sender name</label><input type="text" id="vt-ms-name" placeholder="Company name in Plesk" maxlength="100" style="width:240px"></div>
+      </div>
+      <div class="vt-pw-add"><button type="button" class="vt-btn" onclick="vtMsCheck()">Check SPF, DKIM and DMARC</button>
+        <input type="email" id="vt-ms-testto" placeholder="send a test to…" autocomplete="off"><button type="button" class="vt-btn ghost" onclick="vtMsTest()">Send test</button>
+        <span class="hint">check and test use the saved address; save first</span></div>
+      <div id="vt-ms-result"></div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
       </div>
@@ -2488,6 +2506,12 @@ function loadSettingsForm(cfg){
     document.getElementById('vt-gsb-key').value='';
   }
   vtRenderQuarantine(cfg.quarantine||null);
+  const ms=cfg.mail_sender;
+  document.getElementById('vt-ms-card').style.display=ms?'':'none';
+  if(ms){
+    document.getElementById('vt-ms-from').value=ms.from||''; document.getElementById('vt-ms-name').value=ms.name||'';
+    vtSet('vt-ms-default',ms.default?' ('+ms.default+')':'');
+  }
   const lr=cfg.log_rotation;
   document.getElementById('vt-lr-card').style.display=lr?'':'none';
   if(lr){
@@ -2497,6 +2521,21 @@ function loadSettingsForm(cfg){
   }
   document.querySelectorAll('[data-check-rate]').forEach(input=>{input.value=cfg.check_rates?.[input.dataset.checkRate]||2;input.disabled=cfg.role!=='admin';});
 }
+
+// ── E-mail sender (Settings, administrator) ───────────────────
+window.vtMsCheck=async function(){
+  const el=document.getElementById('vt-ms-result'); el.innerHTML='<span class="vt-spin"></span> Checking the DNS records of the sender domain…';
+  const r=await vtFetch('?action=mail-check').catch(()=>({error:'Network error'}));
+  if(r.error){el.innerHTML='<div class="vt-fa-q err">'+vtEsc(r.error)+'</div>'; return;}
+  const ic={ok:'<span style="color:var(--green,#16a34a)">✓</span>',warn:'<span style="color:#d97706">!</span>',bad:'<span style="color:var(--red)">✕</span>'};
+  el.innerHTML='<table class="vt-fs-tbl vt-ms-tbl"><thead><tr><th colspan="2">'+vtEsc(r.address)+'</th></tr></thead><tbody>'
+    +r.checks.map(c=>'<tr><td><strong>'+ic[c.state]+' '+vtEsc(c.label)+'</strong></td><td>'+c.detail+'</td></tr>').join('')+'</tbody></table>';
+};
+window.vtMsTest=async function(){
+  const to=document.getElementById('vt-ms-testto').value.trim(), el=document.getElementById('vt-ms-result'); if(!to) return;
+  const r=await vtPostAct('mail-test',{to});
+  el.innerHTML='<div class="vt-fa-q '+(r.ok?'ok':'err')+'">'+(r.ok?'Test sent from '+vtEsc(r.from)+' to '+vtEsc(r.to)+'. In the message source, <em>Authentication-Results</em> shows whether SPF, DKIM and DMARC passed.':vtEsc(r.error||'Failed'))+'</div>';
+};
 
 // ── Quarantine (Settings, administrator) ──────────────────────
 let qInfo=null;
@@ -2613,6 +2652,10 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
+  if(document.getElementById('vt-ms-card').style.display!=='none'){
+    payload.mail_from=document.getElementById('vt-ms-from').value.trim();
+    payload.mail_from_name=document.getElementById('vt-ms-name').value.trim();
+  }
   if(document.getElementById('vt-q-card').style.display!=='none'){
     const qd=parseInt(document.getElementById('vt-s-q-days').value);
     payload.quarantine_days=isNaN(qd)?30:Math.max(0,Math.min(3650,qd));

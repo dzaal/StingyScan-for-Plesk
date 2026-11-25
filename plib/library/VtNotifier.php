@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/VtServerName.php';
+require_once __DIR__ . '/VtMailSender.php';
 require_once __DIR__ . '/VtDataDir.php';
 require_once __DIR__ . '/VtSettings.php';
 require_once __DIR__ . '/VtCache.php';
@@ -238,15 +239,14 @@ class VtNotifier
 
     private static function send(string $to, string $subject, string $body): bool
     {
-        $from = self::emailOfLogin('admin') ?: ('noreply@' . self::host());
         $headers = implode("\r\n", [
-            'From: Stingy Scanner <' . $from . '>',
+            'From: ' . VtMailSender::fromHeader('Stingy Scanner'), // Settings → E-mail sender
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset=UTF-8',
             'Content-Transfer-Encoding: 8bit',
             'X-Mailer: Stingy Scanner',
         ]);
-        return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
+        return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, VtMailSender::envelope());
     }
 
     private static function host(): string

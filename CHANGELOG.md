@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.11.0 — 2026-11-25
+- **Settings → E-mail sender** (administrator): the address and name every e-mail of Stingy Scanner is sent from (Pwned? warnings and status notifications), for example *webmaster@example.com*. It is also the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against it. Empty = the administrator's Plesk address, as before.
+- **Check SPF, DKIM and DMARC** for that address, live from the server: whether SPF allows the server that really sends the mail (the relay host when there is one), whether this server signs the domain's mail with DKIM and the published key matches, and the DMARC policy, each with what to change. **Send test** sends a short test e-mail from it.
+
 ## 2.10.0 — 2026-11-25
 - **Pwned? lists more systems:** administrators of **Nextcloud / ownCloud** (group *admin*; e-mail address and last login from the user preferences), **WHMCS** (active staff accounts; last login and IP address from the admin log; a custom admin folder is followed) and **Laravel** apps that have their own `admins` table (the app's `public/` folder is the site's document root) are listed and tested too, and can be warned by e-mail. An emergency reset is still WordPress only.
 

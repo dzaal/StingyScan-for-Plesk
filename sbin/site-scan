@@ -333,6 +333,32 @@ if ($mode === 'list') {
     }
     out(['scanners' => $list, 'engines' => $engines]);
 }
+if ($mode === 'mailcheck') {
+    // How this server sends mail for a sender domain (read-only): relay host, own IPs, DKIM key and signing
+    $domain = strtolower((string)($argv[2] ?? ''));
+    if (!preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z][a-z0-9\-]+$/', $domain)) out(['error' => 'Invalid domain']);
+    $relay = trim((string)shell_exec('postconf -h relayhost 2>/dev/null'));
+    $relay = preg_replace('/^\[?([^\]:]+)\]?(:\d+)?$/', '$1', $relay);
+    $ips = array_values(array_filter(preg_split('/\s+/', trim((string)shell_exec('hostname -I 2>/dev/null'))),
+        fn($ip) => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)));
+    $info   = (string)shell_exec('plesk bin domain_pref --info ' . escapeshellarg($domain) . ' 2>/dev/null');
+    $dinfo  = (string)shell_exec('plesk bin domain --info ' . escapeshellarg($domain) . ' 2>/dev/null');
+    $hosted = (bool)preg_match('/Mail service:\s*Enabled/i', $dinfo);
+    $sign   = (bool)preg_match('/DKIM Sign Outgoing Mail:\s*true/i', $info);
+    $keyFile = '/etc/domainkeys/' . $domain . '/default';
+    $local = '';
+    if (is_file($keyFile)) {
+        $pub = (string)shell_exec('openssl rsa -in ' . escapeshellarg($keyFile) . ' -pubout 2>/dev/null');
+        $local = preg_replace('/-----[^-]+-----|\s+/', '', $pub);
+    }
+    $dns = '';
+    foreach (@dns_get_record('default._domainkey.' . $domain, DNS_TXT) ?: [] as $r) {
+        $t = isset($r['entries']) ? implode('', $r['entries']) : (string)($r['txt'] ?? '');
+        if (preg_match('/p=([A-Za-z0-9+\/=]+)/', str_replace(' ', '', $t), $m)) $dns = $m[1];
+    }
+    out(['relay' => $relay, 'ips' => $ips, 'hosted' => $hosted, 'dkim_sign' => $sign, 'dkim_key' => $local !== '',
+         'dkim_dns' => $dns !== '', 'dkim_match' => $local !== '' && $local === $dns]);
+}
 if ($mode === 'cmsconfigs') {
     // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel installs: their folder and database (read-only; passwords are never returned)
     $list = [];

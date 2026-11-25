@@ -551,6 +551,18 @@ rm -rf /usr/local/psa/var/modules/stingyscan
 | Google Safe Browsing: key not saved, or a red cross | The message shows Google's answer. *API key not valid*: re-paste the key. *Access denied*: enable the Safe Browsing API for the key's project, and check that the key's IP restriction contains the server's outgoing IP address. *Quota*: see the Quotas page of the API in the Google Cloud Console. |
 | The nightly scan doesn't seem to run | Run `crontab -l -u psaadm \| grep virustotal`, then run the scan by hand (step 4) to see its output. The **Log** tab shows every run. |
 
+## E-mail sender
+
+**Settings → E-mail sender** (administrator) sets the address and name of every e-mail Stingy Scanner sends: the Pwned? warnings to site administrators and the status notifications. Empty = the administrator's Plesk address. The address is also the envelope sender (Return-Path), so receiving mail servers check SPF, DKIM and DMARC against the same domain.
+
+**Check SPF, DKIM and DMARC** looks it up live, from the server:
+
+- **SPF:** does the domain's SPF record allow the server that actually hands the mail to the internet? That is the relay host when Postfix uses one (`relayhost`), otherwise this server's own addresses. Includes are followed.
+- **DKIM:** does this server sign mail of that domain (Plesk: *Use DKIM spam protection system to sign outgoing email messages*), and does the published key `default._domainkey.<domain>` match the key on the server? This needs a domain with mail service on this server.
+- **DMARC:** is there a `_dmarc.<domain>` record, and its policy. `p=none` only monitors; once SPF and DKIM pass for all mail of the domain, `p=quarantine` makes forged mail in your name land in spam.
+
+**Send test** sends a short e-mail from the address; in the received message's source, *Authentication-Results* shows whether SPF, DKIM and DMARC passed.
+
 ## Data and privacy
 
 All data stays on your server in `/usr/local/psa/var/modules/stingyscan/data/`: settings (including the API keys, readable only by the panel user), cached results, budget counters and logs (rotated, see [Settings](#settings)). Nothing is stored in this repository.

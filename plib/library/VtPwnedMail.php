@@ -3,6 +3,7 @@ require_once __DIR__ . '/VtPwned.php';
 require_once __DIR__ . '/VtNotifier.php';
 require_once __DIR__ . '/PleskDomains.php';
 require_once __DIR__ . '/VtServerName.php';
+require_once __DIR__ . '/VtMailSender.php';
 
 /**
  * VtPwnedMail: the e-mail to a site administrator whose address is in known data breaches.
@@ -20,8 +21,9 @@ class VtPwnedMail
     /** Name and address of the sender: the server administrator (company name from Plesk) */
     public static function sender(): array
     {
-        $email = VtNotifier::emailOfLogin('admin') ?: ('noreply@' . VtServerName::used());
-        $name  = '';
+        [$set, $email] = VtMailSender::get(); // Settings → E-mail sender, or the administrator's Plesk address
+        $name  = $set;
+        if ($name !== '') return [$name, $email];
         try {
             $pdo  = PleskDomains::pdo();
             $name = $pdo ? trim((string)$pdo->query("SELECT COALESCE(NULLIF(TRIM(cname),''), pname) FROM clients WHERE login = 'admin' LIMIT 1")->fetchColumn()) : '';
@@ -171,7 +173,7 @@ class VtPwnedMail
               . "--$b\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
               . "--$b--\r\n";
         // Envelope sender = the From address, so SPF/DMARC checks of the recipient's mail server see one sender
-        $env = filter_var($from, FILTER_VALIDATE_EMAIL) ? '-f' . $from : '';
+        $env = VtMailSender::envelope();
         return @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, $env);
     }
 }

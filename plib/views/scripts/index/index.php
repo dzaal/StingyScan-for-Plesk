@@ -2883,7 +2883,7 @@ function vtPwFixRender(){
       +'E-mail from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>, sent by the server <strong>'+vtEsc(d.server||'')+'</strong>.</div>';
     if(d.none){h+='<div class="vt-fa-q err">'+vtEsc(d.none)+'</div>';}
     else{
-      h+='<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'
+      h+='<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong> <span class="hint">· preview: the buttons are greyed out and do nothing here; in the real e-mail they are blue</span></div>'
         +'<iframe class="vt-pw-prev" sandbox="" title="Preview of the e-mail"></iframe>'
         +'<div class="vt-pw-add"><label class="hint" for="vt-pw-testto">Send a test of this e-mail to</label><input type="email" id="vt-pw-testto" placeholder="you@example.com" value="'+vtEsc(f.testTo||'')+'">'
         +'<button type="button" class="vt-btn" onclick="vtPwFixTest()"'+(f.step==='busy'?' disabled':'')+'>Send test</button><span class="hint">changes nothing; marked as a test</span></div>';
@@ -2901,7 +2901,10 @@ function vtPwFixRender(){
   }
   if(f.msg) h+='<div class="vt-fa-q '+(f.ok?'ok':'err')+'">'+f.msg+'</div>';
   el.innerHTML=h+'</div>';
-  const fr=el.querySelector('.vt-pw-prev'); if(fr&&d) fr.srcdoc=d.html;
+  // Preview only: the buttons and links are greyed out and cannot be clicked (they would open the customer's site)
+  const PREVIEW_CSS='<style>a{pointer-events:none!important;cursor:not-allowed!important}'
+    +'a[style*="background"]{background:#cbd5e1!important;color:#475569!important;border:1px dashed #94a3b8}</style>';
+  const fr=el.querySelector('.vt-pw-prev'); if(fr&&d) fr.srcdoc=PREVIEW_CSS+d.html;
 }
 window.vtPwFixTest=async function(){
   const to=document.getElementById('vt-pw-testto').value.trim(); if(!to) return;

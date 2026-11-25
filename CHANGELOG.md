@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.7.0 — 2026-11-25
+- **Fix a pwned address** (administrator): *Fix…* next to a pwned administrator address in the Pwned? tab. It resets that administrator's password on every WordPress site where the address is administrator (to an unknown random password, with WP-CLI as the site's own user), logs them out everywhere, and e-mails them: which breaches their address is in (every breach with year, what leaked and how the passwords were stored), why the password was reset, and per site a link to choose a new password themselves. Nobody knows the new password.
+- The panel shows the sites, a preview of the e-mail, and **Send test** to any address: the test is marked as a test and changes nothing. The real action asks for confirmation first, and the address is marked *fixed* with the date.
+
 ## 2.6.8 — 2026-11-25
 - Settings: section names (Notifications, Sites to scan, …) are larger with a blue bar, and the content of each section is indented below its name.
 

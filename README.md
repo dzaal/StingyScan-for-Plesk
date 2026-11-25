@@ -210,6 +210,13 @@ The **Pwned?** tab (next to Statistics) shows where that risk is:
 3. Check the site's admin accounts for ones you don't know (the *WordPress admin accounts* section flags new accounts, bot-like names and foreign e-mail domains), and remove them.
 4. If the site was flagged, scan its files, clean them, and ask the vendors for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 
+**Fix a pwned address** (administrator). Click **Fix…** next to a pwned administrator address. The panel shows:
+
+1. the sites where the password will be reset, to an unknown random password (WP-CLI, run as the site's own user), and where the administrator is logged out everywhere;
+2. a **preview of the e-mail** to the owner of the address, sent from the server administrator's Plesk address: that their address appears in N known breaches (each with its year, what leaked and how the passwords were stored), that their website was not hacked and they did nothing wrong, why the password was reset anyway, and per site a **Choose a new password** link (the site's own *Lost your password?* page), plus tips (unique passwords, a password manager, two-factor login).
+
+**Send test** sends that same e-mail to an address of your choice, marked as a test; nothing is changed. **Reset passwords and send e-mail** asks for confirmation, then does both. The address is then marked *✓ fixed* with the date; the Log tab lists every reset. Requires WP-CLI on the server.
+
 **Breach data from** (administrator, in the tab):
 
 | Choice | Notes |

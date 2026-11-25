@@ -333,6 +333,43 @@ if ($mode === 'list') {
     }
     out(['scanners' => $list, 'engines' => $engines]);
 }
+if ($mode === 'wpreset') {
+    // Pwned? fix: give one WordPress administrator an unknown random password and log them out everywhere.
+    // wpreset <path of wp-config.php under VHOSTS> <user id> <e-mail address the account must have>
+    // WP-CLI runs as the owner of wp-config.php (never as root inside the site); the new password is never shown or stored.
+    $rel   = (string)($argv[2] ?? '');
+    $uid   = (string)($argv[3] ?? '');
+    $email = strtolower(trim((string)($argv[4] ?? '')));
+    if ($rel === '' || strpos($rel, '..') !== false || $rel[0] === '/' || basename($rel) !== 'wp-config.php'
+        || !preg_match('/^[1-9][0-9]{0,9}$/', $uid) || !filter_var($email, FILTER_VALIDATE_EMAIL)) out(['error' => 'Invalid parameters']);
+    $cfg = realpath(VHOSTS . $rel);
+    if (!$cfg || strpos($cfg, VHOSTS) !== 0 || strpos($cfg, VHOSTS . 'system/') === 0 || is_link(VHOSTS . $rel)) out(['error' => 'wp-config.php not found']);
+    $owner = posix_getpwuid(fileowner($cfg))['name'] ?? '';
+    if ($owner === '' || $owner === 'root') out(['error' => 'wp-config.php is owned by root; not resetting as root']);
+    $wp  = bin_path('wp') ?: (is_file('/usr/local/bin/wp') ? '/usr/local/bin/wp' : '');
+    if ($wp === '') out(['error' => 'WP-CLI is not installed on this server (https://wp-cli.org)']);
+    $php = '';
+    foreach (glob('/opt/plesk/php/*/bin/php') ?: [] as $p) if (is_executable($p)) $php = $p; // newest Plesk PHP (glob is sorted)
+    if ($php === '') $php = bin_path('php');
+    $dir = dirname($cfg);
+    if (!is_file($dir . '/wp-load.php')) {
+        // wp-config.php one level above the install
+        foreach (glob($dir . '/*/wp-load.php') ?: [] as $l) { $dir = dirname($l); break; }
+    }
+    $run = function (string $args) use ($owner, $php, $wp, $dir): array {
+        $cmd = 'runuser -u ' . escapeshellarg($owner) . ' -- ' . escapeshellarg($php) . ' -d memory_limit=512M ' . escapeshellarg($wp)
+             . ' --path=' . escapeshellarg($dir) . ' --skip-plugins --skip-themes --quiet ' . $args . ' 2>&1';
+        exec($cmd, $o, $rc);
+        return [$rc, trim(implode("\n", $o))];
+    };
+    [$rc, $got] = $run('user get ' . $uid . ' --field=user_email');
+    if ($rc !== 0) out(['error' => 'WP-CLI could not read the user: ' . substr($got, 0, 300)]);
+    if (strtolower(trim($got)) !== $email) out(['error' => 'This account no longer has that e-mail address']);
+    [$rc, $msg] = $run('user update ' . $uid . ' --user_pass=' . escapeshellarg(bin2hex(random_bytes(24))) . ' --skip-email');
+    if ($rc !== 0) out(['error' => 'Could not set a new password: ' . substr($msg, 0, 300)]);
+    [$rc2, $msg2] = $run('user session destroy ' . $uid . ' --all');
+    out(['ok' => true, 'logged_out' => $rc2 === 0] + ($rc2 !== 0 ? ['note' => 'Sessions not cleared: ' . substr($msg2, 0, 200)] : []));
+}
 if ($mode === 'wpconfigs') {
     // Which database and table prefix every WordPress install on the server uses (read-only)
     $list = [];

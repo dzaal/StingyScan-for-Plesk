@@ -241,6 +241,7 @@ class VtPwned
                 if (!$d) continue;
                 if (empty($b['date'])) $b['date'] = $d['date'];
                 if (empty($b['data'])) $b['data'] = $d['data'];
+                if (empty($b['pw']) && !empty($d['pw'])) $b['pw'] = $d['pw'];
             }
             unset($b);
             usort($r['breaches'], fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')));
@@ -313,13 +314,13 @@ class VtPwned
     {
         $file = VtDataDir::path('vt_wp_admins.json');
         $c    = json_decode((string)@file_get_contents($file), true);
-        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL) return $c['sites'] ?? [];
+        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 2) return $c['sites'] ?? [];
         $pdo = PleskDomains::pdo();
         if (!$pdo) return is_array($c) ? ($c['sites'] ?? []) : [];
         $hosted  = array_flip(PleskDomains::hostedAll());
         $configs = self::wpConfigs();
         $live    = [];
-        foreach ($configs ?? [] as $cf) $live[$cf['db'] . "\0" . $cf['prefix']] = true;
+        foreach ($configs ?? [] as $cf) $live[$cf['db'] . "\0" . $cf['prefix']] = (string)$cf['path'];
         $byHost = [];
         foreach (PleskDomains::wordPressSources() ?? [] as $s) {
             if (isset($hosted[$s['host']])) $byHost[$s['host']][] = $s;
@@ -333,12 +334,13 @@ class VtPwned
                 $use = [$list[0]];
             }
             foreach ($use as $s) {
-                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a;
+                $path = $live[$s['db'] . "\0" . $s['prefix']] ?? '';
+                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path];
             }
             if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
         }
         ksort($sites);
-        @file_put_contents($file, json_encode(['t' => time(), 'sites' => $sites]));
+        @file_put_contents($file, json_encode(['t' => time(), 'v' => 2, 'sites' => $sites]));
         return $sites;
     }
 
@@ -347,12 +349,12 @@ class VtPwned
         if (!preg_match('/^[A-Za-z0-9_]{0,64}$/', $prefix) || !preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db)) return [];
         $t = fn($n) => '`' . str_replace('`', '', $db) . '`.`' . $prefix . $n . '`';
         try {
-            $st = $pdo->prepare('SELECT u.user_login, u.user_email, u.user_registered FROM ' . $t('users') . ' u JOIN ' . $t('usermeta')
+            $st = $pdo->prepare('SELECT u.ID, u.user_login, u.user_email, u.user_registered FROM ' . $t('users') . ' u JOIN ' . $t('usermeta')
                 . ' m ON m.user_id = u.ID AND m.meta_key = ? WHERE m.meta_value LIKE ? ORDER BY u.user_login LIMIT 200');
             $st->execute([$prefix . 'capabilities', '%"administrator"%']);
             $out = [];
-            foreach ($st->fetchAll(\PDO::FETCH_NUM) as [$login, $email, $reg]) {
-                $out[] = ['login' => (string)$login, 'email' => strtolower(trim((string)$email)),
+            foreach ($st->fetchAll(\PDO::FETCH_NUM) as [$id, $login, $email, $reg]) {
+                $out[] = ['id' => (int)$id, 'login' => (string)$login, 'email' => strtolower(trim((string)$email)),
                           'registered' => $reg && $reg !== '0000-00-00 00:00:00' ? (int)strtotime($reg . ' UTC') : 0];
             }
             return $out;

@@ -1098,6 +1098,7 @@ class IndexController extends pm_Controller_Action
             'custom'  => $custom,
             'results' => VtPwned::withDetails(array_intersect_key(VtPwned::results(), $emails)),
             'owners'  => $this->role() === 'client' ? [] : PleskDomains::owners(array_keys($sites)),
+            'fixed'   => $this->role() === 'admin' ? array_intersect_key(self::pwnedFixed(), $emails) : [],
             'config'  => $this->pwnedSummary(),
         ]);
     }
@@ -1123,6 +1124,78 @@ class IndexController extends pm_Controller_Action
         $left = 0;
         foreach ($emails as $e => $_) if (VtPwned::needsCheck($res[$e] ?? null)) $left++;
         $this->respond(['email' => $want, 'result' => VtPwned::withDetails([$r])[0], 'remaining' => $left]);
+    }
+
+    /** Addresses that were fixed: { email: {at, by, sites: [host], failed: [host]} } */
+    private static function pwnedFixed(?callable $change = null): array
+    {
+        $f = VtDataDir::path('vt_pwned_fixed.json');
+        $d = json_decode((string)@file_get_contents($f), true);
+        if (!is_array($d)) $d = [];
+        if ($change) { $d = $change($d); @file_put_contents($f, json_encode($d)); }
+        return $d;
+    }
+
+    /**
+     * Fix a pwned address (administrator): mode=preview shows the e-mail, mode=test sends it to another
+     * address (to=…) without changing anything, mode=fix resets the password on every site where the
+     * address is administrator, logs it out, and sends the e-mail to the address.
+     */
+    public function pwnedFixAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can do this']); return; }
+        require_once dirname(__DIR__) . '/library/VtPwnedMail.php';
+        $email = strtolower(trim((string)$this->_getParam('email', '')));
+        $mode  = (string)$this->_getParam('mode', 'preview');
+        $res   = VtPwned::results()[$email] ?? null;
+        if (($res['state'] ?? '') !== 'ok' || empty($res['breaches'])) { $this->respond(['error' => 'This address is not in a known breach']); return; }
+        $res   = VtPwned::withDetails([$res])[0];
+        $sites = [];
+        foreach (VtPwned::accounts() as $host => $list) {
+            foreach ($list as $a) if ($a['email'] === $email) $sites[] = ['host' => $host, 'login' => $a['login'], 'id' => (int)($a['id'] ?? 0), 'path' => (string)($a['path'] ?? '')];
+        }
+        if (!$sites) { $this->respond(['error' => 'This address is not an administrator of a WordPress site on this server']); return; }
+        $by = $this->resolveUserId();
+
+        if ($mode === 'preview' || $mode === 'test') {
+            $to = strtolower(trim((string)$this->_getParam('to', '')));
+            if ($mode === 'test' && !filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Enter a valid address to send the test to']); return; }
+            [$subject, $html, $text] = VtPwnedMail::build($email, $sites, $res, $mode === 'test' ? $email : null);
+            if ($mode === 'preview') { $this->respond(['ok' => true, 'subject' => $subject, 'html' => $html, 'sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'ready' => $s['id'] > 0 && $s['path'] !== ''], $sites), 'from' => VtPwnedMail::sender()]); return; }
+            $ok = VtPwnedMail::send($to, $subject, $html, $text);
+            $this->appendLog('[pwned] test e-mail for ' . $email . ' sent to ' . $to . ' by ' . $by . ($ok ? '' : ' (FAILED)'));
+            $this->respond($ok ? ['ok' => true, 'sent_to' => $to] : ['error' => 'The mail server did not accept the message']);
+            return;
+        }
+        if ($mode !== 'fix') { $this->respond(['error' => 'Unknown action']); return; }
+
+        $done = []; $failed = [];
+        foreach ($sites as $s) {
+            if (!$s['id'] || $s['path'] === '') { $failed[] = ['host' => $s['host'], 'error' => 'WordPress install not found on disk']; continue; }
+            try {
+                $r = pm_ApiCli::callSbin('site-scan', ['wpreset', $s['path'], (string)$s['id'], $email], pm_ApiCli::RESULT_FULL);
+                $o = json_decode(trim((string)($r['stdout'] ?? '')), true);
+            } catch (\Throwable $e) {
+                $o = ['error' => $e->getMessage()];
+            }
+            if (!empty($o['ok'])) {
+                $done[] = $s;
+                $this->appendLog('[pwned] password of ' . $s['login'] . ' on ' . $s['host'] . ' reset (address in a data breach) by ' . $by);
+            } else {
+                $failed[] = ['host' => $s['host'], 'error' => (string)($o['error'] ?? 'unknown error')];
+                $this->appendLog('[pwned] could not reset ' . $s['login'] . ' on ' . $s['host'] . ': ' . ($o['error'] ?? 'unknown error'));
+            }
+        }
+        if (!$done) { $this->respond(['error' => 'No password could be reset, so no e-mail was sent', 'failed' => $failed]); return; }
+        [$subject, $html, $text] = VtPwnedMail::build($email, $done, $res);
+        $sent = VtPwnedMail::send($email, $subject, $html, $text);
+        $this->appendLog('[pwned] e-mail to ' . $email . ($sent ? ' sent' : ' FAILED'));
+        $fixed = self::pwnedFixed(function ($d) use ($email, $by, $done, $failed, $sent) {
+            $d[$email] = ['at' => time(), 'by' => $by, 'sites' => array_column($done, 'host'), 'failed' => array_column($failed, 'host'), 'mailed' => $sent];
+            return $d;
+        });
+        $this->respond(['ok' => true, 'reset' => array_column($done, 'host'), 'failed' => $failed, 'mailed' => $sent, 'fixed' => $fixed[$email]]);
     }
 
     /** Add or remove an address of your own: op=add|remove, email */

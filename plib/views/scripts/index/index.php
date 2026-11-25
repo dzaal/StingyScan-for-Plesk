@@ -171,6 +171,14 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-fs-tbl.vt-pw-tbl td,.vt-fs-tbl.vt-pw-tbl td:last-child{white-space:normal;color:var(--text);word-break:normal;font-family:inherit}.vt-fs-tbl.vt-pw-tbl td:first-child{word-break:break-word}.vt-fs-tbl.vt-pw-tbl td.vt-fa-cell{white-space:nowrap}
 .vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
+.vt-pw-fixlink{font-weight:600}
+.vt-pw-fixed{color:var(--green,#16a34a);font-weight:600;cursor:help}
+.vt-pw-fixbox{border:1px solid #fca5a5;background:#fff;border-radius:8px;padding:12px 14px;margin:10px 0 14px}
+.vt-pw-fixbox .vt-pw-shield svg{width:18px;height:18px}
+.vt-pw-fixhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.vt-pw-fixhead .sp{flex:1}
+.vt-pw-steps{margin:4px 0 10px;padding-left:20px;font-size:13px}.vt-pw-steps ul{margin:4px 0;padding-left:18px}
+.vt-pw-subj{font-size:13px;margin:6px 0}
+.vt-pw-prev{width:100%;height:420px;border:1px solid var(--border);border-radius:6px;background:#fff}
 .vt-pw-shield{color:#dc2626;display:inline-block;vertical-align:middle;margin-right:5px;cursor:help;line-height:0}
 .vt-pw-tbl td.site small{display:block;font-weight:400;color:var(--muted)}
 .vt-domain-age{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600;margin-left:4px;vertical-align:middle}
@@ -796,6 +804,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         Each address is checked once; the result stays valid, so it is never checked again.</div>
       <div id="vt-pw-src"></div>
       <div id="vt-pw-note"></div>
+      <div id="vt-pw-fix"></div>
       <div class="vt-toolbar" style="margin-top:6px">
         <input class="vt-search" type="text" id="vt-pw-search" placeholder="Search site, customer, login, e-mail or breach..." oninput="vtRenderPwned()" style="width:300px">
         <div class="vt-filters">
@@ -2727,8 +2736,11 @@ function pwStatusHTML(email){
   if(!r) return '<span class="vt-pw-wait">not tested yet</span>'+now;
   if(r.state!=='ok') return '<span class="vt-pw-wait" title="'+vtEsc(r.error||'')+'">check failed ('+vtEsc(r.error||'error')+')</span>'+now;
   if(!r.breaches?.length) return '<span class="vt-pw-ok">✓ not in a known breach</span>';
-  const n=r.breaches.length;
-  return '<span class="vt-pw-bad">Pwned: '+n+' breach'+(n===1?'':'es')+'</span><div class="vt-pw-br">'
+  const n=r.breaches.length, fx=pw.fixed?.[email];
+  const fix=!pw.config.admin||!pwIsAdminAddr(email)?''
+    :fx?' · <span class="vt-pw-fixed" title="'+vtEsc('Password reset on '+fx.sites.join(', ')+(fx.failed?.length?'; failed on '+fx.failed.join(', '):'')+(fx.by?' · by '+fx.by:''))+'">✓ fixed '+new Date(fx.at*1000).toLocaleDateString()+'</span> · <a onclick="vtPwFixOpen(\''+e+'\')">again…</a>'
+    :' · <a class="vt-pw-fixlink" onclick="vtPwFixOpen(\''+e+'\')">Fix…</a>';
+  return '<span class="vt-pw-bad">Pwned: '+n+' breach'+(n===1?'':'es')+'</span>'+fix+'<div class="vt-pw-br">'
     +r.breaches.slice(0,8).map(b=>'<span title="'+vtEsc((b.data||[]).join(', '))+'">'+vtEsc(b.title||b.name)+(b.date?' ('+vtEsc(b.date.slice(0,4))+')':'')+'</span>').join(', ')
     +(n>8?' and '+(n-8)+' more':'')+'</div>';
 }
@@ -2812,6 +2824,67 @@ function vtRenderPwned(){
     :c.source==='xon'?'Breach data: <a href="https://xposedornot.com" target="_blank" rel="noopener">XposedOrNot ↗</a>':'';
 }
 window.vtPwAskRm=function(e){pwAsk=e; vtRenderPwned();};
+
+// ── Fix a pwned address (administrator) ──
+// Preview the e-mail, send a test to another address (changes nothing), or reset the password on
+// every site where the address is administrator, log it out, and e-mail the owner.
+let pwFix=null; // {email, data, step: ''|'ask'|'busy', msg, ok}
+function pwIsAdminAddr(email){return Object.values(pw.sites||{}).some(l=>l.some(a=>a.email===email));}
+window.vtPwFixOpen=async function(email){
+  pwFix={email,data:null,step:'',msg:'',ok:false};
+  vtPwFixRender(); document.getElementById('vt-pw-fix').scrollIntoView({block:'start',behavior:'smooth'});
+  const r=await vtPostAct('pwned-fix',{email,mode:'preview'});
+  if(!pwFix||pwFix.email!==email) return;
+  if(r.error){pwFix.msg=r.error; pwFix.ok=false;} else pwFix.data=r;
+  vtPwFixRender();
+};
+window.vtPwFixClose=function(){pwFix=null; vtPwFixRender();};
+window.vtPwFixAsk=function(v){if(pwFix){pwFix.step=v?'ask':''; vtPwFixRender();}};
+function vtPwFixRender(){
+  const el=document.getElementById('vt-pw-fix'); if(!el) return;
+  if(!pwFix){el.innerHTML=''; return;}
+  const f=pwFix, d=f.data, e=vtEsca(f.email), fx=pw?.fixed?.[f.email];
+  let h='<div class="vt-pw-fixbox"><div class="vt-pw-fixhead"><strong>Fix pwned address '+PW_SHIELD+vtEsc(f.email)+'</strong><span class="sp"></span><a onclick="vtPwFixClose()">Close</a></div>';
+  if(!d&&!f.msg){el.innerHTML=h+'<span class="vt-spin"></span> Preparing the e-mail…</div>'; return;}
+  if(d){
+    const ready=d.sites.filter(s=>s.ready), n=d.sites.length;
+    h+='<ol class="vt-pw-steps"><li><strong>Reset the password</strong> of this administrator on '+(n===1?'this site':'these '+n+' sites')+' to an unknown random password, and log them out everywhere:'
+      +'<ul>'+d.sites.map(s=>'<li>'+vtEsc(s.host)+' <span class="hint">as '+vtEsc(s.login)+(s.ready?'':' · WordPress install not found on disk, skipped')+'</span></li>').join('')+'</ul></li>'
+      +'<li><strong>E-mail '+vtEsc(f.email)+'</strong> from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>: what was found, why the password was reset, and a link per site to choose a new password themselves.</li></ol>'
+      +(fx?'<div class="vt-fs-note">Already fixed on '+new Date(fx.at*1000).toLocaleString()+(fx.by?' by '+vtEsc(fx.by):'')+'.</div>':'')
+      +'<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'
+      +'<iframe class="vt-pw-prev" sandbox="" title="Preview of the e-mail"></iframe>'
+      +'<div class="vt-pw-add"><label class="hint" for="vt-pw-testto">Send a test of this e-mail to</label><input type="email" id="vt-pw-testto" placeholder="you@example.com" value="'+vtEsc(f.testTo||'')+'">'
+      +'<button type="button" class="vt-btn" onclick="vtPwFixTest()"'+(f.step==='busy'?' disabled':'')+'>Send test</button><span class="hint">changes nothing; marked as a test</span></div>';
+    if(f.step==='ask') h+='<div class="vt-fa-q err"><strong>Reset the password of '+vtEsc(f.email)+' on '+ready.length+' site'+(ready.length===1?'':'s')+' and send the e-mail?</strong> '
+      +'They are logged out right away and can only log in again after choosing a new password via the link in the e-mail.</div>'
+      +'<button type="button" class="vt-btn danger" onclick="vtPwFixGo()">Yes, reset and send</button> <button type="button" class="vt-btn ghost" onclick="vtPwFixAsk(0)">Cancel</button>';
+    else if(f.step==='busy') h+='<div><span class="vt-spin"></span> Resetting passwords and sending the e-mail…</div>';
+    else h+='<button type="button" class="vt-btn danger" onclick="vtPwFixAsk(1)"'+(ready.length?'':' disabled')+'>Reset password'+(ready.length===1?'':'s')+' and send e-mail…</button>';
+  }
+  if(f.msg) h+='<div class="vt-fa-q '+(f.ok?'ok':'err')+'">'+f.msg+'</div>';
+  el.innerHTML=h+'</div>';
+  const fr=el.querySelector('.vt-pw-prev'); if(fr&&d) fr.srcdoc=d.html;
+}
+window.vtPwFixTest=async function(){
+  const to=document.getElementById('vt-pw-testto').value.trim(); if(!to) return;
+  pwFix.testTo=to; pwFix.msg='Sending the test…'; pwFix.ok=true; vtPwFixRender();
+  const r=await vtPostAct('pwned-fix',{email:pwFix.email,mode:'test',to});
+  pwFix.msg=r.ok?'Test sent to '+vtEsc(r.sent_to)+'. Nothing was changed.':vtEsc(r.error||'Failed'); pwFix.ok=!!r.ok; vtPwFixRender();
+};
+window.vtPwFixGo=async function(){
+  const email=pwFix.email; pwFix.step='busy'; pwFix.msg=''; vtPwFixRender();
+  const r=await vtPostAct('pwned-fix',{email,mode:'fix'});
+  pwFix.step='';
+  const fails=(r.failed||[]).map(x=>vtEsc(x.host)+': '+vtEsc(x.error)).join('<br>');
+  if(r.ok){
+    pw.fixed=pw.fixed||{}; pw.fixed[email]=r.fixed;
+    pwFix.ok=r.mailed&&!(r.failed||[]).length;
+    pwFix.msg='Password reset on '+r.reset.map(vtEsc).join(', ')+'. '+(r.mailed?'E-mail sent to '+vtEsc(email)+'.':'<strong>The e-mail could not be sent</strong>; tell them yourself.')
+      +(fails?'<br>Not reset:<br>'+fails:'');
+  }else{pwFix.ok=false; pwFix.msg=vtEsc(r.error||'Failed')+(fails?'<br>'+fails:'');}
+  vtRenderPwned(); vtPwFixRender();
+};
 window.vtRenderPwned=vtRenderPwned; // the search box redraws the list on every key
 window.vtPwSaveSrc=async function(){
   const src=document.querySelector('input[name=vt-pw-src]:checked')?.value||'', key=document.getElementById('vt-pw-key').value.trim();

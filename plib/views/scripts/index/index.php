@@ -233,6 +233,8 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-q-item.vt-q-srv{border-left-color:#7c3aed;background:#faf5ff}
 .vt-q-kind.srv{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}
 .vt-q-kind.fs{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+.vt-q-kind.pw{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.vt-q-item.vt-q-pw.running,.vt-q-item.vt-q-pw.queued{border-left-color:#dc2626;background:#fff5f5}
 .vt-q-icon{width:26px;text-align:center;flex-shrink:0;font-weight:700;font-size:12px;color:var(--muted)}
 .vt-q-icon.ok{color:var(--green)}.vt-q-icon.bad{color:var(--red)}
 .vt-q-main{flex:1;min-width:0}
@@ -793,7 +795,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <button class="vt-fbtn active" data-pwf="all" onclick="vtPwFilter('all')">All <strong id="vt-pw-cnt-all">0</strong></button>
           <button class="vt-fbtn" data-pwf="bad" onclick="vtPwFilter('bad')"><span class="vt-dot dot-r"></span> Pwned <strong id="vt-pw-cnt-bad">0</strong></button>
           <button class="vt-fbtn" data-pwf="ok" onclick="vtPwFilter('ok')"><span class="vt-dot dot-g"></span> Not pwned <strong id="vt-pw-cnt-ok">0</strong></button>
-          <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not checked <strong id="vt-pw-cnt-new">0</strong></button>
+          <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not tested <strong id="vt-pw-cnt-new">0</strong></button>
         </div>
         <div class="vt-spacer"></div>
         <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per WordPress site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
@@ -2052,9 +2054,10 @@ function startQTicker(){
     const cut=Date.now()-30000;
     jobs=jobs.filter(j=>ACTIVE.has(j.state)||!j.endedAt||(j.endedAt>cut));
     fsJobs=fsJobs.filter(j=>!j.endedAt||(j.endedAt>cut));
+    pwJobs=pwJobs.filter(j=>!j.endedAt||(j.endedAt>cut));
     renderQueue();
-    const fsIdle=!fsJobs.some(j=>!j.endedAt);
-    if(!jobs.some(j=>ACTIVE.has(j.state))&&!pumpRunning&&fsIdle&&!serverQueue.length){clearInterval(qTicker);qTicker=null;}
+    const fsIdle=!fsJobs.some(j=>!j.endedAt)&&!pwJobs.some(j=>!j.endedAt);
+    if(!jobs.some(j=>ACTIVE.has(j.state))&&!pumpRunning&&fsIdle&&!serverQueue.length&&!pwJobs.length){clearInterval(qTicker);qTicker=null;}
   },1000);
 }
 
@@ -2284,11 +2287,44 @@ function fsJobHTML(j){
     +'<div class="vt-q-right">'+right+'</div></div>';
 }
 
+// ── Pwned? checks in the Scan Monitor ─────────────────────────
+// One line per e-mail address that is sent to the breach service (XposedOrNot or Have I Been Pwned)
+let pwJobs=[];
+function pwJobStart(email){
+  const j={id:'pw-'+(++jobSeq),pw:true,domain:email,state:'running',startedAt:Date.now(),endedAt:null,result:null,msg:'',until:0};
+  pwJobs=pwJobs.filter(x=>!(x.domain===email&&!x.endedAt)); pwJobs.push(j);
+  startQTicker(); renderQueue(); return j;
+}
+function pwJobWait(j,secs){j.state='queued'; j.until=Date.now()+secs*1000; renderQueue();}
+function pwJobEnd(j,state,result,msg){j.state=state; j.result=result||null; j.msg=msg||''; j.endedAt=Date.now(); renderQueue();}
+function pwJobHTML(j){
+  const src=pw?.config?.source_name||'breach service';
+  let icon, msg=j.msg, right='';
+  if(j.state==='done') icon='<div class="vt-q-icon ok">✓</div>';
+  else if(j.state==='failed') icon='<div class="vt-q-icon bad">✕</div>';
+  else if(j.state==='queued') icon='<div class="vt-q-icon">…</div>';
+  else icon='<div class="vt-q-icon"><span class="vt-spin"></span></div>';
+  if(!msg){
+    if(j.state==='running') msg='Asking '+src+'…';
+    else if(j.state==='queued') msg='Waiting for the request limit of '+src+' — next try in '+fmtSecs(Math.max(0,j.until-Date.now()));
+    else if(j.state==='done') msg='Checked with '+src+' at '+new Date(j.endedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    else msg='Check failed';
+  }
+  if(j.state==='done'&&j.result){
+    const n=j.result.breaches?.length||0;
+    right=n?'<span class="vt-badge infected"><span class="vt-dot dot-r"></span>Pwned: '+n+'</span>':'<span class="vt-badge clean"><span class="vt-dot dot-g"></span>Not pwned</span>';
+  }else if(!j.endedAt) right='<div>'+fmtSecs(Date.now()-j.startedAt)+'</div>';
+  return '<div class="vt-q-item vt-q-pw '+j.state+'">'+icon
+    +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(j.domain)+'<span class="vt-q-kind pw">Pwned?</span></div>'
+    +'<div class="vt-q-msg">'+vtEsc(msg)+'</div></div>'
+    +'<div class="vt-q-right">'+right+'</div></div>';
+}
+
 function renderQueue(){
   const box=document.getElementById('vt-queue');
   if(!box) return;
   const pumpBusy=pumpRunning&&(pumpCurrent||scanQueue.length);
-  if(!jobs.length&&!fsJobs.length&&!pumpBusy&&!serverQueue.length){box.style.display='none';return;}
+  if(!jobs.length&&!fsJobs.length&&!pwJobs.length&&!pumpBusy&&!serverQueue.length){box.style.display='none';return;}
   box.style.display='block';
   applyQueueCollapse();
   if(pumpBusy) startQTicker();
@@ -2298,21 +2334,24 @@ function renderQueue(){
   const finished=jobs.filter(j=>!ACTIVE.has(j.state)).sort((a,b)=>b.endedAt-a.endedAt);
   const fsActive=fsJobs.filter(j=>j.state==='running'||j.state==='queued');
   const fsDone=fsJobs.filter(j=>j.state==='done'||j.state==='failed').sort((a,b)=>b.endedAt-a.endedAt);
-  const allFinished=[...finished,...fsDone].sort((a,b)=>b.endedAt-a.endedAt).slice(0,8);
+  const pwActive=pwJobs.filter(j=>!j.endedAt);
+  const pwDone=pwJobs.filter(j=>j.endedAt);
+  const allFinished=[...finished,...fsDone,...pwDone].sort((a,b)=>b.endedAt-a.endedAt).slice(0,8);
   // Server-queue: domains pushed to server but not in any active in-browser job
   const inBrowserDomains=new Set([...jobs.filter(j=>ACTIVE.has(j.state)).map(j=>j.domain),...(pumpCurrent?[pumpCurrent]:[])]);
   const srvItems=serverQueue.filter(d=>!inBrowserDomains.has(d));
-  const hasActive=pumpCurrent||running.length||waiting.length||fsActive.length||srvItems.length;
+  const hasActive=pumpCurrent||running.length||waiting.length||fsActive.length||srvItems.length||pwActive.length;
 
   // Active queue first, then a divider, then recently completed
   let html='';
   if(pumpCurrent) html+=liveHTML(pumpCurrent);
   running.forEach(j=>{ html+=jobHTML(j); });
   fsActive.forEach(j=>{ html+=fsJobHTML(j); });
+  pwActive.forEach(j=>{ html+=pwJobHTML(j); });
   waiting.slice(0,5).forEach(j=>{ html+=jobHTML(j); });
   srvItems.forEach(d=>{ html+=serverJobHTML(d); });
   if(allFinished.length&&hasActive) html+='<div class="vt-q-divider">Completed</div>';
-  allFinished.forEach(j=>{ html+=(j.scanner?fsJobHTML(j):jobHTML(j)); });
+  allFinished.forEach(j=>{ html+=(j.pw?pwJobHTML(j):j.scanner?fsJobHTML(j):jobHTML(j)); });
   document.getElementById('vt-q-list').innerHTML=html;
 
   // Pause bar
@@ -2334,7 +2373,7 @@ function renderQueue(){
 
   const left=waiting.length+scanQueue.length;
   const parts=[];
-  if(running.length||pumpCurrent||fsActive.length) parts.push('checking '+(running.length+fsActive.length+(pumpCurrent?1:0)));
+  if(running.length||pumpCurrent||fsActive.length||pwActive.length) parts.push('checking '+(running.length+fsActive.length+pwActive.length+(pumpCurrent?1:0)));
   if(left) parts.push(left+' waiting');
   if(srvItems.length) parts.push(srvItems.length+' on server');
   if(allFinished.length) parts.push(allFinished.length+' done');
@@ -2672,7 +2711,7 @@ function pwStatusHTML(email){
   const r=pw.results?.[email], e=vtEsca(email);
   if(pwBusy===email) return '<span class="vt-spin"></span> checking…';
   const now=pw.config.source&&!pwRun?' · <a onclick="vtPwCheck(\''+e+'\')">check now</a>':'';
-  if(!r) return '<span class="vt-pw-wait">not checked yet</span>'+now;
+  if(!r) return '<span class="vt-pw-wait">not tested yet</span>'+now;
   if(r.state!=='ok') return '<span class="vt-pw-wait" title="'+vtEsc(r.error||'')+'">check failed ('+vtEsc(r.error||'error')+')</span>'+now;
   if(!r.breaches?.length) return '<span class="vt-pw-ok">✓ not in a known breach</span>';
   const n=r.breaches.length;
@@ -2686,7 +2725,7 @@ function vtRenderPwned(){
   const c=pw.config||{}, sites=pw.sites||{}, hosts=Object.keys(sites).sort();
   const accounts=hosts.reduce((t,h)=>t+sites[h].length,0), emails=pwEmails(), bad=emails.filter(pwBad).length, left=pwUnchecked().length;
   vtSet('vt-pw-sub',accounts+' administrator account'+(accounts===1?'':'s')+' on '+hosts.length+' WordPress site'+(hosts.length===1?'':'s')
-    +' · '+bad+' pwned address'+(bad===1?'':'es')+(left?' · '+left+' not checked yet':''));
+    +' · '+bad+' pwned address'+(bad===1?'':'es')+(left?' · '+left+' not tested yet':''));
   // Actions
   let act='';
   if(c.source&&(left||pwRun)) act+='<button type="button" class="vt-btn'+(pwRun?' ghost':' primary')+'" onclick="vtPwRun()">'+(pwRun?'Stop':'Check '+left+' address'+(left===1?'':'es'))+'</button> ';
@@ -2697,13 +2736,13 @@ function vtRenderPwned(){
   if(c.admin){
     const opt=(v,label,hint)=>'<label><input type="radio" name="vt-pw-src" value="'+v+'"'+((c.setting||'')===v?' checked':'')+'> '+label+(hint?' <span class="hint">'+hint+'</span>':'')+'</label>';
     src='<div class="vt-pw-src"><strong>Breach data from:</strong>'+opt('','Off','nothing is sent')
-      +opt('xon','XposedOrNot','free, no key, about 90 addresses per day')
+      +opt('xon','XposedOrNot','free, no key, about 25 an hour and 90 a day, tested in the background')
       +opt('hibp','Have I Been Pwned','own API key (paid subscription)')
       +'<input type="password" id="vt-pw-key" placeholder="'+(c.key?'stored key '+vtEsc(c.key)+' (paste to replace)':'Have I Been Pwned API key')+'" autocomplete="off">'
       +'<button type="button" class="vt-btn" onclick="vtPwSaveSrc()">Save</button><span id="vt-pw-srcmsg" class="hint">'+(c.calls?c.calls+' requests today':'')+'</span></div>'
       +'<div class="hint" style="margin-bottom:10px">Only the e-mail address is sent to the chosen service. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key ↗</a>. Addresses that were never checked are also checked each night.</div>';
   }else if(!c.source){
-    src='<div class="vt-alert warn" style="display:block">The administrator has not chosen a breach data service yet, so the addresses are not checked.</div>';
+    src='<div class="vt-alert warn" style="display:block">The administrator has not chosen a breach data service yet, so the addresses are not tested.</div>';
   }
   document.getElementById('vt-pw-src').innerHTML=src;
   document.getElementById('vt-pw-note').innerHTML=pwNote?'<div class="vt-fs-note">'+pwNote+'</div>':'';
@@ -2716,7 +2755,7 @@ function vtRenderPwned(){
   const breachText=em=>(pw.results?.[em]?.breaches||[]).map(b=>(b.title||b.name)).join(' ').toLowerCase();
   const who=h=>{const o=pw.owners?.[h]; return o?(o.ct==='admin'?'Administrator':o.c):'';};
   const stOk=em=>pwFilter==='all'||pwState(em)===pwFilter;
-  const filterNote=pwFilter==='bad'?'No pwned addresses':pwFilter==='ok'?'No addresses that were checked and found clean':pwFilter==='new'?'Every address has been checked':'Nothing';
+  const filterNote=pwFilter==='bad'?'No pwned addresses':pwFilter==='ok'?'No addresses that were checked and found clean':pwFilter==='new'?'Every address has been tested':'Nothing';
   let html='';
   if(pwViewMode==='sort'){
     // One row per address: the sites it administers, sortable
@@ -2769,35 +2808,52 @@ window.vtPwSaveSrc=async function(){
   pw.config=r.config; pwNote=r.message?vtEsc(r.message):''; vtRenderPwned();
   vtToast(src?'Breach data from '+(r.config.source_name||src):'Pwned check switched off','info');
 };
-window.vtPwCheck=async function(email){
+/**
+ * Check one address, shown in the Scan Monitor. Short waits for the service's request limit are
+ * waited out; returns {ok, remaining} or {stop: message} (error, daily limit, or stopped).
+ */
+async function pwCheckOne(email,loop){
+  const job=pwJobStart(email);
   pwBusy=email; vtRenderPwned();
-  const r=await vtPostAct('pwned-check',{email});
-  pwBusy=null;
-  if(r.result?.state==='wait') pwNote='The service asks to wait '+r.result.retry_after+' s (request limit). Try again shortly.';
-  else if(r.error) pwNote=vtEsc(r.error);
-  else {pw.results[r.email]=r.result; pwNote='';}
-  vtRenderPwned();
+  try{
+    while(true){
+      const r=await vtPostAct('pwned-check',{email});
+      if(r.error){pwJobEnd(job,'failed',null,r.error); return {stop:vtEsc(r.error)};}
+      if(r.result?.state==='wait'){
+        const s=r.result.retry_after;
+        if(s>180){
+          const day=r.result.reason==='day', mins=Math.ceil(s/60);
+          pwJobEnd(job,'failed',null,day?'Daily maximum reached':'The service asks to wait '+mins+' min');
+          return {stop:(day?'Today\'s maximum for this service is reached.':'The service asks to wait '+mins+' minutes (its request limit).')
+            +' The rest is tested in the background, a few addresses an hour; you don\'t need to keep this page open.'};
+        }
+        pwJobWait(job,s); await delay(s*1000);
+        if(loop&&!pwRun){pwJobEnd(job,'failed',null,'Stopped'); return {stop:'Stopped.'};}
+        job.state='running'; renderQueue(); continue;
+      }
+      pw.results[r.email]=r.result;
+      if(r.result?.state==='ok') pwJobEnd(job,'done',r.result);
+      else pwJobEnd(job,'failed',null,'Check failed: '+(r.result?.error||'unknown error'));
+      return {ok:true,remaining:r.remaining};
+    }
+  }finally{pwBusy=null; vtRenderPwned();}
+}
+window.vtPwCheck=async function(email){
+  const r=await pwCheckOne(email,false);
+  pwNote=r.stop&&r.stop!=='Stopped.'?r.stop:''; vtRenderPwned();
 };
 window.vtPwRun=async function(){
   if(pwRun){pwRun=false; pwNote='Stopped.'; vtRenderPwned(); return;}
   pwRun=true; pwNote=''; vtRenderPwned();
+  const tried=new Set();
   while(pwRun){
-    const next=pwUnchecked()[0]; if(!next) break;
-    pwBusy=next; vtRenderPwned();
-    const r=await vtPostAct('pwned-check',{});
-    pwBusy=null;
-    if(r.error){pwNote=vtEsc(r.error); break;}
-    if(r.done) break;
-    if(r.result?.state==='wait'){
-      const s=r.result.retry_after;
-      if(s>180){pwNote='The daily limit of the service is reached. The rest is checked tonight, or click Check again tomorrow.'; break;}
-      pwNote='Waiting '+s+' s for the request limit…'; vtRenderPwned();
-      await delay(s*1000); pwNote=''; continue;
-    }
-    pw.results[r.email]=r.result; vtRenderPwned();
+    const next=pwUnchecked().find(e=>!tried.has(e)); if(!next) break;
+    tried.add(next); // a failed check is not repeated in the same run
+    const r=await pwCheckOne(next,true);
+    if(r.stop){pwNote=r.stop; break;}
     if(!r.remaining) break;
   }
-  pwRun=false; pwBusy=null; vtRenderPwned();
+  pwRun=false; vtRenderPwned();
 };
 window.vtPwAdd=async function(){
   const inp=document.getElementById('vt-pw-new'), m=document.getElementById('vt-pw-addmsg'), v=inp.value.trim();

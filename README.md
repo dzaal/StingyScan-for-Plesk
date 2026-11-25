@@ -2,13 +2,20 @@
 
 # Stingy Scanner for Plesk
 
-A Plesk extension that checks every website hosted on your Plesk server against [VirusTotal](https://www.virustotal.com)¹ for malware, phishing and spam, while carefully managing the limited number of API calls in VirusTotal's free tier. Optionally it also asks Google Safe Browsing¹ directly, and (experimental) the URL reputation of AVG and Avast¹.
+**A reputation scanner for every website on your Plesk server, and a helper to get a site's good name back after an attack.**
+
+When a site is hacked, the damage does not stop when the malware is gone. Browsers warn visitors away, security vendors keep the address on their blocklists, mail from the domain lands in spam, and one bad site can drag down the reputation of the server's IP address and every other site on it. Stingy Scanner watches that reputation and walks you through the recovery:
+
+1. **Notice it early.** Every hosted site (and any [external site](#external-sites) you add) is checked against [VirusTotal](https://www.virustotal.com)¹, and optionally Google Safe Browsing¹ and AVG / Avast¹, for malware, phishing and spam, within the limits of VirusTotal's free API.
+2. **Find the cause.** Scan the site's files with ClamAV, Maldet or Imunify, clean or quarantine what was found, and look at the WordPress administrator accounts: unknown or recently added admins, and admins whose e-mail address is **[pwned](#pwned-data-breaches)** in a known data breach, the usual way back in for an attacker.
+3. **Close the door.** Delete rogue admins, reset passwords, and use the Pwned? overview to see every administrator address on the server that appears in a breach.
+4. **Get delisted.** See exactly which vendors still flag the site, ask each of them for a review with one click, and follow the [history of the site](#cleaned-but-still-red) until every vendor has removed it.
 
 <sub>¹ Stingy Scanner is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
 
 Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web development and hosting company in Amsterdam. *Stingy* because it is sparing with every API call. Stingy Scanner was called **VT Site Scanner** until version 1.35; see [Coming from VT Site Scanner](#coming-from-vt-site-scanner-1x).
 
-> **Detection only.** Stingy Scanner never changes anything on your sites. It does not edit, clean, move, quarantine or delete files, and it does not change or delete databases. It only looks and reports, so you decide what to do. (The one thing it writes, on request, is a backup copy of an orphan database.)
+> **Nothing happens without your click.** Scans, lookups and breach checks only look and report. Changes are made only when the administrator clicks them, one at a time and with a confirmation: cleaning or quarantining a file (both can be undone), deleting a WordPress admin or resetting its password, and backing up an orphan database.
 
 > [!TIP]
 > **Beta testers wanted.** Do you run a Plesk server with many websites, as a hosting company, agency or sysadmin? Try Stingy Scanner for two weeks and tell us what you think. You get early access to new versions, direct contact with the developer, and a mention in this README if you like.
@@ -68,7 +75,7 @@ Stingy Scanner was built to fix that:
 
 - Dashboard with every website hosted on the server (WordPress or not): status (Infected / Suspicious / Clean / Queued / Error), detection score (e.g. `3/93` engines), IP address, domain age and danger tags (malware, phishing, …), with direct links to the site and to its VirusTotal page.
 - **Home page card** for the Plesk admin (Plesk 18.0.60 or newer): infected / suspicious / clean counts and the worst-scoring sites, styled like Plesk's own cards. It reads cached results only and never uses API calls. Show or hide it via **Home → Customize → Security → Stingy Scanner**.
-- **Scan Monitor**: a panel on the right that shows the VirusTotal lookups and file scans that are running, waiting and finished, each with its steps and result (blue = VirusTotal running, amber = file scan running, green = done and clean, red = failed or infected). The pause for VirusTotal's 4-requests-per-minute limit is waited out automatically instead of failing. Click its header to open or close it.
+- **Scan Monitor**: a panel on the right that shows the VirusTotal lookups, file scans and Pwned? breach tests that are running, waiting and finished, each with its steps and result (blue = VirusTotal running, amber = file scan running, green = done and clean, red = failed or infected). The pause for VirusTotal's 4-requests-per-minute limit is waited out automatically instead of failing. Click its header to open or close it.
 - **Rescans keep going when you leave the page.** A rescan is also queued on the server, and a task that runs every 5 minutes finishes it if the browser was closed first.
 - **Group or Sort:** sites grouped by reseller and customer, or one flat list. Click the **Domain**, **Score** or **Last scan** header to sort (within each group in Group mode). Mode, sort column and direction are remembered. *Last scan* shows how long ago the site was checked, with the exact time on hover.
 - **Details per site:** click anywhere on a site's row (or its score) to open its details: the vendors that flag it with review links, Google Safe Browsing and AVG / Avast if switched on, and the history of the site. Click again to close.
@@ -84,7 +91,9 @@ Stingy Scanner was built to fix that:
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
-- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin email is automatically checked against **[XposedOrNot](https://xposedornot.com)** (free, no key needed) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned? tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **Pwned? tab:** every WordPress administrator on the server and whether their e-mail address is in a known data breach, with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. Add any other address by hand (see [Pwned?](#pwned-data-breaches)).
+- **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
 
@@ -182,15 +191,34 @@ WP-CLI must be installed on the server for Delete and Reset pwd. Without it, tho
 
 ## Pwned? (data breaches)
 
-The **Pwned?** tab (next to Statistics) lists the administrator accounts of every WordPress site at once: site, login, e-mail address, and whether that address appears in a known data breach (*Pwned: 3 breaches*, with the breach names and years). It works like the site list: **search** (site, customer, login, address or breach name), filter buttons **All · Pwned · Not pwned · Not checked**, and **Group** (one block per site) or **Sort** (each address once, with every site it administers; click a column to sort by address, number of sites or number of breaches). A pwned address has a red shield. For those addresses: change the WordPress password of those accounts, and everywhere else it was used, and turn on two-factor login.
+**Why it matters.** Most hacked WordPress sites are not broken into through a clever exploit, but simply logged into. Billions of e-mail addresses and passwords from old data breaches (LinkedIn, Adobe, Canva, …) are traded, and bots try them on every WordPress login page they find. An administrator who once used the same password for a breached service and for WordPress hands the attacker the keys: they log in, upload malware, add an admin of their own, and the site is flagged again days after you cleaned it. On a server with many sites, one address that is administrator of dozens of sites can put all of them at risk.
 
-- **Each address is checked once.** A breach is history, so the result stays valid and is never checked again (a failed check is tried again). The same results show in a site's *WordPress admin accounts* section.
-- **Check N addresses** checks the ones that were never checked, one after another within the service's rate limit; the nightly run also checks up to 10 minutes' worth.
-- **Other e-mail addresses:** add any address by hand (your own, a customer's) and remove it again. Each user sees the addresses they added; the administrator sees all of them.
-- Accounts are read from the database the site's `wp-config.php` points to (old copies are skipped), read-only, and read again every 6 hours (**Read accounts again** for now).
+The **Pwned?** tab (next to Statistics) shows where that risk is:
+
+- **Every WordPress administrator on the server**, read from the database the site's `wp-config.php` points to (old copies are skipped): site, customer, login, e-mail address and since when the account exists.
+- **Whether the address is in a known data breach**: *Pwned: 3 breaches*, with the breach names and years (hover a name for the kind of data that leaked). Pwned addresses have a **red shield** and are printed in red, as in a site's *WordPress admin accounts*.
+- It works like the site list: **search** (site, customer, login, address or breach name), filter buttons **All · Pwned · Not pwned · Not tested** with their counts, and **Group** (one block per site) or **Sort** (each address once, with every site it is administrator of; click a column to sort by address, number of sites or number of breaches, so the address that controls the most sites is on top).
+- **Other e-mail addresses:** add any address by hand (your own, a colleague's, a customer's) and remove it again. Each user sees the addresses they added; the administrator sees all of them.
 - Resellers and customers see the accounts of their own sites.
 
-**Breach data from** (administrator, in the tab): **XposedOrNot** (default; free, no key, about 90 addresses a day), **Have I Been Pwned** (your own API key from [haveibeenpwned.com/API/Key](https://haveibeenpwned.com/API/Key), paid; the key is tested and its rate limit read when saved), or **Off** (nothing is sent, and the admin badges show no breaches). Only the e-mail address is sent.
+**Tested once.** A breach is history: an address that was in a breach stays in it. So each address is tested only once and the result is kept; a site's *WordPress admin accounts* section uses the same result, so an address is never sent twice. A failed test is tried again. **Check N addresses** tests the ones that were never tested, one after another within the service's rate limit; each test appears in the **Scan Monitor** (*Pwned?*, red), with the wait for the request limit and the result. You don't have to keep the page open: a background task tests a few addresses every hour, and the nightly run tests new ones too. Accounts are read again every 6 hours (**Read accounts again** for right now).
+
+**What to do with a pwned address.** A pwned address does not mean the site is hacked; it means a password used with that address may be known to attackers.
+
+1. Ask the owner of the address to set a new, unique password for the WordPress account (or click **Reset pwd** in the site's details), and for every other place they used the old one.
+2. Turn on two-factor login for WordPress administrators.
+3. Check the site's admin accounts for ones you don't know (the *WordPress admin accounts* section flags new accounts, bot-like names and foreign e-mail domains), and remove them.
+4. If the site was flagged, scan its files, clean them, and ask the vendors for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
+
+**Breach data from** (administrator, in the tab):
+
+| Choice | Notes |
+|---|---|
+| **XposedOrNot** (default) | Free, no key. It allows about 25 tests an hour and Stingy Scanner keeps to 90 a day, so a large server is done in a few days, in the background. |
+| **Have I Been Pwned** | Your own API key from [haveibeenpwned.com/API/Key](https://haveibeenpwned.com/API/Key) (paid subscription). The key is tested and its rate limit read when you save it. Breach data under CC BY 4.0. |
+| **Off** | Nothing is sent; the overview still lists the accounts, without breach results. |
+
+Only the e-mail address is sent, once per address. No passwords or password hashes ever leave the server.
 
 ## External sites
 

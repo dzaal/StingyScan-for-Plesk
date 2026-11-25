@@ -26,6 +26,13 @@ require_once $plibDir . '/VtLogRotate.php';
 // Keep the scan logs small (log rotation settings in Settings)
 try { VtLogRotate::run(); } catch (\Throwable $e) {}
 
+// Pwned?: test one or two addresses that were never tested (a minute at most; the breach
+// service allows only a few requests per hour, so they are spread over the day)
+try {
+    require_once $plibDir . '/VtPwned.php';
+    if (VtPwned::source() !== '') VtPwned::checkPending(60);
+} catch (\Throwable $e) {}
+
 // One run at a time: a run can take longer than the 5 minutes between runs
 $runLock = @fopen(VtDataDir::path('vt_manual_scan.lock'), 'c');
 if (!$runLock || !flock($runLock, LOCK_EX | LOCK_NB)) exit(0);

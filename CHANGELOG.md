@@ -3,8 +3,14 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.2 — 2026-11-25
+- **Pwned? tests in the Scan Monitor:** every address sent to the breach service shows up there (red *Pwned?* label) with the wait for the request limit and the result (*Pwned: 3* or *Not pwned*). A short wait for the limit is now waited out instead of stopping.
+- XposedOrNot allows only about 25 tests an hour (above that it asks to wait half an hour), so tests are now spread out: one every 2½ minutes at most, and the 5-minute background task tests untested addresses on its own, so nobody has to keep the page open. When the service asks for a long wait, the message says so instead of calling it the daily limit.
+- The category for addresses that were not tested yet is called **Not tested** (next to Pwned and Not pwned).
+- Documentation: Stingy Scanner described as what it has become, a reputation scanner and a helper to get a site's good name back after an attack; a new Pwned? section on why breached admin addresses matter and what to do about them.
+
 ## 2.6.1 — 2026-11-25
-- **Pwned?** works like the site list: a **search** box (site, customer, login, e-mail address or breach name), filter buttons **All · Pwned · Not pwned · Not checked** with their counts, and **Group / Sort**. *Group* shows one block per WordPress site; *Sort* shows each e-mail address once, with every site it is administrator of, sortable by address, number of sites or number of breaches.
+- **Pwned?** works like the site list: a **search** box (site, customer, login, e-mail address or breach name), filter buttons **All · Pwned · Not pwned · Not tested** with their counts, and **Group / Sort**. *Group* shows one block per WordPress site; *Sort* shows each e-mail address once, with every site it is administrator of, sortable by address, number of sites or number of breaches.
 - A pwned address shows the same **red shield** as in a site's WordPress admin accounts, and is printed in red.
 
 ## 2.6.0 — 2026-11-25

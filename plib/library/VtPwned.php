@@ -31,6 +31,7 @@ class VtPwned
     const XON_API   = 'https://api.xposedornot.com/v1/check-email/';
     const UA        = 'Stingy-Scanner-for-Plesk';
     const XON_DAY   = 90;     // stay below XposedOrNot's 100 requests per day
+    const XON_GAP   = 150;    // seconds between two XposedOrNot requests: it allows about 25 per hour (429 with a 30-minute wait above that)
     const RETRY     = 3600;   // a failed check is tried again after an hour
     const ACCOUNTS_TTL = 21600; // the account list is read again after 6 hours
     const MAX_CUSTOM = 1000;
@@ -59,7 +60,7 @@ class VtPwned
     private static function spacing(string $src): float
     {
         if ($src === 'hibp') return 60 / max(1, (int)(new VtSettings('admin'))->get('pwned_hibp_rpm', 10)) + 0.5;
-        return 1.5;
+        return self::XON_GAP;
     }
 
     /** Test a Have I Been Pwned key: [ok, message, rpm] */
@@ -117,14 +118,14 @@ class VtPwned
 
     /**
      * Check one address now, if the rate limit allows it.
-     * Returns the stored result, or ['state' => 'wait', 'retry_after' => s], or ['state' => 'off'].
+     * Returns the stored result, or ['state' => 'wait', 'retry_after' => s, 'reason' => limit|day], or ['state' => 'off'].
      */
     public static function check(string $email): array
     {
         $src = self::source();
         if ($src === '') return ['state' => 'off'];
         $wait = self::reserve($src);
-        if ($wait > 0) return ['state' => 'wait', 'retry_after' => $wait];
+        if ($wait > 0) return ['state' => 'wait', 'retry_after' => $wait, 'reason' => self::$why];
         $r = $src === 'hibp' ? self::hibp($email) : self::xon($email);
         if (($r['state'] ?? '') === 'wait') return $r;
         $r += ['checked_at' => time(), 'source' => $src];
@@ -169,10 +170,13 @@ class VtPwned
     {
         $s = max(2, min(3600, $s));
         self::lockedState(function (array $st) use ($s) { $st['next_at'] = max((float)($st['next_at'] ?? 0), microtime(true) + $s); return $st; });
-        return ['state' => 'wait', 'retry_after' => $s];
+        return ['state' => 'wait', 'retry_after' => $s, 'reason' => 'limit'];
     }
 
     /** Reserve a request; returns seconds to wait (0 = go) */
+    /** Why the last reserve() said wait: limit (request limit of the service) or day (daily maximum) */
+    private static string $why = 'limit';
+
     private static function reserve(string $src): int
     {
         $wait = 0;
@@ -180,7 +184,8 @@ class VtPwned
             $now = microtime(true);
             $day = gmdate('Y-m-d');
             if (($st['day'] ?? '') !== $day) $st = ['day' => $day, 'calls' => 0, 'next_at' => (float)($st['next_at'] ?? 0)];
-            if ($src === 'xon' && $st['calls'] >= self::XON_DAY) { $wait = strtotime('tomorrow UTC') - (int)$now; return $st; }
+            self::$why = 'limit';
+            if ($src === 'xon' && $st['calls'] >= self::XON_DAY) { $wait = strtotime('tomorrow UTC') - (int)$now; self::$why = 'day'; return $st; }
             if ($st['next_at'] > $now) { $wait = max(1, (int)ceil($st['next_at'] - $now)); return $st; }
             $st['calls']++;
             $st['next_at'] = $now + self::spacing($src);

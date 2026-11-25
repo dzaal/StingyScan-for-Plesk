@@ -37,7 +37,25 @@ if ($mode === 'start') {
     reply(['ok' => true]);
 }
 
-$url = 'https://github.com/dzaal/StingyScan-for-Plesk/releases/download/v' . $version . '/stingyscan.zip';
-exec('/usr/sbin/plesk bin extension --upgrade-url ' . escapeshellarg($url) . ' 2>&1', $lines, $code);
+$url    = 'https://github.com/dzaal/StingyScan-for-Plesk/releases/download/v' . $version . '/stingyscan.zip';
+$tmpZip = sys_get_temp_dir() . '/stingyscan-update-' . $version . '.zip';
+
+// Download
+$ch = curl_init($url);
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_FOLLOWLOCATION => true,
+                         CURLOPT_USERAGENT => 'Stingy-Scanner-Updater/' . $version]);
+$body = curl_exec($ch);
+$http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($http !== 200 || !$body) {
+    status(['state' => 'failed', 'version' => $version, 'message' => "Download failed (HTTP $http)", 'finished' => time()]);
+    exit;
+}
+file_put_contents($tmpZip, $body);
+
+// Install via local file — works on all Plesk versions
+exec('/usr/sbin/plesk bin extension --upgrade ' . escapeshellarg($tmpZip) . ' 2>&1', $lines, $code);
+@unlink($tmpZip);
 status(['state' => $code === 0 ? 'done' : 'failed', 'version' => $version,
         'message' => $code === 0 ? 'Installed' : substr(implode("\n", $lines), -4000), 'finished' => time()]);

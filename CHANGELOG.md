@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.8 — 2026-11-25
+- **Fix: OTA update failed silently on some Plesk versions.** The self-install button used `--upgrade-url`, which is not a valid Plesk CLI flag on all versions; Plesk would exit 0 without installing anything. The updater now downloads the zip first and runs `--upgrade` with a local file, which works on every supported Plesk version.
+
 ## 2.5.7 — 2026-11-25
 - **XposedOrNot breach check** (replaces EmailRep.io and HIBP). Each WordPress admin email is now checked against XposedOrNot — free, no API key needed, 25 checks/hour per server. The red badge shows the breach count; hover shows the breach names (e.g. "Adobe, LinkedIn, Dropbox"). Results are cached 24 hours.
 

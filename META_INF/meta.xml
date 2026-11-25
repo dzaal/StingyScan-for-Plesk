@@ -4,7 +4,7 @@
     <name>Stingy Scanner by Digizaal</name>
     <description>Built by a Dutch web agency managing 600+ websites on dedicated 130 GB Plesk servers. Monitor every hosted site for malware, phishing and spam using the VirusTotal API and Google Safe Browsing — without burning your daily API quota. Smart caching, budget control and nightly background scanning keep every site covered. Detects rogue WordPress admin accounts per site: flags suspicious usernames, free-email addresses, recently added accounts and foreign email domains, checks every admin email against XposedOrNot for known data breaches, and lets you delete or reset passwords directly from the panel.</description>
     <category>security</category>
-    <version>2.5.7</version>
+    <version>2.5.8</version>
     <release>1</release>
     <vendor>Digizaal</vendor>
     <url>https://www.digizaal.nl</url>

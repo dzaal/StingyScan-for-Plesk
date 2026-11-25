@@ -172,6 +172,7 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
 .vt-pw-fixlink{font-weight:600}
+.vt-pw-cms{display:inline-block;font-size:10px;font-weight:600;padding:0 5px;border-radius:4px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;margin-left:4px;vertical-align:middle}
 .vt-pw-fixed{color:var(--green,#16a34a);font-weight:600;cursor:help}
 .vt-pw-fixbox{border:1px solid #fca5a5;background:#fff;border-radius:8px;padding:12px 14px;margin:10px 0 14px}
 .vt-pw-fixbox .vt-pw-shield svg{width:18px;height:18px}
@@ -799,7 +800,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <div class="vt-card" style="max-width:100%">
       <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned? <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
         <span style="flex:1"></span><span id="vt-pw-actions"></span></h3>
-      <div class="hint">The administrator accounts of every WordPress site, and whether their e-mail address appears in a known data breach.
+      <div class="hint">The administrator accounts of every WordPress, Joomla, Drupal and Wotan site, and whether their e-mail address appears in a known data breach.
         A breached address means a password used with it may be known: change the WordPress password (and any other place it was used) and turn on two-factor login.
         Each address is checked once; the result stays valid, so it is never checked again.</div>
       <div id="vt-pw-src"></div>
@@ -814,7 +815,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not tested <strong id="vt-pw-cnt-new">0</strong></button>
         </div>
         <div class="vt-spacer"></div>
-        <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per WordPress site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
+        <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
       </div>
       <div id="vt-pw-list"><span class="hint">Loading…</span></div>
       <div class="vt-tr-title">Other e-mail addresses <span class="hint">(added by hand, for example your own or a customer's)</span></div>
@@ -2744,12 +2745,14 @@ function pwStatusHTML(email){
     +r.breaches.slice(0,8).map(b=>'<span title="'+vtEsc((b.data||[]).join(', '))+'">'+vtEsc(b.title||b.name)+(b.date?' ('+vtEsc(b.date.slice(0,4))+')':'')+'</span>').join(', ')
     +(n>8?' and '+(n-8)+' more':'')+'</div>';
 }
+/** Small label with the CMS of an account (WordPress is the default and gets none) */
+function pwCmsHTML(cms){return cms&&cms!=='WordPress'?' <span class="vt-pw-cms">'+vtEsc(cms)+'</span>':'';}
 function pwBad(email){return !!pw.results?.[email]?.breaches?.length;}
 function vtRenderPwned(){
   if(!pw) return;
   const c=pw.config||{}, sites=pw.sites||{}, hosts=Object.keys(sites).sort();
   const accounts=hosts.reduce((t,h)=>t+sites[h].length,0), emails=pwEmails(), bad=emails.filter(pwBad).length, left=pwUnchecked().length;
-  vtSet('vt-pw-sub',accounts+' administrator account'+(accounts===1?'':'s')+' on '+hosts.length+' WordPress site'+(hosts.length===1?'':'s')
+  vtSet('vt-pw-sub',accounts+' administrator account'+(accounts===1?'':'s')+' on '+hosts.length+' site'+(hosts.length===1?'':'s')
     +' · '+bad+' pwned address'+(bad===1?'':'es')+(left?' · '+left+' not tested yet':''));
   // Actions
   let act='';
@@ -2785,7 +2788,7 @@ function vtRenderPwned(){
   if(pwViewMode==='sort'){
     // One row per address: the sites it administers, sortable
     const by={};
-    for(const h of hosts) for(const a of sites[h]) if(a.email) (by[a.email]=by[a.email]||{email:a.email,sites:[],custom:null}).sites.push({h,login:a.login});
+    for(const h of hosts) for(const a of sites[h]) if(a.email) (by[a.email]=by[a.email]||{email:a.email,sites:[],custom:null}).sites.push({h,login:a.login,cms:a.cms});
     for(const [em,x] of Object.entries(pw.custom||{})) (by[em]=by[em]||{email:em,sites:[],custom:null}).custom=x;
     let list=Object.values(by).filter(x=>stOk(x.email)&&(!q||x.email.includes(q)||breachText(x.email).includes(q)
       ||x.sites.some(s=>s.h.includes(q)||s.login.toLowerCase().includes(q)||who(s.h).toLowerCase().includes(q))));
@@ -2794,7 +2797,7 @@ function vtRenderPwned(){
     const th=(col,label)=>'<th class="vt-sortable'+(pwSortCol===col?' vt-sort-'+pwSortDir:'')+'" onclick="vtPwSort(\''+col+'\')">'+label+'</th>';
     html=list.length?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr>'+th('email','E-mail address')+th('sites','Administrator of')+th('breaches','Data breaches')+'</tr></thead><tbody>'
       +list.map(x=>'<tr><td>'+pwEmailHTML(x.email)+'</td><td>'
-        +x.sites.map(s=>'<div><strong>'+vtEsc(s.h)+'</strong> <span class="vt-pw-br">as '+vtEsc(s.login)+(who(s.h)?' · '+vtEsc(who(s.h)):'')+'</span></div>').join('')
+        +x.sites.map(s=>'<div><strong>'+vtEsc(s.h)+'</strong>'+pwCmsHTML(s.cms)+' <span class="vt-pw-br">as '+vtEsc(s.login)+(who(s.h)?' · '+vtEsc(who(s.h)):'')+'</span></div>').join('')
         +(x.custom?'<div class="vt-pw-br">added by hand'+(x.custom.by?' by '+vtEsc(x.custom.by):'')+'</div>':'')
         +'</td><td>'+pwStatusHTML(x.email)+'</td></tr>').join('')+'</tbody></table>'
       :'<div class="hint">'+(q?'No address matches this search.':filterNote+'.')+'</div>';
@@ -2803,13 +2806,13 @@ function vtRenderPwned(){
     let rows='';
     for(const h of hosts){
       const siteHit=!q||h.includes(q)||who(h).toLowerCase().includes(q);
-      const list=sites[h].filter(a=>stOk(a.email)&&(siteHit||a.login.toLowerCase().includes(q)||(a.email||'').includes(q)||breachText(a.email).includes(q)));
+      const list=sites[h].filter(a=>stOk(a.email)&&(siteHit||a.login.toLowerCase().includes(q)||(a.cms||'').toLowerCase().includes(q)||(a.email||'').includes(q)||breachText(a.email).includes(q)));
       if(!list.length) continue;
       rows+=list.map((a,i)=>'<tr>'+(i===0?'<td class="site" rowspan="'+list.length+'">'+vtEsc(h)+(who(h)?'<small>'+vtEsc(who(h))+'</small>':'')+'</td>':'')
-        +'<td>'+vtEsc(a.login)+(a.registered?'<div class="vt-pw-br">since '+new Date(a.registered*1000).toLocaleDateString()+'</div>':'')+'</td><td>'+pwEmailHTML(a.email)+'</td><td>'+(a.email?pwStatusHTML(a.email):'')+'</td></tr>').join('');
+        +'<td>'+vtEsc(a.login)+pwCmsHTML(a.cms)+(a.registered?'<div class="vt-pw-br">since '+new Date(a.registered*1000).toLocaleDateString()+'</div>':'')+'</td><td>'+pwEmailHTML(a.email)+'</td><td>'+(a.email?pwStatusHTML(a.email):'')+'</td></tr>').join('');
     }
-    html=rows?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr><th>WordPress site</th><th>Administrator</th><th>E-mail address</th><th>Data breaches</th></tr></thead><tbody>'+rows+'</tbody></table>'
-      :'<div class="hint">'+(q?'No account matches this search.':hosts.length?filterNote+' among the WordPress administrators.':'No WordPress sites with administrator accounts found.')+'</div>';
+    html=rows?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr><th>Site</th><th>Administrator</th><th>E-mail address</th><th>Data breaches</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      :'<div class="hint">'+(q?'No account matches this search.':hosts.length?filterNote+' among the site administrators.':'No sites with administrator accounts found.')+'</div>';
   }
   document.getElementById('vt-pw-list').innerHTML=html;
   // Addresses added by hand (same filter and search)
@@ -2849,7 +2852,7 @@ function vtPwFixRender(){
   if(d){
     const ready=d.sites.filter(s=>s.ready), n=d.sites.length;
     h+='<ol class="vt-pw-steps"><li><strong>Reset the password</strong> of this administrator on '+(n===1?'this site':'these '+n+' sites')+' to an unknown random password, and log them out everywhere:'
-      +'<ul>'+d.sites.map(s=>'<li>'+vtEsc(s.host)+' <span class="hint">as '+vtEsc(s.login)+(s.ready?'':' · WordPress install not found on disk, skipped')+'</span></li>').join('')+'</ul></li>'
+      +'<ul>'+d.sites.map(s=>'<li>'+vtEsc(s.host)+' <span class="hint">as '+vtEsc(s.login)+(s.cms&&s.cms!=='WordPress'?' · '+vtEsc(s.cms)+': not reset automatically, change it in the site itself':s.ready?'':' · WordPress install not found on disk, skipped')+'</span></li>').join('')+'</ul></li>'
       +'<li><strong>E-mail '+vtEsc(f.email)+'</strong> from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>: what was found, why the password was reset, and a link per site to choose a new password themselves.</li></ol>'
       +(fx?'<div class="vt-fs-note">Already fixed on '+new Date(fx.at*1000).toLocaleString()+(fx.by?' by '+vtEsc(fx.by):'')+'.</div>':'')
       +'<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'

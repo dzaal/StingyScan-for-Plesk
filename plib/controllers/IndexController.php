@@ -1153,16 +1153,20 @@ class IndexController extends pm_Controller_Action
         $res   = VtPwned::withDetails([$res])[0];
         $sites = [];
         foreach (VtPwned::accounts() as $host => $list) {
-            foreach ($list as $a) if ($a['email'] === $email) $sites[] = ['host' => $host, 'login' => $a['login'], 'id' => (int)($a['id'] ?? 0), 'path' => (string)($a['path'] ?? '')];
+            foreach ($list as $a) if ($a['email'] === $email) $sites[] = ['host' => $host, 'login' => $a['login'], 'id' => (int)($a['id'] ?? 0), 'path' => (string)($a['path'] ?? ''), 'cms' => (string)($a['cms'] ?? 'WordPress')];
         }
-        if (!$sites) { $this->respond(['error' => 'This address is not an administrator of a WordPress site on this server']); return; }
+        if (!$sites) { $this->respond(['error' => 'This address is not an administrator of a site on this server']); return; }
+        // Only WordPress passwords are reset automatically (WP-CLI); other systems are listed to do by hand
+        $all   = $sites;
+        $sites = array_values(array_filter($all, fn($s) => $s['cms'] === 'WordPress'));
+        if (!$sites) { $this->respond(['error' => 'This address is administrator of ' . implode(', ', array_unique(array_column($all, 'cms'))) . ' sites only; their passwords cannot be reset from here yet. Change them in the site itself.']); return; }
         $by = $this->resolveUserId();
 
         if ($mode === 'preview' || $mode === 'test') {
             $to = strtolower(trim((string)$this->_getParam('to', '')));
             if ($mode === 'test' && !filter_var($to, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Enter a valid address to send the test to']); return; }
             [$subject, $html, $text] = VtPwnedMail::build($email, $sites, $res, $mode === 'test' ? $email : null);
-            if ($mode === 'preview') { $this->respond(['ok' => true, 'subject' => $subject, 'html' => $html, 'sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'ready' => $s['id'] > 0 && $s['path'] !== ''], $sites), 'from' => VtPwnedMail::sender()]); return; }
+            if ($mode === 'preview') { $this->respond(['ok' => true, 'subject' => $subject, 'html' => $html, 'sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'cms' => $s['cms'], 'ready' => $s['cms'] === 'WordPress' && $s['id'] > 0 && $s['path'] !== ''], $all), 'from' => VtPwnedMail::sender()]); return; }
             $ok = VtPwnedMail::send($to, $subject, $html, $text);
             $this->appendLog('[pwned] test e-mail for ' . $email . ' sent to ' . $to . ' by ' . $by . ($ok ? '' : ' (FAILED)'));
             $this->respond($ok ? ['ok' => true, 'sent_to' => $to] : ['error' => 'The mail server did not accept the message']);

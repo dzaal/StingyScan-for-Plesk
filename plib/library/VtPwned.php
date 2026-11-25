@@ -314,7 +314,7 @@ class VtPwned
     {
         $file = VtDataDir::path('vt_wp_admins.json');
         $c    = json_decode((string)@file_get_contents($file), true);
-        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 2) return $c['sites'] ?? [];
+        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 3) return $c['sites'] ?? [];
         $pdo = PleskDomains::pdo();
         if (!$pdo) return is_array($c) ? ($c['sites'] ?? []) : [];
         $hosted  = array_flip(PleskDomains::hostedAll());
@@ -335,13 +335,112 @@ class VtPwned
             }
             foreach ($use as $s) {
                 $path = $live[$s['db'] . "\0" . $s['prefix']] ?? '';
-                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path];
+                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path, 'cms' => 'WordPress'];
             }
             if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
         }
+        // Joomla, Drupal and Wotan sites on the same server
+        foreach (self::otherAdmins($pdo, $hosted) as $host => $list) {
+            foreach ($list as $a) $sites[$host][] = $a;
+        }
         ksort($sites);
-        @file_put_contents($file, json_encode(['t' => time(), 'v' => 2, 'sites' => $sites]));
+        @file_put_contents($file, json_encode(['t' => time(), 'v' => 3, 'sites' => $sites]));
         return $sites;
+    }
+
+    const CMS = ['joomla' => 'Joomla', 'drupal' => 'Drupal', 'wotan' => 'Wotan'];
+
+    /** Joomla, Drupal and Wotan installs on disk (root helper, cached for an hour) */
+    public static function cmsConfigs(): ?array
+    {
+        $cache = VtDataDir::path('vt_cmsconfigs.json');
+        if (is_file($cache) && time() - filemtime($cache) < 3600) {
+            $d = json_decode((string)file_get_contents($cache), true);
+            if (is_array($d)) return $d;
+        }
+        try {
+            $res  = pm_ApiCli::callSbin('site-scan', ['cmsconfigs'], pm_ApiCli::RESULT_FULL);
+            $list = json_decode(trim((string)($res['stdout'] ?? '')), true)['configs'] ?? null;
+        } catch (\Throwable $e) {
+            $list = null;
+        }
+        if (!is_array($list)) return null;
+        @file_put_contents($cache, json_encode($list));
+        return $list;
+    }
+
+    /**
+     * Administrators of the Joomla, Drupal and Wotan sites: [host => [{id, login, email, registered, cms}]].
+     * An install counts for a site when it is in the site's document root (or a folder below it), so old
+     * copies elsewhere in the subscription are skipped. Only databases on this server's MySQL.
+     */
+    private static function otherAdmins(\PDO $pdo, array $hosted): array
+    {
+        $configs = self::cmsConfigs();
+        if (!$configs) return [];
+        try {
+            $rows = $pdo->query("SELECT LOWER(d.name), h.www_root FROM domains d JOIN hosting h ON h.dom_id = d.id
+                                 WHERE d.htype = 'vrt_hst' AND d.status = 0")->fetchAll(\PDO::FETCH_NUM);
+        } catch (\PDOException $e) {
+            return [];
+        }
+        $roots = [];
+        foreach ($rows as [$name, $root]) if (isset($hosted[$name])) $roots[rtrim((string)$root, '/')] = $name;
+        $out = [];
+        foreach ($configs as $c) {
+            if (!in_array(strtolower($c['host'] ?? 'localhost'), ['', 'localhost', '127.0.0.1', '::1'], true)) continue;
+            // The site whose document root holds this install (the longest matching root)
+            $dir = rtrim('/var/www/vhosts/' . $c['root'], '/');
+            $host = null; $best = -1;
+            foreach ($roots as $r => $name) {
+                if (($dir === $r || strpos($dir, $r . '/') === 0) && strlen($r) > $best) { $host = $name; $best = strlen($r); }
+            }
+            if ($host === null) continue;
+            $list = self::cmsAdmins($pdo, $c);
+            if (!$list) continue;
+            foreach ($list as $a) $out[$host][] = $a + ['cms' => self::CMS[$c['type']] ?? $c['type'], 'path' => ''];
+        }
+        return $out;
+    }
+
+    private static function cmsAdmins(\PDO $pdo, array $c): array
+    {
+        $db = (string)$c['db']; $p = (string)($c['prefix'] ?? '');
+        if (!preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db) || !preg_match('/^[A-Za-z0-9_]{0,64}$/', $p)) return [];
+        $t = fn($n) => '`' . $db . '`.`' . $p . $n . '`';
+        $sql = [];
+        switch ($c['type']) {
+            case 'joomla':
+                $sql[] = 'SELECT u.id, u.username, u.email, UNIX_TIMESTAMP(u.registerDate) FROM ' . $t('users') . ' u JOIN ' . $t('user_usergroup_map')
+                       . ' m ON m.user_id = u.id JOIN ' . $t('usergroups') . " g ON g.id = m.group_id WHERE u.block = 0 AND g.title IN ('Administrator', 'Super Users') GROUP BY u.id";
+                break;
+            case 'drupal':
+                $sql[] = 'SELECT u.uid, u.name, u.mail, u.created FROM ' . $t('users_field_data') . ' u LEFT JOIN ' . $t('user__roles')
+                       . " r ON r.entity_id = u.uid AND r.roles_target_id = 'administrator' WHERE u.status = 1 AND (r.entity_id IS NOT NULL OR u.uid = 1) GROUP BY u.uid";
+                $sql[] = 'SELECT u.uid, u.name, u.mail, u.created FROM ' . $t('users') . ' u LEFT JOIN ' . $t('users_roles') . ' ur ON ur.uid = u.uid LEFT JOIN '
+                       . $t('role') . " ro ON ro.rid = ur.rid WHERE u.status = 1 AND (ro.name = 'administrator' OR u.uid = 1) GROUP BY u.uid"; // Drupal 7
+                break;
+            case 'wotan':
+                $tbl = preg_match('/^[A-Za-z0-9_]{1,64}$/', (string)($c['table'] ?? '')) ? $c['table'] : 'users';
+                $u = '`' . $db . '`.`' . $tbl . '`';
+                $sql[] = "SELECT id, username, email, UNIX_TIMESTAMP(created) FROM $u WHERE online = '1' AND email <> ''"
+                       . " AND (settings = 'admin.php' OR usergroup IN (SELECT username FROM $u WHERE settings = 'admin.php'))";
+                break;
+        }
+        foreach ($sql as $q) {
+            try {
+                $out = [];
+                foreach ($pdo->query($q . ' LIMIT 200')->fetchAll(\PDO::FETCH_NUM) as [$id, $login, $email, $reg]) {
+                    $email = strtolower(trim((string)$email));
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+                    $out[] = ['id' => (int)$id, 'login' => (string)$login, 'email' => $email, 'registered' => max(0, (int)$reg)];
+                }
+                return $out;
+            } catch (\PDOException $e) {
+                continue; // other version of the CMS: try the next query
+            }
+        }
+        return [];
     }
 
     private static function admins(\PDO $pdo, string $db, string $prefix): array

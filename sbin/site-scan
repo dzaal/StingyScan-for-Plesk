@@ -333,6 +333,43 @@ if ($mode === 'list') {
     }
     out(['scanners' => $list, 'engines' => $engines]);
 }
+if ($mode === 'cmsconfigs') {
+    // Joomla, Drupal and Wotan installs: their folder and database (read-only; passwords are never returned)
+    $list = [];
+    $find = function (string $args): array {
+        $o = trim((string)shell_exec('find ' . VHOSTS . ' ' . $args . ' -type f -not -path "' . VHOSTS . 'system/*" 2>/dev/null'));
+        return $o === '' ? [] : explode("\n", $o);
+    };
+    $val = function (string $c, string $re): string { return preg_match($re, $c, $m) ? (string)$m[1] : ''; };
+    foreach ($find('-maxdepth 5 -name configuration.php') as $p) {           // Joomla
+        if (is_link($p)) continue;
+        $c = (string)@file_get_contents($p, false, null, 0, 65536);
+        if (strpos($c, 'class JConfig') === false) continue;
+        $list[] = ['type' => 'joomla', 'root' => substr(dirname($p), strlen(VHOSTS)),
+                   'db' => $val($c, '/public\s+\$db\s*=\s*[\'"]([^\'"]+)/'), 'prefix' => $val($c, '/public\s+\$dbprefix\s*=\s*[\'"]([^\'"]*)/'),
+                   'host' => $val($c, '/public\s+\$host\s*=\s*[\'"]([^\'"]+)/')];
+    }
+    foreach ($find('-maxdepth 7 -path "*/sites/default/settings.php"') as $p) { // Drupal
+        if (is_link($p)) continue;
+        $c = (string)@file_get_contents($p, false, null, 0, 262144);
+        $c = preg_replace('#^\s*(//|\*|/\*|\#).*$#m', '', $c); // skip the commented examples
+        $db = $val($c, '/[\'"]database[\'"]\s*=>\s*[\'"]([^\'"]+)/');
+        if ($db === '') continue;
+        $list[] = ['type' => 'drupal', 'root' => substr(dirname($p, 3), strlen(VHOSTS)), 'db' => $db,
+                   'prefix' => $val($c, '/[\'"]prefix[\'"]\s*=>\s*[\'"]([^\'"]*)/'), 'host' => $val($c, '/[\'"]host[\'"]\s*=>\s*[\'"]([^\'"]+)/')];
+    }
+    foreach ($find('-maxdepth 5 -path "*/share/settings/config.php"') as $p) { // Wotan (phpwotan)
+        if (is_link($p)) continue;
+        $root = dirname($p, 3);
+        if (!is_dir($root . '/wotan')) continue;
+        $c = (string)@file_get_contents($p, false, null, 0, 65536);
+        $list[] = ['type' => 'wotan', 'root' => substr($root, strlen(VHOSTS)),
+                   'db' => $val($c, '/\$mysql\[[\'"]selectdb[\'"]\]\s*=\s*[\'"]([^\'"]+)/'), 'prefix' => '',
+                   'table' => $val($c, '/\$set\[[\'"]userstable[\'"]\]\s*=\s*[\'"]([^\'"]+)/') ?: 'users',
+                   'host' => $val($c, '/\$mysql\[[\'"]host[\'"]\]\s*=\s*[\'"]([^\'"]+)/')];
+    }
+    out(['configs' => array_values(array_filter($list, fn($x) => $x['db'] !== ''))]);
+}
 if ($mode === 'wpreset') {
     // Pwned? fix: give one WordPress administrator an unknown random password and log them out everywhere.
     // wpreset <path of wp-config.php under VHOSTS> <user id> <e-mail address the account must have>

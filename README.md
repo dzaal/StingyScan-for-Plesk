@@ -195,7 +195,7 @@ WP-CLI must be installed on the server for Delete and Reset pwd. Without it, tho
 
 The **Pwned?** tab (next to Statistics) shows where that risk is:
 
-- **Every WordPress administrator on the server**, read from the database the site's `wp-config.php` points to (old copies are skipped): site, customer, login, e-mail address and since when the account exists.
+- **Every site administrator on the server**: WordPress (from the database the site's `wp-config.php` points to), **Joomla** (groups *Administrator* and *Super Users*), **Drupal** 7–11 (role *administrator* and user 1) and **Wotan / phpwotan** (users with admin rights, directly or through their group): site, customer, login, e-mail address and since when the account exists. Other systems than WordPress get a small label. Only the install in a site's document root counts (old copies next to it are skipped), and only databases on this server are read, read-only.
 - **Whether the address is in a known data breach**: *Pwned: 3 breaches*, with the breach names and years (hover a name for the kind of data that leaked). Pwned addresses have a **red shield** and are printed in red, as in a site's *WordPress admin accounts*.
 - It works like the site list: **search** (site, customer, login, address or breach name), filter buttons **All · Pwned · Not pwned · Not tested** with their counts, and **Group** (one block per site) or **Sort** (each address once, with every site it is administrator of; click a column to sort by address, number of sites or number of breaches, so the address that controls the most sites is on top).
 - **Other e-mail addresses:** add any address by hand (your own, a colleague's, a customer's) and remove it again. Each user sees the addresses they added; the administrator sees all of them.
@@ -210,7 +210,7 @@ The **Pwned?** tab (next to Statistics) shows where that risk is:
 3. Check the site's admin accounts for ones you don't know (the *WordPress admin accounts* section flags new accounts, bot-like names and foreign e-mail domains), and remove them.
 4. If the site was flagged, scan its files, clean them, and ask the vendors for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 
-**Fix a pwned address** (administrator). Click **Fix…** next to a pwned administrator address. The panel shows:
+**Fix a pwned address** (administrator, WordPress accounts). Click **Fix…** next to a pwned administrator address. Accounts of the same address in Joomla, Drupal or Wotan are listed in the panel, to change by hand. The panel shows:
 
 1. the sites where the password will be reset, to an unknown random password (WP-CLI, run as the site's own user), and where the administrator is logged out everywhere;
 2. a **preview of the e-mail** to the owner of the address, sent from the server administrator's Plesk address: that their address appears in N known breaches (each with its year, what leaked and how the passwords were stored), that their website was not hacked and they did nothing wrong, why the password was reset anyway, and per site a **Choose a new password** link (the site's own *Lost your password?* page), plus tips (unique passwords, a password manager, two-factor login).

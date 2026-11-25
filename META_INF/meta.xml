@@ -2,7 +2,7 @@
 <module>
     <id>stingyscan</id>
     <name>Stingy Scanner by Digizaal</name>
-    <description>Monitor every website hosted in Plesk for malware, phishing and spam with the VirusTotal API and, optionally, Google Safe Browsing. Sparing with API calls: smart caching, budget control and daily background scanning.</description>
+    <description>Built by Digizaal, a Dutch web agency running 600+ websites on a single 130 GB Plesk server. Monitor every hosted site for malware, phishing and spam using the VirusTotal API and Google Safe Browsing — without burning your daily API quota. Smart caching, budget control and nightly background scanning keep every site covered.</description>
     <category>security</category>
     <version>2.5.1</version>
     <release>1</release>

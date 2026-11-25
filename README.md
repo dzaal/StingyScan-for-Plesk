@@ -84,6 +84,7 @@ Stingy Scanner was built to fix that:
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
+- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin email is automatically checked against **[XposedOrNot](https://xposedornot.com)** (free, no key needed) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
 
@@ -147,6 +148,38 @@ Every optional online service and every internal scanner has its own **1–5 req
 
 The switches save right away and apply to the whole server; only the administrator can change them. The extension checks what is installed once an hour, and again each time the administrator opens Settings. After you install or remove a scanner, **Re-detect engines** updates it immediately.
 
+## WordPress rogue admin detection (administrator)
+
+A compromised or attacker-added WordPress administrator account is one of the most common ways a cleaned site gets re-infected: the attacker logs back in and re-uploads the malware. Stingy Scanner surfaces these accounts before that happens.
+
+Open any site's details panel (click anywhere on the row) and scroll to **WordPress admin accounts** at the bottom. The section loads all WordPress administrator accounts for that site and flags suspicious ones with coloured badges:
+
+| Badge | Meaning |
+|-------|---------|
+| New account | Registered less than 30 days ago |
+| Suspicious name | Generic or bot-pattern username (`admin`, `wp-admin`, random strings, …) |
+| Free email | Gmail, Yahoo, Hotmail, Outlook, … — disposable, hard to trace |
+| Foreign email | Email domain unrelated to the site domain |
+| Found in N breaches | Email address in a known data breach (source: XposedOrNot) |
+
+Every admin email is automatically checked against **[XposedOrNot](https://xposedornot.com)** — free, no API key needed, 25 checks per hour. When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …). Results are cached 24 hours.
+
+A flag is a reason to investigate, not proof. Always verify before taking action.
+
+### Actions
+
+- **▶ Log** — expands an inline activity row for that user showing: recent logins with timestamps and IP addresses (from WordPress session tokens), recent posts and pages created or edited, and — if the [Stream plugin](https://wordpress.org/plugins/stream/) is installed — a full audit trail with logins, password resets and content changes.
+- **Delete** — removes the user via WP-CLI; posts and pages are automatically reassigned to another administrator. Hover the button to see who gets the content. Requires WP-CLI on the server.
+- **Reset pwd** — generates a strong random password and applies it via WP-CLI. The new password is shown once; copy it immediately.
+
+### Settings
+
+**Settings → WordPress admin user detection** (administrator only):
+
+- **Enable / disable** the scan for all users on the server.
+
+WP-CLI must be installed on the server for Delete and Reset pwd. Without it, those buttons show an error with a link to [wp-cli.org](https://wp-cli.org).
+
 ## Settings
 
 ![Settings: VirusTotal with its daily budget, Google Safe Browsing, the experimental AVG / Avast checks, and the scan engine](docs/screenshots/settings.png)
@@ -161,6 +194,7 @@ The **Settings** tab, from top to bottom (text in Settings is never lighter than
 - **Google Safe Browsing** (administrator): on/off, API key with green check, calls today, requests per minute, and how to get a key with direct links to the Google Cloud Console. See [Google Safe Browsing](#google-safe-browsing-optional).
 - **External reputation checks – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
 - **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
+- **WordPress admin user detection** (administrator): enable or disable the rogue admin scan for all users on the server. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
 - **Sites to scan**: all hosted websites, or WordPress sites only.
 - **Notifications**: see [Notifications](#notifications).
 - **Log rotation** (administrator, whole server): a scan log larger than the limit (default **5 MB**) is compressed to an old copy (`cron_<user>.log.1.gz`, `.2.gz`, …) and a new log is started; at most **5** old copies are kept, none older than **90 days**. The limits apply to each log file (every Plesk user has their own). Checked every 5 minutes and before the nightly scan.

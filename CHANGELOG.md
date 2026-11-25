@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.11.1 — 2026-11-25
+- Settings → E-mail sender: the address field is wider, so long addresses are fully visible.
+
 ## 2.11.0 — 2026-11-25
 - **Settings → E-mail sender** (administrator): the address and name every e-mail of Stingy Scanner is sent from (Pwned? warnings and status notifications), for example *webmaster@example.com*. It is also the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against it. Empty = the administrator's Plesk address, as before.
 - **Check SPF, DKIM and DMARC** for that address, live from the server: whether SPF allows the server that really sends the mail (the relay host when there is one), whether this server signs the domain's mail with DKIM and the published key matches, and the DMARC policy, each with what to change. **Send test** sends a short test e-mail from it.

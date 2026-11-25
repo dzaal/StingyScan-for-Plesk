@@ -1058,8 +1058,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <div class="hint">The address every e-mail of Stingy Scanner is sent from: the Pwned? warnings to site administrators and the status notifications.
         It is also used as the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against this address. Empty = your Plesk administrator address<span id="vt-ms-default"></span>.</div>
       <div class="vt-settings-numbers" style="margin-top:10px">
-        <div class="vt-field"><label for="vt-ms-from">Sender address</label><input type="email" id="vt-ms-from" placeholder="webmaster@example.com" autocomplete="off" spellcheck="false" style="width:280px"></div>
-        <div class="vt-field"><label for="vt-ms-name">Sender name</label><input type="text" id="vt-ms-name" placeholder="Company name in Plesk" maxlength="100" style="width:240px"></div>
+        <div class="vt-field wide"><label for="vt-ms-from">Sender address</label><input type="email" id="vt-ms-from" placeholder="webmaster@example.com" autocomplete="off" spellcheck="false" style="width:100%"></div>
+        <div class="vt-field" style="grid-column:span 4"><label for="vt-ms-name">Sender name</label><input type="text" id="vt-ms-name" placeholder="Company name in Plesk" maxlength="100" style="width:100%"></div>
       </div>
       <div class="vt-pw-add"><button type="button" class="vt-btn" onclick="vtMsCheck()">Check SPF, DKIM and DMARC</button>
         <input type="email" id="vt-ms-testto" placeholder="send a test to…" autocomplete="off"><button type="button" class="vt-btn ghost" onclick="vtMsTest()">Send test</button>

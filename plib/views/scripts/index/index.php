@@ -531,21 +531,20 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 @keyframes vt-tin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
 /* WordPress admin user scan */
 .vt-wp-users{margin:14px 0 4px;border-top:1px solid var(--border);padding-top:12px}
-.vt-wp-users-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;font-weight:600}
+.vt-wp-users-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:13px;font-weight:600}
 .vt-wp-users-head a{color:var(--blue);cursor:pointer;font-weight:600}
 .vt-wp-users-head .sp{flex:1}
 .vt-wu-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
-.vt-wu-tbl th{text-align:left;padding:5px 10px;border-bottom:2px solid var(--border);font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-.vt-wu-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.vt-wu-tbl th{text-align:left;padding:4px 8px;border-bottom:2px solid var(--border);font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.vt-wu-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+.vt-wu-tbl td.wrap{white-space:normal}
 .vt-wu-tbl tr:last-child td{border-bottom:none}
-.vt-wu-flags{display:flex;flex-direction:column;gap:4px}
-.vt-wu-flag{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.4}
-.vt-wu-flag .vt-wu-pill{flex-shrink:0;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
-.vt-wu-flag .vt-wu-pill.warn{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
-.vt-wu-flag .vt-wu-pill.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
-.vt-wu-detail{color:var(--muted);font-size:11px;line-height:1.5;margin-top:3px}
-.vt-wu-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:4px}
-.vt-wu-new-pass{font-family:monospace;font-size:12px;background:#f0fdf4;border:1px solid #86efac;color:#166534;padding:4px 8px;border-radius:5px;margin-top:4px;word-break:break-all}
+.vt-wu-pill{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;cursor:help;margin-right:3px}
+.vt-wu-pill.warn{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
+.vt-wu-pill.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.vt-wu-actions{display:flex;gap:5px;justify-content:flex-end}
+.vt-wu-actions button{font-size:11px;padding:2px 8px;line-height:1.6}
+.vt-wu-new-pass{font-family:monospace;font-size:11px;background:#f0fdf4;border:1px solid #86efac;color:#166534;padding:3px 8px;border-radius:5px;word-break:break-all}
 </style>
 
 <div id="vt-wrap">
@@ -3253,13 +3252,18 @@ async function vtWpUsersLoad(domain,force){
 
 window.vtWpUserAction=async function(domain,userId,act){
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  // Disable both buttons on this row while the request is in flight
+  document.querySelectorAll('[data-wu-act^="delete-'+userId+'"],[data-wu-act^="reset-'+userId+'"]')
+    .forEach(b=>{b.disabled=true;});
   const btn=document.querySelector('[data-wu-act="'+act+'-'+userId+'"]');
-  if(btn){btn.disabled=true;btn.textContent=act==='delete'?'Deleting…':'Resetting…';}
+  if(btn) btn.textContent=act==='delete'?'Deleting…':'Resetting…';
   const r=await fetch(BASE+'?action=wp-user-action',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},
     body:new URLSearchParams({domain,user_id:userId,action:act})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
   if(r.error){
     vtToast(r.error,'error');
-    if(btn){btn.disabled=false;btn.textContent=act==='delete'?'Delete':'Reset password';}
+    document.querySelectorAll('[data-wu-act^="delete-'+userId+'"],[data-wu-act^="reset-'+userId+'"]')
+      .forEach(b=>{b.disabled=false;});
+    if(btn) btn.textContent=act==='delete'?'Delete':'Reset pwd';
     return;
   }
   if(r.new_password) wpUsersPwd[domain+'|'+userId]=r.new_password;
@@ -3273,7 +3277,7 @@ function vtWpUsersHTML(domain){
   const e=vtEsca(domain);
   let h='<div class="vt-wp-users">';
   h+='<div class="vt-wp-users-head"><strong>WordPress admin accounts</strong>';
-  if(data&&data!=='loading') h+='<a onclick="vtWpUsersLoad(\''+e+'\',true)" title="Check again">↺ Refresh</a>';
+  if(data&&data!=='loading') h+=' · <a onclick="vtWpUsersLoad(\''+e+'\',true)" title="Check again">↺ Refresh</a>';
   h+='<span class="sp"></span></div>';
 
   if(!data){
@@ -3285,39 +3289,35 @@ function vtWpUsersHTML(domain){
   }else{
     const users=data.users||[];
     if(!users.length){
-      h+='<div class="vt-fs-note good">No WordPress admin accounts found.</div>';
+      h+='<div class="vt-fs-note">No WordPress admin accounts found.</div>';
     }else{
-      const suspicious=users.filter(u=>u.flags?.length);
-      if(suspicious.length) h+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+suspicious.length+' suspicious account'+(suspicious.length===1?'':'s')+' found — review below.</div>';
-      h+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags &amp; reason</th><th>Action</th></tr></thead><tbody>';
+      const nSus=users.filter(u=>u.flags?.length).length;
+      if(nSus) h+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' suspicious account'+(nSus===1?'':'s')+' — hover a badge for the reason.</div>';
+      h+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
       for(const u of users){
         const flags=u.flags||[];
         const isSus=flags.length>0;
         const pwd=wpUsersPwd[domain+'|'+u.id];
-        let flagsHTML='';
-        if(!flags.length) flagsHTML='<span style="color:var(--green)">✓ No flags</span>';
-        else for(const f of flags){
-          const isNew=f.code==='new_account';
-          flagsHTML+='<div class="vt-wu-flag"><span class="vt-wu-pill '+(isNew?'warn':'info')+'">'+vtEsc(f.label)+'</span></div>'
-            +'<div class="vt-wu-detail">'+vtEsc(f.detail)+'</div>';
-        }
-        if(pwd) flagsHTML+='<div class="vt-wu-new-pass">New password: '+vtEsc(pwd)+'<br><small>Copy and store it now — it is only shown once.</small></div>';
+        const flagsHTML=flags.length
+          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+vtEsc(f.label)+'</span>').join('')
+          : '<span style="color:var(--green);font-size:11px">✓ clean</span>';
         const actHTML='<div class="vt-wu-actions">'
-          +'<button type="button" class="vt-btn sm danger" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
-          +'<button type="button" class="vt-btn sm ghost" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset password</button>'
+          +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
+          +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>'
           +'</div>';
+        const login=vtEsc(u.login)+(u.display&&u.display!==u.login?' <span class="hint">'+vtEsc(u.display)+'</span>':'');
         const regDate=u.registered?u.registered.substring(0,10):'—';
         h+='<tr'+(isSus?' style="background:rgba(239,68,68,.04)"':'')+'>'
-          +'<td><strong>'+vtEsc(u.login)+'</strong>'+(u.display&&u.display!==u.login?'<br><span class="hint">'+vtEsc(u.display)+'</span>':'')+'</td>'
-          +'<td style="font-size:11px">'+vtEsc(u.email)+'</td>'
-          +'<td style="font-size:11px;white-space:nowrap">'+vtEsc(regDate)+'</td>'
-          +'<td>'+flagsHTML+'</td>'
+          +'<td><strong>'+login+'</strong></td>'
+          +'<td style="color:var(--muted)">'+vtEsc(u.email)+'</td>'
+          +'<td>'+vtEsc(regDate)+'</td>'
+          +'<td class="wrap">'+flagsHTML+'</td>'
           +'<td>'+actHTML+'</td>'
           +'</tr>';
+        if(pwd) h+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
       }
       h+='</tbody></table>';
-      h+='<div class="vt-fs-note" style="margin-top:8px">Actions use WP-CLI. <strong>Delete</strong> removes the user permanently. <strong>Reset password</strong> generates a strong random password — copy it immediately. '
-        +'<strong>Important:</strong> if a known admin\'s password was leaked in a data breach, the attacker already has access. Reset all admin passwords and check at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
+      h+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. <strong>Delete</strong> is permanent. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. If a known admin\'s password was in a data breach, attackers already have access — reset it and verify at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
     }
   }
   h+='</div>';

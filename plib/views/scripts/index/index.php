@@ -3016,7 +3016,7 @@ const VT_FP={
 // Short tips per vendor, from their own help pages and what site owners report
 const VT_FP_TIP={
   alphamountain:'Ticket form; you have to log in or sign up first. Takes up to 24 h to apply after approval.',
-  gridinsoft:'Website form. Give the full address and proof the site was cleaned; no passwords or tokens in the URL.',
+  gridinsoft:'Website form. It works without an account only for an e-mail address that has not been used there before; otherwise create a free Gridinsoft account first. Give the full address and proof the site was cleaned; no passwords or tokens in the URL.',
   sophos:'Choose "Web Address (URL)". No Sophos account needed; usually 24–72 h.',
   bitdefender:'Choose "False positive" and "URL". Mention you own the site and add the VirusTotal link.',
   fortinet:'Malicious URL Appeal form: the URL, your name, e-mail and company, and a short comment.',

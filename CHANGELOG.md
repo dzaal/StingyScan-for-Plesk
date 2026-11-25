@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.3 — 2026-11-25
+- Gridinsoft review tip: the form works without an account only for an e-mail address that was not used there before; otherwise you need a free Gridinsoft account.
+
 ## 2.6.2 — 2026-11-25
 - **Pwned? tests in the Scan Monitor:** every address sent to the breach service shows up there (red *Pwned?* label) with the wait for the request limit and the result (*Pwned: 3* or *Not pwned*). A short wait for the limit is now waited out instead of stopping.
 - XposedOrNot allows only about 25 tests an hour (above that it asks to wait half an hour), so tests are now spread out: one every 2½ minutes at most, and the 5-minute background task tests untested addresses on its own, so nobody has to keep the page open. When the service asks for a long wait, the message says so instead of calling it the daily limit.

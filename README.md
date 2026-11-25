@@ -210,12 +210,14 @@ The **Pwned?** tab (next to Statistics) shows where that risk is:
 3. Check the site's admin accounts for ones you don't know (the *WordPress admin accounts* section flags new accounts, bot-like names and foreign e-mail domains), and remove them.
 4. If the site was flagged, scan its files, clean them, and ask the vendors for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 
-**Fix a pwned address** (administrator, WordPress accounts). Click **Fix…** next to a pwned administrator address. Accounts of the same address in Joomla, Drupal or Wotan are listed in the panel, to change by hand. The panel shows:
+**Fix a pwned address** (administrator). Click **Fix…** next to a pwned administrator address and choose:
 
-1. the sites where the password will be reset, to an unknown random password (WP-CLI, run as the site's own user), and where the administrator is logged out everywhere;
-2. a **preview of the e-mail** to the owner of the address, sent from the server administrator's Plesk address: that their address appears in N known breaches (each with its year, what leaked and how the passwords were stored), that their website was not hacked and they did nothing wrong, why the password was reset anyway, and per site a **Choose a new password** link (the site's own *Lost your password?* page), plus tips (unique passwords, a password manager, two-factor login).
+- **Warn** (recommended, the default): an e-mail only; nothing is changed. It asks the owner to check the account and set a new, unique password, with *Log in and change password* and *Forgot password* links for every site where the address is administrator (WordPress, Joomla, Drupal and Wotan).
+- **Emergency: reset and warn**: the WordPress password is reset to an unknown random password (WP-CLI, run as the site's own user), the account is logged out everywhere, and the e-mail explains why the password was reset and links to each site's *Lost your password?* page. Only for WordPress accounts; requires WP-CLI on the server.
 
-**Send test** sends that same e-mail to an address of your choice, marked as a test; nothing is changed. **Reset passwords and send e-mail** asks for confirmation, then does both. The address is then marked *✓ fixed* with the date; the Log tab lists every reset. Requires WP-CLI on the server.
+Both e-mails come from the server administrator's Plesk address and name the server as you open it. They list every breach (year, what leaked, how the passwords were stored), and under each site **what is known about the account**: last login with date and IP address (from WordPress' login sessions or a logging plugin such as WP Last Login or Stream; Joomla and Drupal store it themselves), active login sessions, the last page or post edited, and when the account was created, so the owner can spot a login that was not theirs.
+
+The panel shows the sites with that activity and a **preview** of the e-mail. **Send test** sends it to an address of your choice, marked as a test, and changes nothing. Sending for real asks for confirmation; the address is then marked *✓ warned* or *✓ reset* with the date, and the Log tab lists it.
 
 **Breach data from** (administrator, in the tab):
 

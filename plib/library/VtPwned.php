@@ -314,7 +314,7 @@ class VtPwned
     {
         $file = VtDataDir::path('vt_wp_admins.json');
         $c    = json_decode((string)@file_get_contents($file), true);
-        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 3) return $c['sites'] ?? [];
+        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 4) return $c['sites'] ?? [];
         $pdo = PleskDomains::pdo();
         if (!$pdo) return is_array($c) ? ($c['sites'] ?? []) : [];
         $hosted  = array_flip(PleskDomains::hostedAll());
@@ -335,7 +335,7 @@ class VtPwned
             }
             foreach ($use as $s) {
                 $path = $live[$s['db'] . "\0" . $s['prefix']] ?? '';
-                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path, 'cms' => 'WordPress'];
+                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path, 'cms' => 'WordPress', 'type' => 'wordpress', 'db' => $s['db'], 'prefix' => $s['prefix'], 'base' => ''];
             }
             if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
         }
@@ -344,7 +344,7 @@ class VtPwned
             foreach ($list as $a) $sites[$host][] = $a;
         }
         ksort($sites);
-        @file_put_contents($file, json_encode(['t' => time(), 'v' => 3, 'sites' => $sites]));
+        @file_put_contents($file, json_encode(['t' => time(), 'v' => 4, 'sites' => $sites]));
         return $sites;
     }
 
@@ -398,7 +398,9 @@ class VtPwned
             if ($host === null) continue;
             $list = self::cmsAdmins($pdo, $c);
             if (!$list) continue;
-            foreach ($list as $a) $out[$host][] = $a + ['cms' => self::CMS[$c['type']] ?? $c['type'], 'path' => ''];
+            $base = substr($dir, $best); // folder of the install below the document root ('' = the root)
+            foreach ($list as $a) $out[$host][] = $a + ['cms' => self::CMS[$c['type']] ?? $c['type'], 'path' => '', 'type' => $c['type'],
+                                                        'db' => $c['db'], 'prefix' => (string)($c['prefix'] ?? ''), 'table' => (string)($c['table'] ?? ''), 'base' => $base];
         }
         return $out;
     }
@@ -441,6 +443,63 @@ class VtPwned
             }
         }
         return [];
+    }
+
+    /** Where the account owner logs in and where they ask for a new password */
+    public static function urls(string $host, array $a): array
+    {
+        $b = 'https://' . $host . rtrim((string)($a['base'] ?? ''), '/');
+        switch ($a['type'] ?? 'wordpress') {
+            case 'joomla': return ['login' => $b . '/administrator/', 'lost' => $b . '/index.php?option=com_users&view=reset'];
+            case 'drupal': return ['login' => $b . '/user/login', 'lost' => $b . '/user/password'];
+            case 'wotan':  return ['login' => $b . '/login/', 'lost' => $b . '/forgotpassword/'];
+            default:       return ['login' => $b . '/wp-admin/profile.php', 'lost' => $b . '/wp-login.php?action=lostpassword'];
+        }
+    }
+
+    /**
+     * What is known about the use of one administrator account (read-only), for the e-mail:
+     * {created, last_login, last_ip, sessions, last_edit, posts, via}. Only what the system itself
+     * (or a common logging plugin) stores; missing values are left out.
+     */
+    public static function activity(array $a): array
+    {
+        $pdo = PleskDomains::pdo();
+        $out = ['created' => (int)($a['registered'] ?? 0)];
+        $db = (string)($a['db'] ?? ''); $p = (string)($a['prefix'] ?? ''); $id = (int)($a['id'] ?? 0);
+        if (!$pdo || !$id || !preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db) || !preg_match('/^[A-Za-z0-9_]{0,64}$/', $p)) return $out;
+        $t = fn($n) => '`' . $db . '`.`' . $p . $n . '`';
+        $one = function (string $sql) use ($pdo) { try { return $pdo->query($sql)->fetchColumn(); } catch (\PDOException $e) { return false; } };
+        $type = $a['type'] ?? 'wordpress';
+        if ($type === 'wordpress') {
+            // Login sessions WordPress keeps (login time and IP address of every session that has not expired)
+            $raw = $one('SELECT meta_value FROM ' . $t('usermeta') . " WHERE user_id = $id AND meta_key = 'session_tokens' LIMIT 1");
+            $ses = $raw ? @unserialize((string)$raw, ['allowed_classes' => false]) : null;
+            if (is_array($ses)) {
+                // Expired sessions stay stored until the user logs in again: count only the ones still valid
+                $out['sessions'] = count(array_filter($ses, fn($x) => (int)($x['expiration'] ?? 0) > time()));
+                foreach ($ses as $x) {
+                    if (isset($x['login']) && (int)$x['login'] > (int)($out['last_login'] ?? 0)) { $out['last_login'] = (int)$x['login']; $out['last_ip'] = (string)($x['ip'] ?? ''); }
+                }
+            }
+            // Last login stored by common plugins (WP Last Login, WooCommerce activity, …)
+            foreach (['wp-last-login', 'last_login', 'wc_last_active'] as $k) {
+                $v = $one('SELECT meta_value FROM ' . $t('usermeta') . " WHERE user_id = $id AND meta_key = '$k' LIMIT 1");
+                if ($v !== false && is_numeric($v) && (int)$v > (int)($out['last_login'] ?? 0)) { $out['last_login'] = (int)$v; $out['last_ip'] = ''; $out['via'] = $k; }
+            }
+            $v = $one('SELECT UNIX_TIMESTAMP(MAX(created)) FROM ' . $t('stream') . " WHERE user_id = $id AND action = 'login'"); // Stream plugin
+            if ($v && (int)$v > (int)($out['last_login'] ?? 0)) { $out['last_login'] = (int)$v; $out['last_ip'] = ''; $out['via'] = 'stream'; }
+            $row = false;
+            try { $row = $pdo->query('SELECT COUNT(*), UNIX_TIMESTAMP(MAX(post_modified)) FROM ' . $t('posts') . " WHERE post_author = $id AND post_type IN ('post','page') AND post_status NOT IN ('auto-draft','trash','inherit')")->fetch(\PDO::FETCH_NUM); } catch (\PDOException $e) {}
+            if ($row) { $out['posts'] = (int)$row[0]; if ($row[1]) $out['last_edit'] = (int)$row[1]; }
+        } elseif ($type === 'joomla') {
+            $v = $one('SELECT UNIX_TIMESTAMP(lastvisitDate) FROM ' . $t('users') . " WHERE id = $id");
+            if ($v) $out['last_login'] = (int)$v;
+        } elseif ($type === 'drupal') {
+            $v = $one('SELECT login FROM ' . $t('users_field_data') . " WHERE uid = $id") ?: $one('SELECT login FROM ' . $t('users') . " WHERE uid = $id");
+            if ($v) $out['last_login'] = (int)$v;
+        }
+        return $out;
     }
 
     private static function admins(\PDO $pdo, string $db, string $prefix): array

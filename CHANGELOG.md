@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.9.0 — 2026-11-25
+- **Fix… has two options.** **Warn** (the default) only sends an e-mail and changes nothing: it asks the owner to check the account and change the password, with *Log in and change password* and *Forgot password* links per site; it covers WordPress, Joomla, Drupal and Wotan sites. **Emergency: reset and warn** resets the WordPress password, logs the account out everywhere, and sends an e-mail that explains why it was reset. Both can be previewed and sent as a test; the address is then marked *warned* or *reset*.
+- Both e-mails show **per site what is known about the account**: last login with date and IP address (from WordPress' login sessions, or a logging plugin such as WP Last Login or Stream; Joomla and Drupal store it themselves), active login sessions, the last page or post edited, and when the account was created. *If you do not recognise a login, contact us right away.*
+
 ## 2.8.1 — 2026-11-25
 - E-mails and links name the server **as you open it** in the browser (for example *server22.example.com*), with the machine's internal name in brackets when it differs: in the Pwned? fix e-mail ("Sent by the hosting server …"), the fix panel, the notification e-mails and their link to Stingy Scanner. The name is remembered each time the administrator opens Stingy Scanner.
 

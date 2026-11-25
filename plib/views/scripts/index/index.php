@@ -179,6 +179,10 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-fixhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.vt-pw-fixhead .sp{flex:1}
 .vt-pw-steps{margin:4px 0 10px;padding-left:20px;font-size:13px}.vt-pw-steps ul{margin:4px 0;padding-left:18px}
 .vt-pw-subj{font-size:13px;margin:6px 0}
+.vt-pw-kinds{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+.vt-pw-kinds label{display:block;padding:7px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px}
+.vt-pw-kinds label.on{border-color:#2563eb;background:#eff6ff}.vt-pw-kinds label.on.danger{border-color:#dc2626;background:#fef2f2}
+.vt-pw-steps li.skip{opacity:.55}
 .vt-pw-prev{width:100%;height:420px;border:1px solid var(--border);border-radius:6px;background:#fff}
 .vt-pw-shield{color:#dc2626;display:inline-block;vertical-align:middle;margin-right:5px;cursor:help;line-height:0}
 .vt-pw-tbl td.site small{display:block;font-weight:400;color:var(--muted)}
@@ -2739,7 +2743,7 @@ function pwStatusHTML(email){
   if(!r.breaches?.length) return '<span class="vt-pw-ok">✓ not in a known breach</span>';
   const n=r.breaches.length, fx=pw.fixed?.[email];
   const fix=!pw.config.admin||!pwIsAdminAddr(email)?''
-    :fx?' · <span class="vt-pw-fixed" title="'+vtEsc('Password reset on '+fx.sites.join(', ')+(fx.failed?.length?'; failed on '+fx.failed.join(', '):'')+(fx.by?' · by '+fx.by:''))+'">✓ fixed '+new Date(fx.at*1000).toLocaleDateString()+'</span> · <a onclick="vtPwFixOpen(\''+e+'\')">again…</a>'
+    :fx?' · <span class="vt-pw-fixed" title="'+vtEsc((fx.kind==='reset'?'Password reset on ':'Warned about ')+fx.sites.join(', ')+(fx.failed?.length?'; failed on '+fx.failed.join(', '):'')+(fx.by?' · by '+fx.by:''))+'">✓ '+(fx.kind==='reset'?'reset':'warned')+' '+new Date(fx.at*1000).toLocaleDateString()+'</span> · <a onclick="vtPwFixOpen(\''+e+'\')">again…</a>'
     :' · <a class="vt-pw-fixlink" onclick="vtPwFixOpen(\''+e+'\')">Fix…</a>';
   return '<span class="vt-pw-bad">Pwned: '+n+' breach'+(n===1?'':'es')+'</span>'+fix+'<div class="vt-pw-br">'
     +r.breaches.slice(0,8).map(b=>'<span title="'+vtEsc((b.data||[]).join(', '))+'">'+vtEsc(b.title||b.name)+(b.date?' ('+vtEsc(b.date.slice(0,4))+')':'')+'</span>').join(', ')
@@ -2829,41 +2833,71 @@ function vtRenderPwned(){
 window.vtPwAskRm=function(e){pwAsk=e; vtRenderPwned();};
 
 // ── Fix a pwned address (administrator) ──
-// Preview the e-mail, send a test to another address (changes nothing), or reset the password on
-// every site where the address is administrator, log it out, and e-mail the owner.
-let pwFix=null; // {email, data, step: ''|'ask'|'busy', msg, ok}
+// Two options. Warn (default): an e-mail that changes nothing and asks the owner to check the account
+// and change the password. Emergency: reset the WordPress password(s), log out, and an e-mail that says why.
+// Both can be previewed and sent as a test to another address first.
+let pwFix=null; // {email, kind: warn|reset, data, step: ''|'ask'|'busy', msg, ok, testTo}
 function pwIsAdminAddr(email){return Object.values(pw.sites||{}).some(l=>l.some(a=>a.email===email));}
-window.vtPwFixOpen=async function(email){
-  pwFix={email,data:null,step:'',msg:'',ok:false};
-  vtPwFixRender(); document.getElementById('vt-pw-fix').scrollIntoView({block:'start',behavior:'smooth'});
-  const r=await vtPostAct('pwned-fix',{email,mode:'preview'});
-  if(!pwFix||pwFix.email!==email) return;
-  if(r.error){pwFix.msg=r.error; pwFix.ok=false;} else pwFix.data=r;
+async function pwFixLoad(){
+  const f=pwFix; if(!f) return;
+  f.data=null; f.msg=''; f.step=''; vtPwFixRender();
+  const r=await vtPostAct('pwned-fix',{email:f.email,kind:f.kind,mode:'preview'});
+  if(pwFix!==f) return;
+  if(r.error){f.msg=vtEsc(r.error); f.ok=false;} else f.data=r;
   vtPwFixRender();
+}
+window.vtPwFixOpen=function(email){
+  pwFix={email,kind:'warn',data:null,step:'',msg:'',ok:false,testTo:pwFix?.testTo||''};
+  pwFixLoad(); document.getElementById('vt-pw-fix').scrollIntoView({block:'start',behavior:'smooth'});
 };
+window.vtPwFixKind=function(k){if(pwFix&&pwFix.kind!==k){pwFix.kind=k; pwFixLoad();}};
 window.vtPwFixClose=function(){pwFix=null; vtPwFixRender();};
 window.vtPwFixAsk=function(v){if(pwFix){pwFix.step=v?'ask':''; vtPwFixRender();}};
+function pwActTxt(a){
+  if(!a) return '';
+  const d=ts=>new Date(ts*1000).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const p=[];
+  p.push(a.last_login?'last login '+d(a.last_login)+(a.last_ip?' from '+a.last_ip:''):'last login not recorded');
+  if(a.sessions!==undefined) p.push(a.sessions+' active session'+(a.sessions===1?'':'s'));
+  if(a.last_edit) p.push('last edit '+d(a.last_edit));
+  return p.join(' · ');
+}
 function vtPwFixRender(){
   const el=document.getElementById('vt-pw-fix'); if(!el) return;
   if(!pwFix){el.innerHTML=''; return;}
-  const f=pwFix, d=f.data, e=vtEsca(f.email), fx=pw?.fixed?.[f.email];
-  let h='<div class="vt-pw-fixbox"><div class="vt-pw-fixhead"><strong>Fix pwned address '+PW_SHIELD+vtEsc(f.email)+'</strong><span class="sp"></span><a onclick="vtPwFixClose()">Close</a></div>';
+  const f=pwFix, d=f.data, fx=pw?.fixed?.[f.email], reset=f.kind==='reset';
+  let h='<div class="vt-pw-fixbox"><div class="vt-pw-fixhead"><strong>Fix pwned address '+PW_SHIELD+vtEsc(f.email)+'</strong><span class="sp"></span><a onclick="vtPwFixClose()">Close</a></div>'
+    +'<div class="vt-pw-kinds">'
+    +'<label class="'+(reset?'':'on')+'"><input type="radio" name="vt-pw-kind" '+(reset?'':'checked ')+'onchange="vtPwFixKind(\'warn\')"> <strong>Warn</strong> <span class="hint">(recommended) — e-mail only, nothing is changed: check the account and change the password</span></label>'
+    +'<label class="'+(reset?'on danger':'')+'"><input type="radio" name="vt-pw-kind" '+(reset?'checked ':'')+'onchange="vtPwFixKind(\'reset\')"> <strong>Emergency: reset and warn</strong> <span class="hint">— reset the WordPress password now, log out everywhere, and an e-mail that explains why</span></label>'
+    +'</div>'
+    +(fx?'<div class="vt-fs-note">Already '+(fx.kind==='reset'?'reset':'warned')+' on '+new Date(fx.at*1000).toLocaleString()+(fx.by?' by '+vtEsc(fx.by):'')+'.</div>':'');
   if(!d&&!f.msg){el.innerHTML=h+'<span class="vt-spin"></span> Preparing the e-mail…</div>'; return;}
   if(d){
-    const ready=d.sites.filter(s=>s.ready), n=d.sites.length;
-    h+='<ol class="vt-pw-steps"><li><strong>Reset the password</strong> of this administrator on '+(n===1?'this site':'these '+n+' sites')+' to an unknown random password, and log them out everywhere:'
-      +'<ul>'+d.sites.map(s=>'<li>'+vtEsc(s.host)+' <span class="hint">as '+vtEsc(s.login)+(s.cms&&s.cms!=='WordPress'?' · '+vtEsc(s.cms)+': not reset automatically, change it in the site itself':s.ready?'':' · WordPress install not found on disk, skipped')+'</span></li>').join('')+'</ul></li>'
-      +'<li><strong>E-mail '+vtEsc(f.email)+'</strong> from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>, sent by the server <strong>'+vtEsc(d.server||'')+'</strong>: what was found, why the password was reset, and a link per site to choose a new password themselves.</li></ol>'
-      +(fx?'<div class="vt-fs-note">Already fixed on '+new Date(fx.at*1000).toLocaleString()+(fx.by?' by '+vtEsc(fx.by):'')+'.</div>':'')
-      +'<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'
-      +'<iframe class="vt-pw-prev" sandbox="" title="Preview of the e-mail"></iframe>'
-      +'<div class="vt-pw-add"><label class="hint" for="vt-pw-testto">Send a test of this e-mail to</label><input type="email" id="vt-pw-testto" placeholder="you@example.com" value="'+vtEsc(f.testTo||'')+'">'
-      +'<button type="button" class="vt-btn" onclick="vtPwFixTest()"'+(f.step==='busy'?' disabled':'')+'>Send test</button><span class="hint">changes nothing; marked as a test</span></div>';
-    if(f.step==='ask') h+='<div class="vt-fa-q err"><strong>Reset the password of '+vtEsc(f.email)+' on '+ready.length+' site'+(ready.length===1?'':'s')+' and send the e-mail?</strong> '
-      +'They are logged out right away and can only log in again after choosing a new password via the link in the e-mail.</div>'
-      +'<button type="button" class="vt-btn danger" onclick="vtPwFixGo()">Yes, reset and send</button> <button type="button" class="vt-btn ghost" onclick="vtPwFixAsk(0)">Cancel</button>';
-    else if(f.step==='busy') h+='<div><span class="vt-spin"></span> Resetting passwords and sending the e-mail…</div>';
-    else h+='<button type="button" class="vt-btn danger" onclick="vtPwFixAsk(1)"'+(ready.length?'':' disabled')+'>Reset password'+(ready.length===1?'':'s')+' and send e-mail…</button>';
+    const ready=d.sites.filter(s=>s.resettable);
+    h+='<div class="vt-pw-steps"><strong>'+(reset?'Sites where the password is reset':'Sites in the e-mail')+'</strong>, with what is known about the account:<ul>'
+      +d.sites.map(s=>{
+        const skip=reset&&!s.resettable;
+        return '<li'+(skip?' class="skip"':'')+'>'+vtEsc(s.host)+pwCmsHTML(s.cms)+' <span class="hint">as '+vtEsc(s.login)+' · '+vtEsc(pwActTxt(s.act))
+          +(skip?' · '+(s.cms!=='WordPress'?vtEsc(s.cms)+' cannot be reset from here; send the warning':'WordPress install not found on disk')+', not in this e-mail':'')+'</span></li>';}).join('')+'</ul>'
+      +'E-mail from <em>'+vtEsc(d.from[0])+' &lt;'+vtEsc(d.from[1])+'&gt;</em>, sent by the server <strong>'+vtEsc(d.server||'')+'</strong>.</div>';
+    if(d.none){h+='<div class="vt-fa-q err">'+vtEsc(d.none)+'</div>';}
+    else{
+      h+='<div class="vt-pw-subj">Subject: <strong>'+vtEsc(d.subject)+'</strong></div>'
+        +'<iframe class="vt-pw-prev" sandbox="" title="Preview of the e-mail"></iframe>'
+        +'<div class="vt-pw-add"><label class="hint" for="vt-pw-testto">Send a test of this e-mail to</label><input type="email" id="vt-pw-testto" placeholder="you@example.com" value="'+vtEsc(f.testTo||'')+'">'
+        +'<button type="button" class="vt-btn" onclick="vtPwFixTest()"'+(f.step==='busy'?' disabled':'')+'>Send test</button><span class="hint">changes nothing; marked as a test</span></div>';
+      if(f.step==='ask') h+=reset
+        ?'<div class="vt-fa-q err"><strong>Emergency: reset the password of '+vtEsc(f.email)+' on '+ready.length+' WordPress site'+(ready.length===1?'':'s')+' and send the e-mail?</strong> '
+          +'They are logged out right away and can only log in again after choosing a new password via the link in the e-mail.</div>'
+          +'<button type="button" class="vt-btn danger" onclick="vtPwFixGo()">Yes, reset and send</button> <button type="button" class="vt-btn ghost" onclick="vtPwFixAsk(0)">Cancel</button>'
+        :'<div class="vt-fa-q"><strong>Send the warning to '+vtEsc(f.email)+'?</strong> Nothing is changed on the sites.</div>'
+          +'<button type="button" class="vt-btn primary" onclick="vtPwFixGo()">Yes, send the warning</button> <button type="button" class="vt-btn ghost" onclick="vtPwFixAsk(0)">Cancel</button>';
+      else if(f.step==='busy') h+='<div><span class="vt-spin"></span> '+(reset?'Resetting passwords and sending the e-mail…':'Sending the warning…')+'</div>';
+      else h+=reset
+        ?'<button type="button" class="vt-btn danger" onclick="vtPwFixAsk(1)"'+(ready.length?'':' disabled')+'>Reset password'+(ready.length===1?'':'s')+' and send e-mail…</button>'
+        :'<button type="button" class="vt-btn primary" onclick="vtPwFixAsk(1)">Send warning e-mail…</button>';
+    }
   }
   if(f.msg) h+='<div class="vt-fa-q '+(f.ok?'ok':'err')+'">'+f.msg+'</div>';
   el.innerHTML=h+'</div>';
@@ -2872,20 +2906,21 @@ function vtPwFixRender(){
 window.vtPwFixTest=async function(){
   const to=document.getElementById('vt-pw-testto').value.trim(); if(!to) return;
   pwFix.testTo=to; pwFix.msg='Sending the test…'; pwFix.ok=true; vtPwFixRender();
-  const r=await vtPostAct('pwned-fix',{email:pwFix.email,mode:'test',to});
+  const r=await vtPostAct('pwned-fix',{email:pwFix.email,kind:pwFix.kind,mode:'test',to});
   pwFix.msg=r.ok?'Test sent to '+vtEsc(r.sent_to)+'. Nothing was changed.':vtEsc(r.error||'Failed'); pwFix.ok=!!r.ok; vtPwFixRender();
 };
 window.vtPwFixGo=async function(){
-  const email=pwFix.email; pwFix.step='busy'; pwFix.msg=''; vtPwFixRender();
-  const r=await vtPostAct('pwned-fix',{email,mode:'fix'});
-  pwFix.step='';
+  const f=pwFix, email=f.email, kind=f.kind; f.step='busy'; f.msg=''; vtPwFixRender();
+  const r=await vtPostAct('pwned-fix',{email,kind,mode:'send'});
+  f.step='';
   const fails=(r.failed||[]).map(x=>vtEsc(x.host)+': '+vtEsc(x.error)).join('<br>');
   if(r.ok){
     pw.fixed=pw.fixed||{}; pw.fixed[email]=r.fixed;
-    pwFix.ok=r.mailed&&!(r.failed||[]).length;
-    pwFix.msg='Password reset on '+r.reset.map(vtEsc).join(', ')+'. '+(r.mailed?'E-mail sent to '+vtEsc(email)+'.':'<strong>The e-mail could not be sent</strong>; tell them yourself.')
+    f.ok=r.mailed&&!(r.failed||[]).length;
+    f.msg=(kind==='reset'?'Password reset on '+r.sites.map(vtEsc).join(', ')+'. ':'')
+      +(r.mailed?(kind==='reset'?'E-mail':'Warning')+' sent to '+vtEsc(email)+'.':'<strong>The e-mail could not be sent</strong>; tell them yourself.')
       +(fails?'<br>Not reset:<br>'+fails:'');
-  }else{pwFix.ok=false; pwFix.msg=vtEsc(r.error||'Failed')+(fails?'<br>'+fails:'');}
+  }else{f.ok=false; f.msg=vtEsc(r.error||'Failed')+(fails?'<br>'+fails:'');}
   vtRenderPwned(); vtPwFixRender();
 };
 window.vtRenderPwned=vtRenderPwned; // the search box redraws the list on every key

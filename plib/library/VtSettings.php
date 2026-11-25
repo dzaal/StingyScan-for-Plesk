@@ -56,6 +56,9 @@ class VtSettings
         'log_keep'           => 5,      // old copies kept (gzipped)
         'log_max_days'       => 90,     // old copies deleted after this many days
         'quarantine_days'    => 30,     // quarantined files are deleted after this many days (0 = keep until deleted by hand)
+        'pwned_source'       => 'xon',  // breach check of e-mail addresses: '' = off, xon = XposedOrNot (free), hibp = Have I Been Pwned (key) (admin only)
+        'pwned_hibp_key'     => '',     // the administrator's Have I Been Pwned key; never sent to the browser
+        'pwned_hibp_rpm'     => 10,     // requests per minute of that key's subscription
         'gsb_enabled'        => false,  // Google Safe Browsing (admin only, server-wide)
         'gsb_api_key'        => '',     // the administrator's Google API key; never sent to the browser
         'avast_products'     => null,   // Avast / AVG classification: [] = off, [146] Avast, [147] AVG, or both (admin only, server-wide)

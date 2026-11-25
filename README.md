@@ -162,7 +162,7 @@ Open any site's details panel (click anywhere on the row) and scroll to **WordPr
 | Foreign email | Email domain unrelated to the site domain |
 | Found in N breaches | Email address in a known data breach (source: XposedOrNot) |
 
-Every admin email is automatically checked against **[XposedOrNot](https://xposedornot.com)** — free, no API key needed, 25 checks per hour. When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …). Results are cached 24 hours.
+Every admin email is checked once against the breach service chosen in the **Pwned?** tab (see below). When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …).
 
 A flag is a reason to investigate, not proof. Always verify before taking action.
 
@@ -179,6 +179,24 @@ A flag is a reason to investigate, not proof. Always verify before taking action
 - **Enable / disable** the scan for all users on the server.
 
 WP-CLI must be installed on the server for Delete and Reset pwd. Without it, those buttons show an error with a link to [wp-cli.org](https://wp-cli.org).
+
+## Pwned? (data breaches)
+
+The **Pwned?** tab (next to Statistics) lists the administrator accounts of every WordPress site at once: site, login, e-mail address, and whether that address appears in a known data breach (*Pwned: 3 breaches*, with the breach names and years). Tick **only pwned** to see just the addresses that need attention: change the WordPress password of those accounts, and everywhere else it was used, and turn on two-factor login.
+
+- **Each address is checked once.** A breach is history, so the result stays valid and is never checked again (a failed check is tried again). The same results show in a site's *WordPress admin accounts* section.
+- **Check N addresses** checks the ones that were never checked, one after another within the service's rate limit; the nightly run also checks up to 10 minutes' worth.
+- **Other e-mail addresses:** add any address by hand (your own, a customer's) and remove it again. Each user sees the addresses they added; the administrator sees all of them.
+- Accounts are read from the database the site's `wp-config.php` points to (old copies are skipped), read-only, and read again every 6 hours (**Read accounts again** for now).
+- Resellers and customers see the accounts of their own sites.
+
+**Breach data from** (administrator, in the tab): **XposedOrNot** (default; free, no key, about 90 addresses a day), **Have I Been Pwned** (your own API key from [haveibeenpwned.com/API/Key](https://haveibeenpwned.com/API/Key), paid; the key is tested and its rate limit read when saved), or **Off** (nothing is sent, and the admin badges show no breaches). Only the e-mail address is sent.
+
+## External sites
+
+Watch the reputation of sites that are **not hosted on this server**: **Settings → External sites → Add site** (type `example.com`, or paste an address). They are checked like the hosted sites by VirusTotal (lookups, nightly refresh, Rescan), Google Safe Browsing and AVG / Avast, and they count under Infected, Suspicious and Clean, marked **External** in the list and grouped under *External sites*. ClamAV, Maldet, Imunify and Pwned? do not apply: the site's files and accounts are not here.
+
+Remove a site in Settings → External sites, or with **Remove from the list** in its details. Each user has their own external sites (and gets them in their notification e-mails); the administrator sees and can remove all of them. A hostname that is hosted on this server cannot be added: it is already in the list.
 
 ## Settings
 
@@ -507,9 +525,10 @@ What leaves the server, and only for the services you switched on:
 | VirusTotal | The domain names of the sites being checked. |
 | Google Safe Browsing | The `https://` and `http://` address of each site. Google may use them to improve its services. |
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
+| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned? tab, each once. Off when *Breach data from* is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
 
-No site content, files or customer data are sent anywhere.
+No site content or files are sent anywhere.
 
 ---
 

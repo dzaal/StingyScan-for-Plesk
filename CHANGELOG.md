@@ -3,6 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.0 — 2026-11-25
+- **Pwned?** tab next to Statistics: the administrator accounts of every WordPress site in one list, with whether each e-mail address is in a known data breach (breach names and years). *Only pwned* shows just the ones that need a new password. Each address is checked **once** and never again; **Check N addresses** does the rest within the rate limit, and the nightly run checks new ones.
+- Add **other e-mail addresses** by hand in the Pwned? tab, and remove them again.
+- **Breach data from** XposedOrNot (free, default) or Have I Been Pwned (your own key), or Off; chosen by the administrator in the Pwned? tab. The *WordPress admin accounts* section of a site uses the same results, so an address is never asked twice (results of the 24-hour cache of 2.5.7 are taken over).
+- **External sites:** watch the reputation of sites hosted elsewhere (Settings → External sites). VirusTotal, Google Safe Browsing and AVG / Avast check them like the other sites; they are listed under Infected, Suspicious or Clean with an **External** mark, and can be removed in Settings or from their details. File scans and Pwned? do not apply to them.
+
 ## 2.5.8 — 2026-11-25
 - **Fix: OTA update failed silently on some Plesk versions.** The self-install button used `--upgrade-url`, which is not a valid Plesk CLI flag on all versions; Plesk would exit 0 without installing anything. The updater now downloads the zip first and runs `--upgrade` with a local file, which works on every supported Plesk version.
 

@@ -20,6 +20,8 @@ require_once $_vtLib . '/VtSiteLog.php';
 require_once $_vtLib . '/VtAvastStore.php';
 require_once $_vtLib . '/VtLogRotate.php';
 require_once $_vtLib . '/VtSafeBrowsing.php';
+require_once $_vtLib . '/VtExternal.php';
+require_once $_vtLib . '/VtPwned.php';
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -240,10 +242,14 @@ class IndexController extends pm_Controller_Action
         // Today's totals for the trend graph: the whole server for the admin, otherwise the user's own sites
         VtHistory::scope($this->historyScope());
         VtHistory::record(array_map(fn($d) => (string)($allResults[$d]['status'] ?? 'unknown'), array_combine($domains, $domains)));
+        $external = VtExternal::forCurrentUser();
+        $owners   = $this->role() === 'client' ? [] : PleskDomains::owners(array_merge($domains, $related));
+        foreach ($external as $d) if ($this->role() !== 'client') $owners[$d] = ['c' => 'External sites', 'cl' => '', 'ct' => 'external', 'r' => '', 'rl' => ''];
         $this->respond([
             'domains' => $domains,
             'related' => $related,
-            'owners'  => $this->role() === 'client' ? [] : PleskDomains::owners(array_merge($domains, $related)),
+            'external' => $this->externalList(),
+            'owners'  => $owners,
             'panel'   => PleskDomains::panelUrls($domains, $this->role()),
             'orphans' => $this->role() === 'admin' ? self::orphanInfo($related) : [],
             'results' => $results,
@@ -437,7 +443,8 @@ class IndexController extends pm_Controller_Action
         if (!in_array($scanner, array_column(self::enabledScanners(), 'id'), true)) {
             $this->respond(['error' => 'This scanner is switched off or not installed']); return null;
         }
-        if (!in_array($domain, PleskDomains::forCurrentUser($this->wpOnly()), true)) {
+        if (VtExternal::is($domain)) { $this->respond(['error' => 'This site is not hosted on this server, so its files cannot be scanned']); return null; }
+        if (!in_array($domain, PleskDomains::hostedForCurrentUser($this->wpOnly()), true)) {
             $this->respond(['error' => 'forbidden']); return null;
         }
         return [$domain, $scanner];
@@ -568,7 +575,7 @@ class IndexController extends pm_Controller_Action
     {
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can clean or quarantine files']); return null; }
         $domain = $this->sanitize($this->_getParam('domain', ''));
-        if (!$domain || !in_array($domain, PleskDomains::forCurrentUser(false), true)) { $this->respond(['error' => 'forbidden']); return null; }
+        if (!$domain || !in_array($domain, PleskDomains::hostedForCurrentUser(false), true)) { $this->respond(['error' => 'forbidden']); return null; }
         return $domain;
     }
 
@@ -864,7 +871,7 @@ class IndexController extends pm_Controller_Action
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
-        unset($s['gsb_api_key']); // the Google key never goes to the browser
+        unset($s['gsb_api_key'], $s['pwned_hibp_key']); // the Google and HIBP keys never go to the browser
         if ($this->role() === 'admin') {
                 $s['xon_enabled'] = true; // XposedOrNot breach check — free, no key
             $s['gsb'] = ['enabled' => (bool)(new VtSettings('admin'))->get('gsb_enabled', false),
@@ -1022,25 +1029,144 @@ class IndexController extends pm_Controller_Action
         }
     }
 
+    // ── External sites (not hosted on this server) ─────────────
+
+    /** The external sites this user sees: [{domain, by, role, added}] */
+    private function externalList(): array
+    {
+        $all = VtExternal::all();
+        return array_map(fn($d) => ['domain' => $d] + ($all[$d] ?? []), VtExternal::forCurrentUser());
+    }
+
+    /** Add or remove an external site: op=add|remove, domain */
+    public function externalAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        $op    = (string)$this->_getParam('op', '');
+        $login = $this->resolveUserId();
+        $role  = $this->role();
+        if ($op === 'add') {
+            $r = VtExternal::add((string)$this->_getParam('domain', ''), $login, $role, PleskDomains::hostedAll());
+            if (!empty($r['ok'])) $this->appendLog('[external] ' . $r['domain'] . ' added by ' . $login);
+        } elseif ($op === 'remove') {
+            $d = VtExternal::normalize((string)$this->_getParam('domain', ''));
+            $r = VtExternal::remove($d, $login, $role);
+            if (!empty($r['ok'])) {
+                $this->appendLog('[external] ' . $d . ' removed by ' . $login);
+                VtManualQueue::dequeue([$d]);
+            }
+        } else {
+            $r = ['error' => 'Unknown action'];
+        }
+        $this->respond($r + ['external' => $this->externalList()]);
+    }
+
+    // ── Pwned: WordPress administrators and addresses in known data breaches ──
+
+    /** E-mail addresses this user sees: [email => true] (administrators of their WordPress sites, addresses they added) */
+    private function pwnedEmails(?array &$sites = null, ?array &$custom = null, bool $fresh = false): array
+    {
+        $mine   = array_flip(PleskDomains::hostedForCurrentUser(false));
+        $sites  = array_intersect_key(VtPwned::accounts($fresh), $mine);
+        $custom = VtPwned::customFor($this->resolveUserId(), $this->role());
+        $emails = [];
+        foreach ($sites as $list) foreach ($list as $a) if ($a['email'] !== '') $emails[$a['email']] = true;
+        foreach ($custom as $e => $_) $emails[$e] = true;
+        return $emails;
+    }
+
+    private function pwnedSummary(): array
+    {
+        $src = VtPwned::source();
+        $out = ['source' => $src, 'source_name' => VtPwned::SOURCES[$src] ?? '', 'admin' => $this->role() === 'admin'];
+        if ($this->role() === 'admin') {
+            $out['setting'] = (string)(new VtSettings('admin'))->get('pwned_source', '');
+            $out['key'] = VtPwned::maskedKey();
+            $out['calls'] = VtPwned::callsToday();
+        }
+        return $out;
+    }
+
+    /** The Pwned tab: accounts per site, addresses added by hand, and their breach results */
+    public function pwnedAction(): void
+    {
+        $fresh  = $this->role() === 'admin' && (bool)$this->_getParam('fresh', false);
+        $emails = $this->pwnedEmails($sites, $custom, $fresh);
+        VtPwned::importXonCache(array_keys($emails));
+        $this->respond([
+            'sites'   => $sites,
+            'custom'  => $custom,
+            'results' => array_intersect_key(VtPwned::results(), $emails),
+            'owners'  => $this->role() === 'client' ? [] : PleskDomains::owners(array_keys($sites)),
+            'config'  => $this->pwnedSummary(),
+        ]);
+    }
+
+    /** Check one address (email=...), or the next one that was never checked */
+    public function pwnedCheckAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if (VtPwned::source() === '') { $this->respond(['error' => 'No breach source is chosen yet']); return; }
+        $emails = $this->pwnedEmails();
+        $res    = VtPwned::results();
+        $want   = strtolower(trim((string)$this->_getParam('email', '')));
+        if ($want !== '') {
+            if (!isset($emails[$want])) { $this->respond(['error' => 'forbidden']); return; }
+        } else {
+            foreach ($emails as $e => $_) if (VtPwned::needsCheck($res[$e] ?? null)) { $want = $e; break; }
+            if ($want === '') { $this->respond(['done' => true, 'remaining' => 0]); return; }
+        }
+        $r = VtPwned::check($want);
+        if (($r['state'] ?? '') === 'ok' && !empty($r['breaches'])) $this->appendLog('[pwned] ' . $want . ' is in ' . count($r['breaches']) . ' breach(es)');
+        if (($r['state'] ?? '') === 'failed') $this->appendLog('[pwned] check of ' . $want . ' failed: ' . ($r['error'] ?? ''));
+        $res  = VtPwned::results();
+        $left = 0;
+        foreach ($emails as $e => $_) if (VtPwned::needsCheck($res[$e] ?? null)) $left++;
+        $this->respond(['email' => $want, 'result' => $r, 'remaining' => $left]);
+    }
+
+    /** Add or remove an address of your own: op=add|remove, email */
+    public function pwnedEmailAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        $op    = (string)$this->_getParam('op', '');
+        $email = (string)$this->_getParam('email', '');
+        $login = $this->resolveUserId();
+        if ($op === 'add') $r = VtPwned::addCustom($email, $login);
+        elseif ($op === 'remove') $r = VtPwned::removeCustom($email, $login, $this->role());
+        else $r = ['error' => 'Unknown action'];
+        if (!empty($r['ok'])) $this->appendLog('[pwned] address ' . ($op === 'add' ? 'added' : 'removed') . ': ' . $r['email'] . ' by ' . $login);
+        $this->respond($r + ['custom' => VtPwned::customFor($login, $this->role())]);
+    }
+
+    /** Breach source (administrator, server-wide): source = '' | hibp | xon, key = a new Have I Been Pwned key */
+    public function pwnedSettingsAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can change this']); return; }
+        $src = (string)$this->_getParam('source', '');
+        if ($src !== '' && !isset(VtPwned::SOURCES[$src])) { $this->respond(['error' => 'Unknown source']); return; }
+        $save = ['pwned_source' => $src];
+        $msg  = '';
+        $key  = trim((string)$this->_getParam('key', ''));
+        if ($key !== '') {
+            if (!preg_match('/^[A-Za-z0-9]{20,64}$/', $key)) { $this->respond(['error' => 'That does not look like a Have I Been Pwned API key']); return; }
+            [$ok, $msg, $rpm] = VtPwned::testHibpKey($key);
+            if (!$ok) { $this->respond(['error' => $msg]); return; }
+            $save += ['pwned_hibp_key' => $key, 'pwned_hibp_rpm' => max(1, $rpm)];
+        }
+        if ($src === 'hibp' && $key === '' && VtPwned::hibpKey() === '') { $this->respond(['error' => 'Paste your Have I Been Pwned API key first']); return; }
+        (new VtSettings('admin'))->setAll($save);
+        $this->appendLog('[pwned] breach source: ' . (VtPwned::SOURCES[$src] ?? 'off'));
+        $this->respond(['ok' => true, 'message' => $msg, 'config' => $this->pwnedSummary()]);
+    }
+
     // ── Orphan databases (related hostnames), administrator only ──
 
     /** Database and table prefix of every WordPress install on disk (root helper, cached for an hour) */
     private static function wpConfigs(): ?array
     {
-        $cache = VtDataDir::path('vt_wpconfigs.json');
-        if (is_file($cache) && time() - filemtime($cache) < 3600) {
-            $d = json_decode((string)file_get_contents($cache), true);
-            if (is_array($d)) return $d;
-        }
-        try {
-            $res  = pm_ApiCli::callSbin('site-scan', ['wpconfigs'], pm_ApiCli::RESULT_FULL);
-            $list = json_decode(trim((string)($res['stdout'] ?? '')), true)['configs'] ?? null;
-        } catch (\Throwable $e) {
-            $list = null;
-        }
-        if (!is_array($list)) return null;
-        @file_put_contents($cache, json_encode($list));
-        return $list;
+        return VtPwned::wpConfigs();
     }
 
     /**
@@ -1354,48 +1480,18 @@ class IndexController extends pm_Controller_Action
     }
 
     /**
-     * Check one email against XposedOrNot — completely free, no API key required.
-     * Rate limit: 25 requests/hour per IP (results cached 24 h to stay well within it).
-     * Returns array of breach names if found, empty array if clean, null on rate-limit/error.
+     * Breach names of one address, from the shared Pwned store (VtPwned): a checked address is
+     * never checked again. Checks it now when the rate limit allows; null when not checked (yet)
+     * or when the administrator switched the breach check off.
      */
     private static function xonCheck(string $email): ?array
     {
-        $cacheFile = VtDataDir::path('vt_xon_cache.json');
-        $cache     = is_file($cacheFile) ? (json_decode((string)file_get_contents($cacheFile), true) ?: []) : [];
-        $cacheKey  = md5(strtolower(trim($email)));
-        $now       = time();
-
-        if (isset($cache[$cacheKey]) && $now - (int)($cache[$cacheKey]['t'] ?? 0) < 86400) {
-            return $cache[$cacheKey]['d'];
-        }
-
-        $ch = curl_init('https://api.xposedornot.com/v1/check-email/' . rawurlencode(strtolower(trim($email))));
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_HTTPHEADER     => ['User-Agent: Stingy-Scanner-for-Plesk/2.5'],
-        ]);
-        $body = (string)curl_exec($ch);
-        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($code === 429) return null; // rate limited — do not cache
-
-        $data = json_decode($body, true);
-        if (!is_array($data)) return null;
-
-        if (isset($data['Error'])) {
-            $result = []; // "Not found" — clean email, cache it
-        } else {
-            // breaches field is [[name1, name2, ...]] — unwrap outer array
-            $raw    = $data['breaches'] ?? [];
-            $inner  = (is_array($raw) && isset($raw[0]) && is_array($raw[0])) ? $raw[0] : $raw;
-            $result = array_values(array_filter($inner, 'is_string'));
-        }
-
-        $cache[$cacheKey] = ['t' => $now, 'd' => $result];
-        @file_put_contents($cacheFile, json_encode($cache));
-        return $result;
+        $email = strtolower(trim($email));
+        if ($email === '') return null;
+        $r = VtPwned::results()[$email] ?? null;
+        if (VtPwned::needsCheck($r)) $r = VtPwned::check($email);
+        if (($r['state'] ?? '') !== 'ok') return null;
+        return array_map(fn($b) => (string)($b['title'] ?? $b['name']), $r['breaches'] ?? []);
     }
 
     /** Heuristic flags that may indicate a WordPress admin is rogue or compromised */

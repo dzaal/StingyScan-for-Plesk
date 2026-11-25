@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/VtDataDir.php';
+require_once __DIR__ . '/VtExternal.php';
 
 /**
  * PleskDomains: every active domain and subdomain with web hosting in Plesk.
@@ -16,6 +17,10 @@ require_once __DIR__ . '/VtDataDir.php';
  * WordPress sites on a hostname under a hosted domain that is not a Plesk
  * subdomain of its own (e.g. 2025.example.com served by example.com) are added
  * too, found through the `siteurl` option of WordPress databases.
+ *
+ * External sites (not hosted here, added by hand; see VtExternal) are added to every list:
+ * the user's own ones, or all of them for the administrator and the nightly scan. They are
+ * kept with "WordPress sites only" too, since they were added on purpose.
  *
  * pm_Domain::getAllDomains() does not reliably respect session context in
  * extension modules, so ownership is queried from the psa database as well.
@@ -34,7 +39,29 @@ class PleskDomains
     public static function forCurrentUser(bool $wpOnly = false): array
     {
         if (self::$requestCache === null) self::$requestCache = self::discoverForCurrentUser();
+        $hosted = $wpOnly ? self::onlyWordPress(self::$requestCache) : self::$requestCache;
+        return self::withExternal($hosted, VtExternal::forCurrentUser());
+    }
+
+    /** Hosted hostnames visible to the current user, without the external sites */
+    public static function hostedForCurrentUser(bool $wpOnly = false): array
+    {
+        if (self::$requestCache === null) self::$requestCache = self::discoverForCurrentUser();
         return $wpOnly ? self::onlyWordPress(self::$requestCache) : self::$requestCache;
+    }
+
+    /** Every hosted hostname on the server, without the external sites */
+    public static function hostedAll(): array
+    {
+        return self::allHostedDomains();
+    }
+
+    private static function withExternal(array $hosted, array $external): array
+    {
+        if (!$external) return $hosted;
+        $all = array_values(array_unique(array_merge($hosted, $external)));
+        sort($all);
+        return $all;
     }
 
     /**
@@ -45,9 +72,10 @@ class PleskDomains
     {
         $d = is_file(self::domainCacheFile()) ? json_decode((string)file_get_contents(self::domainCacheFile()), true) : null;
         if (!is_array($d) || !$d) return null;
-        if (!$wpOnly) return $d;
+        $ext = array_keys(VtExternal::all());
+        if (!$wpOnly) return self::withExternal($d, $ext);
         $wp = is_file(self::wpCacheFile()) ? json_decode((string)file_get_contents(self::wpCacheFile()), true) : null;
-        return is_array($wp) ? array_values(array_intersect($d, $wp)) : $d;
+        return self::withExternal(is_array($wp) ? array_values(array_intersect($d, $wp)) : $d, $ext);
     }
 
     private static function discoverForCurrentUser(): array
@@ -62,14 +90,14 @@ class PleskDomains
             }
         }
 
-        return self::allDomains();
+        return self::allHostedDomains();
     }
 
-    /** All hosted domains on this server (for admin and the nightly scan), cached for a day */
+    /** All hosted domains on this server plus every external site (for the nightly scan) */
     public static function allDomains(bool $wpOnly = false): array
     {
         $all = self::allHostedDomains();
-        return $wpOnly ? self::onlyWordPress($all) : $all;
+        return self::withExternal($wpOnly ? self::onlyWordPress($all) : $all, array_keys(VtExternal::all()));
     }
 
     /** Keep only the hostnames that run WordPress */
@@ -406,7 +434,8 @@ class PleskDomains
     public static function forLogin(string $login, bool $isReseller): ?array
     {
         $own = self::queryDomains($login, $isReseller);
-        return $own === null ? null : ($own ? self::withWordPressSubsites($own) : []);
+        if ($own === null) return null;
+        return self::withExternal($own ? self::withWordPressSubsites($own) : [], VtExternal::forUser($login, $isReseller ? 'reseller' : 'client'));
     }
 
     /** Connection to Plesk's psa database (null when unavailable) */

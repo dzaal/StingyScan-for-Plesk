@@ -25,6 +25,8 @@ require_once $plibDir . '/VtNotifier.php';
 require_once $plibDir . '/VtHistory.php';
 require_once $plibDir . '/VtLogRotate.php';
 require_once $plibDir . '/VtSafeBrowsing.php';
+require_once $plibDir . '/VtExternal.php';
+require_once $plibDir . '/VtPwned.php';
 
 // Keep the scan logs small (log rotation settings in Settings)
 try { VtLogRotate::run(); } catch (\Throwable $e) {}
@@ -43,6 +45,17 @@ try {
     }
 } catch (\Throwable $e) {
     log_msg('[quarantine] cleanup failed: ' . $e->getMessage());
+}
+
+// Pwned: addresses that were never checked (a checked address is never checked again), at most 10 minutes
+try {
+    if (VtPwned::source() !== '') {
+        VtPwned::accounts(true);
+        [$n, $bad] = VtPwned::checkPending(600);
+        if ($n) log_msg("[pwned] $n address(es) checked, $bad in a known data breach");
+    }
+} catch (\Throwable $e) {
+    log_msg('[pwned] check failed: ' . $e->getMessage());
 }
 
 $settings = new VtSettings();

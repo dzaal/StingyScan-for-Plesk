@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.8 — 2026-11-25
+- Settings: section names (Notifications, Sites to scan, …) are larger with a blue bar, and the content of each section is indented below its name.
+
 ## 2.6.7 — 2026-11-25
 - Pwned?: every breach shows its **year** (for example *Collection-1 (2019), MyHeritage (2017)*), newest first, with the kind of data that leaked on hover. With Have I Been Pwned the date comes with each result; XposedOrNot only gives breach names per address, so there the dates come from its public list of breaches, fetched once a week. A site's WordPress admin accounts show the years too.
 

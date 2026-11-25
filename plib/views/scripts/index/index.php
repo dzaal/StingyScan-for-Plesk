@@ -417,6 +417,12 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 #vtpanel-settings .hint{font-size:12px;line-height:1.5;color:var(--muted)}
 #vtpanel-settings .vt-save-row{flex-wrap:wrap;gap:10px;margin-top:16px}
 #vtpanel-settings .vt-save-row button{white-space:nowrap;flex-shrink:0}
+/* Settings: clear section names, the section's content indented below them */
+#vtpanel-settings .vt-card>h3,#vtpanel-settings .vt-settings-title h3{font-size:18px;font-weight:700;color:var(--heading);border-left:4px solid #2563eb;padding:2px 0 2px 10px;line-height:1.3}
+#vtpanel-settings .vt-card>h3{border-bottom:0;margin-bottom:14px}
+#vtpanel-settings .vt-settings-title{border-bottom:1px solid var(--border);padding-bottom:9px}
+#vtpanel-settings .vt-card>*:not(h3):not(.vt-settings-title){margin-left:5em}
+@media (max-width:900px){#vtpanel-settings .vt-card>*:not(h3):not(.vt-settings-title){margin-left:1.5em}}
 .vt-settings-title{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .vt-settings-title h3{margin:0}
 .vt-settings-title .hint{margin-left:auto}

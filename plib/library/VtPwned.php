@@ -314,7 +314,7 @@ class VtPwned
     {
         $file = VtDataDir::path('vt_wp_admins.json');
         $c    = json_decode((string)@file_get_contents($file), true);
-        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 4) return $c['sites'] ?? [];
+        if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 5) return $c['sites'] ?? [];
         $pdo = PleskDomains::pdo();
         if (!$pdo) return is_array($c) ? ($c['sites'] ?? []) : [];
         $hosted  = array_flip(PleskDomains::hostedAll());
@@ -339,18 +339,18 @@ class VtPwned
             }
             if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
         }
-        // Joomla, Drupal and Wotan sites on the same server
+        // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel sites on the same server
         foreach (self::otherAdmins($pdo, $hosted) as $host => $list) {
             foreach ($list as $a) $sites[$host][] = $a;
         }
         ksort($sites);
-        @file_put_contents($file, json_encode(['t' => time(), 'v' => 4, 'sites' => $sites]));
+        @file_put_contents($file, json_encode(['t' => time(), 'v' => 5, 'sites' => $sites]));
         return $sites;
     }
 
-    const CMS = ['joomla' => 'Joomla', 'drupal' => 'Drupal', 'wotan' => 'Wotan'];
+    const CMS = ['joomla' => 'Joomla', 'drupal' => 'Drupal', 'wotan' => 'Wotan', 'nextcloud' => 'Nextcloud', 'whmcs' => 'WHMCS', 'laravel' => 'Laravel'];
 
-    /** Joomla, Drupal and Wotan installs on disk (root helper, cached for an hour) */
+    /** Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel installs on disk (root helper, cached for an hour) */
     public static function cmsConfigs(): ?array
     {
         $cache = VtDataDir::path('vt_cmsconfigs.json');
@@ -370,7 +370,7 @@ class VtPwned
     }
 
     /**
-     * Administrators of the Joomla, Drupal and Wotan sites: [host => [{id, login, email, registered, cms}]].
+     * Administrators of the Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel sites: [host => [{id, login, email, registered, cms}]].
      * An install counts for a site when it is in the site's document root (or a folder below it), so old
      * copies elsewhere in the subscription are skipped. Only databases on this server's MySQL.
      */
@@ -400,7 +400,8 @@ class VtPwned
             if (!$list) continue;
             $base = substr($dir, $best); // folder of the install below the document root ('' = the root)
             foreach ($list as $a) $out[$host][] = $a + ['cms' => self::CMS[$c['type']] ?? $c['type'], 'path' => '', 'type' => $c['type'],
-                                                        'db' => $c['db'], 'prefix' => (string)($c['prefix'] ?? ''), 'table' => (string)($c['table'] ?? ''), 'base' => $base];
+                                                        'db' => $c['db'], 'prefix' => (string)($c['prefix'] ?? ''), 'table' => (string)($c['table'] ?? ''), 'base' => $base,
+                                                        'admin' => (string)($c['admin'] ?? '')];
         }
         return $out;
     }
@@ -428,6 +429,19 @@ class VtPwned
                 $sql[] = "SELECT id, username, email, UNIX_TIMESTAMP(created) FROM $u WHERE online = '1' AND email <> ''"
                        . " AND (settings = 'admin.php' OR usergroup IN (SELECT username FROM $u WHERE settings = 'admin.php'))";
                 break;
+            case 'nextcloud':
+                // Members of the admin group; the e-mail address is a user preference
+                $sql[] = 'SELECT 0, u.uid, p.configvalue, 0 FROM ' . $t('users') . ' u JOIN ' . $t('group_user') . " g ON g.uid = u.uid AND g.gid = 'admin' JOIN "
+                       . $t('preferences') . " p ON p.userid = u.uid AND p.appid = 'settings' AND p.configkey = 'email'";
+                break;
+            case 'whmcs':
+                $sql[] = 'SELECT id, username, email, UNIX_TIMESTAMP(created_at) FROM ' . $t('tbladmins') . ' WHERE disabled = 0';
+                $sql[] = 'SELECT id, username, email, 0 FROM ' . $t('tbladmins') . ' WHERE disabled = 0'; // older WHMCS without created_at
+                break;
+            case 'laravel':
+                // Only apps with their own admins table (the users table of a Laravel app is usually customers)
+                $sql[] = 'SELECT id, name, email, UNIX_TIMESTAMP(created_at) FROM ' . $t('admins');
+                break;
         }
         foreach ($sql as $q) {
             try {
@@ -453,6 +467,10 @@ class VtPwned
             case 'joomla': return ['login' => $b . '/administrator/', 'lost' => $b . '/index.php?option=com_users&view=reset'];
             case 'drupal': return ['login' => $b . '/user/login', 'lost' => $b . '/user/password'];
             case 'wotan':  return ['login' => $b . '/login/', 'lost' => $b . '/login/forgotpassword/'];
+            case 'nextcloud': return ['login' => $b . '/index.php/login', 'lost' => $b . '/index.php/login'];
+            case 'whmcs':  $adm = $b . '/' . (preg_match('/^[A-Za-z0-9_\-]+$/', (string)($a['admin'] ?? '')) ? $a['admin'] : 'admin');
+                           return ['login' => $adm . '/', 'lost' => $adm . '/login.php?action=reset'];
+            case 'laravel': return ['login' => $b . '/admin/login', 'lost' => $b . '/admin/login'];
             default:       return ['login' => $b . '/wp-admin/profile.php', 'lost' => $b . '/wp-login.php?action=lostpassword'];
         }
     }
@@ -467,10 +485,19 @@ class VtPwned
         $pdo = PleskDomains::pdo();
         $out = ['created' => (int)($a['registered'] ?? 0)];
         $db = (string)($a['db'] ?? ''); $p = (string)($a['prefix'] ?? ''); $id = (int)($a['id'] ?? 0);
+        $type = $a['type'] ?? 'wordpress';
+        if ($type === 'nextcloud' && $pdo && preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db) && preg_match('/^[A-Za-z0-9_]{0,64}$/', $p)) {
+            // Nextcloud keeps the last login as a user preference (login / lastLogin)
+            try {
+                $st = $pdo->prepare('SELECT configvalue FROM `' . $db . '`.`' . $p . "preferences` WHERE userid = ? AND appid = 'login' AND configkey = 'lastLogin'");
+                $st->execute([(string)($a['login'] ?? '')]);
+                if ($v = $st->fetchColumn()) $out['last_login'] = (int)$v;
+            } catch (\PDOException $e) {}
+            return $out;
+        }
         if (!$pdo || !$id || !preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db) || !preg_match('/^[A-Za-z0-9_]{0,64}$/', $p)) return $out;
         $t = fn($n) => '`' . $db . '`.`' . $p . $n . '`';
         $one = function (string $sql) use ($pdo) { try { return $pdo->query($sql)->fetchColumn(); } catch (\PDOException $e) { return false; } };
-        $type = $a['type'] ?? 'wordpress';
         if ($type === 'wordpress') {
             // Login sessions WordPress keeps (login time and IP address of every session that has not expired)
             $raw = $one('SELECT meta_value FROM ' . $t('usermeta') . " WHERE user_id = $id AND meta_key = 'session_tokens' LIMIT 1");
@@ -495,6 +522,13 @@ class VtPwned
         } elseif ($type === 'joomla') {
             $v = $one('SELECT UNIX_TIMESTAMP(lastvisitDate) FROM ' . $t('users') . " WHERE id = $id");
             if ($v) $out['last_login'] = (int)$v;
+        } elseif ($type === 'whmcs') {
+            // Admin log: time and IP address of the last login
+            try {
+                $st = $pdo->prepare('SELECT UNIX_TIMESTAMP(logintime), ipaddress FROM `' . $db . '`.`tbladminlog` WHERE adminusername = ? ORDER BY id DESC LIMIT 1');
+                $st->execute([(string)($a['login'] ?? '')]);
+                if ($row = $st->fetch(\PDO::FETCH_NUM)) { $out['last_login'] = (int)$row[0]; $out['last_ip'] = (string)$row[1]; }
+            } catch (\PDOException $e) {}
         } elseif ($type === 'drupal') {
             $v = $one('SELECT login FROM ' . $t('users_field_data') . " WHERE uid = $id") ?: $one('SELECT login FROM ' . $t('users') . " WHERE uid = $id");
             if ($v) $out['last_login'] = (int)$v;

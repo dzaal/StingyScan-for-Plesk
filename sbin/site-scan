@@ -334,16 +334,23 @@ if ($mode === 'list') {
     out(['scanners' => $list, 'engines' => $engines]);
 }
 if ($mode === 'cmsconfigs') {
-    // Joomla, Drupal and Wotan installs: their folder and database (read-only; passwords are never returned)
+    // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel installs: their folder and database (read-only; passwords are never returned)
     $list = [];
     $find = function (string $args): array {
         $o = trim((string)shell_exec('find ' . VHOSTS . ' ' . $args . ' -type f -not -path "' . VHOSTS . 'system/*" 2>/dev/null'));
         return $o === '' ? [] : explode("\n", $o);
     };
     $val = function (string $c, string $re): string { return preg_match($re, $c, $m) ? (string)$m[1] : ''; };
-    foreach ($find('-maxdepth 5 -name configuration.php') as $p) {           // Joomla
+    foreach ($find('-maxdepth 6 -name configuration.php') as $p) {           // Joomla and WHMCS
         if (is_link($p)) continue;
         $c = (string)@file_get_contents($p, false, null, 0, 65536);
+        $root = dirname($p);
+        if (strpos($c, '$db_name') !== false && is_file($root . '/init.php') && is_dir($root . '/vendor/whmcs')) {
+            $list[] = ['type' => 'whmcs', 'root' => substr($root, strlen(VHOSTS)), 'prefix' => '',
+                       'db' => $val($c, '/\$db_name\s*=\s*[\'"]([^\'"]+)/'), 'host' => $val($c, '/\$db_host\s*=\s*[\'"]([^\'"]+)/'),
+                       'admin' => $val($c, '/\$customadminpath\s*=\s*[\'"]([A-Za-z0-9_\-]+)/') ?: 'admin'];
+            continue;
+        }
         if (strpos($c, 'class JConfig') === false) continue;
         $list[] = ['type' => 'joomla', 'root' => substr(dirname($p), strlen(VHOSTS)),
                    'db' => $val($c, '/public\s+\$db\s*=\s*[\'"]([^\'"]+)/'), 'prefix' => $val($c, '/public\s+\$dbprefix\s*=\s*[\'"]([^\'"]*)/'),
@@ -367,6 +374,24 @@ if ($mode === 'cmsconfigs') {
                    'db' => $val($c, '/\$mysql\[[\'"]selectdb[\'"]\]\s*=\s*[\'"]([^\'"]+)/'), 'prefix' => '',
                    'table' => $val($c, '/\$set\[[\'"]userstable[\'"]\]\s*=\s*[\'"]([^\'"]+)/') ?: 'users',
                    'host' => $val($c, '/\$mysql\[[\'"]host[\'"]\]\s*=\s*[\'"]([^\'"]+)/')];
+    }
+    foreach ($find('-maxdepth 6 -path "*/config/config.php"') as $p) {      // Nextcloud / ownCloud
+        if (is_link($p)) continue;
+        $c = (string)@file_get_contents($p, false, null, 0, 65536);
+        if (strpos($c, 'dbtableprefix') === false || !preg_match('/[\'"]dbtype[\'"]\s*=>\s*[\'"]mysql/', $c)) continue;
+        $list[] = ['type' => 'nextcloud', 'root' => substr(dirname($p, 2), strlen(VHOSTS)),
+                   'db' => $val($c, '/[\'"]dbname[\'"]\s*=>\s*[\'"]([^\'"]+)/'), 'prefix' => $val($c, '/[\'"]dbtableprefix[\'"]\s*=>\s*[\'"]([^\'"]*)/'),
+                   'host' => preg_replace('/:\d+$/', '', $val($c, '/[\'"]dbhost[\'"]\s*=>\s*[\'"]([^\'"]+)/'))];
+    }
+    foreach ($find('-maxdepth 5 -name artisan') as $p) {                     // Laravel apps with an admins table
+        if (is_link($p)) continue;
+        $root = dirname($p);
+        $env  = (string)@file_get_contents($root . '/.env', false, null, 0, 65536);
+        if (!preg_match('/^DB_CONNECTION=["\']?mysql/m', $env)) continue;
+        $e = fn($k) => preg_match('/^' . $k . '=["\']?([^"\'\r\n]*)/m', $env, $m) ? trim($m[1]) : '';
+        // Plesk points the site at public/, so the install counts for the site whose document root that is
+        $list[] = ['type' => 'laravel', 'root' => substr(is_dir($root . '/public') ? $root . '/public' : $root, strlen(VHOSTS)),
+                   'db' => $e('DB_DATABASE'), 'prefix' => $e('DB_PREFIX'), 'host' => $e('DB_HOST')];
     }
     out(['configs' => array_values(array_filter($list, fn($x) => $x['db'] !== ''))]);
 }

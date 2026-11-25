@@ -40,7 +40,10 @@ class VtPwnedMail
     {
         [$from] = self::sender();
         $reset  = $kind === 'reset';
-        $hosts  = array_values(array_unique(array_column($sites, 'host')));
+        // The site's address: the domain plus the folder of the install, e.g. example.com/shop
+        foreach ($sites as &$s) $s['site'] = $s['site'] ?? $s['host'];
+        unset($s);
+        $hosts  = array_values(array_unique(array_column($sites, 'site')));
         $n      = count($hosts);
         $siteTxt = $n === 1 ? $hosts[0] : $hosts[0] . ' and ' . ($n - 1) . ' other site' . ($n === 2 ? '' : 's');
         $breaches = $result['breaches'] ?? [];
@@ -90,7 +93,7 @@ class VtPwnedMail
             if (!empty($a['created'])) $info[] = 'Account created: ' . $e(date('j M Y', (int)$a['created']));
             $links = $reset ? $btn($s['urls']['lost'], 'Choose a new password', '#2563eb')
                             : $btn($s['urls']['login'], 'Log in and change password', '#2563eb') . $btn($s['urls']['lost'], 'Forgot password', '#6b7280');
-            $h .= '<tr><td ' . $td . '><strong>' . $e($s['host']) . '</strong>' . (($s['cms'] ?? 'WordPress') !== 'WordPress' ? '<br><span style="font-size:12px;color:#6b7280">' . $e($s['cms']) . '</span>' : '') . '</td>'
+            $h .= '<tr><td ' . $td . '><strong>' . $e($s['site']) . '</strong>' . (($s['cms'] ?? 'WordPress') !== 'WordPress' ? '<br><span style="font-size:12px;color:#6b7280">' . $e($s['cms']) . '</span>' : '') . '</td>'
                 . '<td ' . $td . '>Username <strong>' . $e($s['login']) . '</strong><div style="font-size:12px;color:#4b5563;margin:3px 0 6px">' . implode('<br>', $info) . '</div>' . $links . '</td></tr>';
         }
         $h .= '</table>';
@@ -136,7 +139,7 @@ class VtPwnedMail
                      : "Nothing has been changed. Please check your administrator account and change the password on:\n\n");
         foreach ($sites as $s) {
             $a = $s['act'] ?? [];
-            $t .= '  ' . $s['host'] . ' (username ' . $s['login'] . ")\n"
+            $t .= '  ' . $s['site'] . ' (username ' . $s['login'] . ")\n"
                 . '    Last login: ' . (!empty($a['last_login']) ? $date($a['last_login']) . (!empty($a['last_ip']) ? ' from ' . $a['last_ip'] : '') : 'not recorded') . "\n"
                 . (!empty($a['last_edit']) ? '    Last page or post edited: ' . $date($a['last_edit']) . "\n" : '')
                 . ($reset ? '    Choose a new password: ' . $s['urls']['lost'] . "\n"

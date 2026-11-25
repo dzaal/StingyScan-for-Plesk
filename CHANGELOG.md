@@ -3,6 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.10.0 — 2026-11-25
+- **Pwned? lists more systems:** administrators of **Nextcloud / ownCloud** (group *admin*; e-mail address and last login from the user preferences), **WHMCS** (active staff accounts; last login and IP address from the admin log; a custom admin folder is followed) and **Laravel** apps that have their own `admins` table (the app's `public/` folder is the site's document root) are listed and tested too, and can be warned by e-mail. An emergency reset is still WordPress only.
+
+## 2.9.3 — 2026-11-25
+- Sites installed in a folder of a domain (for example several Joomla sites in `example.com/shop`, `example.com/demo`) are shown with that folder: in the Pwned? list (a small label with the folder), the fix panel and the e-mails, instead of only the domain name. The links already went to the right folder.
+
 ## 2.9.2 — 2026-11-25
 - Wotan sites: the *Forgot password* link in the Pwned? e-mails now goes to `/login/forgotpassword/`.
 

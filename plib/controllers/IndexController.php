@@ -1163,7 +1163,8 @@ class IndexController extends pm_Controller_Action
             foreach ($list as $a) {
                 if ($a['email'] !== $email) continue;
                 $all[] = ['host' => $host, 'login' => $a['login'], 'id' => (int)($a['id'] ?? 0), 'path' => (string)($a['path'] ?? ''),
-                          'cms' => (string)($a['cms'] ?? 'WordPress'), 'urls' => VtPwned::urls($host, $a), 'act' => VtPwned::activity($a)];
+                          'cms' => (string)($a['cms'] ?? 'WordPress'), 'urls' => VtPwned::urls($host, $a), 'act' => VtPwned::activity($a),
+                          'site' => $host . rtrim((string)($a['base'] ?? ''), '/')];
             }
         }
         if (!$all) { $this->respond(['error' => 'This address is not an administrator of a site on this server']); return; }
@@ -1171,7 +1172,7 @@ class IndexController extends pm_Controller_Action
         $resettable = array_values(array_filter($all, fn($s) => $s['cms'] === 'WordPress' && $s['id'] > 0 && $s['path'] !== ''));
         $sites = $kind === 'reset' ? $resettable : $all;
         $by    = $this->resolveUserId();
-        $info  = ['sites' => array_map(fn($s) => ['host' => $s['host'], 'login' => $s['login'], 'cms' => $s['cms'], 'act' => $s['act'],
+        $info  = ['sites' => array_map(fn($s) => ['host' => $s['host'], 'site' => $s['site'], 'login' => $s['login'], 'cms' => $s['cms'], 'act' => $s['act'],
                                                   'resettable' => in_array($s, $resettable, true)], $all),
                   'from' => VtPwnedMail::sender(), 'server' => VtServerName::label(), 'kind' => $kind];
 
@@ -1214,10 +1215,10 @@ class IndexController extends pm_Controller_Action
         $this->appendLog('[pwned] ' . ($kind === 'reset' ? 'reset' : 'warning') . ' e-mail to ' . $email . ($sent ? ' sent' : ' FAILED') . ' by ' . $by);
         if (!$sent && $kind === 'warn') { $this->respond(['error' => 'The mail server did not accept the message']); return; }
         $fixed = self::pwnedFixed(function ($d) use ($email, $by, $done, $failed, $sent, $kind) {
-            $d[$email] = ['at' => time(), 'by' => $by, 'kind' => $kind, 'sites' => array_column($done, 'host'), 'failed' => array_column($failed, 'host'), 'mailed' => $sent];
+            $d[$email] = ['at' => time(), 'by' => $by, 'kind' => $kind, 'sites' => array_column($done, 'site'), 'failed' => array_column($failed, 'host'), 'mailed' => $sent];
             return $d;
         });
-        $this->respond(['ok' => true, 'kind' => $kind, 'sites' => array_column($done, 'host'), 'failed' => $failed, 'mailed' => $sent, 'fixed' => $fixed[$email]]);
+        $this->respond(['ok' => true, 'kind' => $kind, 'sites' => array_column($done, 'site'), 'failed' => $failed, 'mailed' => $sent, 'fixed' => $fixed[$email]]);
     }
 
     /** Add or remove an address of your own: op=add|remove, email */

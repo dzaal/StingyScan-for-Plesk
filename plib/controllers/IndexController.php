@@ -891,7 +891,7 @@ class IndexController extends pm_Controller_Action
         $raw = $this->getRequest()->getRawBody();
         $input = ($raw && $raw[0] === '{') ? (json_decode($raw, true) ?? []) : $this->getRequest()->getPost();
 
-        $allowed = ['api_key', 'wordpress_only', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days'];
+        $allowed = ['api_key', 'wordpress_only', 'wp_rogue_scan', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days'];
         $save    = [];
         foreach ($allowed as $k) {
             if (!isset($input[$k])) continue;
@@ -908,7 +908,7 @@ class IndexController extends pm_Controller_Action
                     $this->respond(['error' => 'Please enter a valid e-mail address']); return;
                 }
                 $save[$k] = $v;
-            } elseif ($k === 'wordpress_only' || $k === 'notify_enabled') {
+            } elseif ($k === 'wordpress_only' || $k === 'notify_enabled' || $k === 'wp_rogue_scan') {
                 $save[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
             } elseif (in_array($k, ['daily_limit', 'clean_ttl_days', 'infected_ttl_days'])) {
                 $save[$k] = max(1, (int)$input[$k]);
@@ -1098,6 +1098,187 @@ class IndexController extends pm_Controller_Action
         if (!is_array($out)) $out = ['error' => 'The backup failed'];
         if (!empty($out['ok'])) $this->appendLog('[db] Backup of ' . $item['db'] . ($item['kind'] === 'tables' ? ' (tables ' . $item['prefix'] . '*)' : '') . " for $host: " . $out['file']);
         $this->respond($out);
+    }
+
+    // ── WordPress admin user scan (rogue user detection) ──────────────────────
+
+    /** List of WordPress admin users for a domain, with rogue-score flags (administrator only) */
+    public function wpUsersAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        if (!$domain || !$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+        if (!(bool)$this->settings->get('wp_rogue_scan', true)) {
+            $this->respond(['error' => 'WordPress admin scan is disabled in Settings', 'disabled' => true]); return;
+        }
+        $this->respond(self::fetchWpAdmins($domain));
+    }
+
+    /** Delete or reset the password of one WordPress admin user (administrator only) */
+    public function wpUserActionAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        $userId = (int)$this->_getParam('user_id', 0);
+        $act    = (string)$this->_getParam('action', '');
+        if (!$domain || !$userId || !in_array($act, ['delete', 'reset'], true)) {
+            $this->respond(['error' => 'Invalid parameters']); return;
+        }
+        if (!$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+
+        $data = self::fetchWpAdmins($domain);
+        if (!empty($data['error'])) { $this->respond(['error' => $data['error']]); return; }
+        $user = null;
+        foreach ($data['users'] ?? [] as $u) {
+            if ((int)$u['id'] === $userId) { $user = $u; break; }
+        }
+        if (!$user) { $this->respond(['error' => 'User not found']); return; }
+
+        $wpPath = $data['wp_path'] ?? '';
+        if (!$wpPath || !is_dir($wpPath)) { $this->respond(['error' => 'WordPress path not found on disk']); return; }
+
+        // Run as the file owner, not as root (WP-CLI reads wp-config.php as the site user)
+        $sysUser = trim((string)@shell_exec('stat -c %U ' . escapeshellarg($wpPath) . ' 2>/dev/null'));
+        $runAs   = ($sysUser && $sysUser !== 'root' && $sysUser !== 'UNKNOWN')
+                 ? 'sudo -u ' . escapeshellarg($sysUser) . ' ' : '';
+        $wpCmd   = $runAs . 'wp --path=' . escapeshellarg($wpPath) . ' --allow-root ';
+
+        if ($act === 'delete') {
+            $reassign = '';
+            foreach ($data['users'] ?? [] as $u) {
+                if ((int)$u['id'] !== $userId) { $reassign = ' --reassign=' . (int)$u['id']; break; }
+            }
+            exec($wpCmd . 'user delete ' . (int)$userId . $reassign . ' --yes 2>&1', $out, $rc);
+            $newPass = null;
+        } else {
+            $newPass = bin2hex(random_bytes(16));
+            exec($wpCmd . 'user update ' . (int)$userId . ' --user_pass=' . escapeshellarg($newPass) . ' 2>&1', $out, $rc);
+        }
+
+        if ($rc !== 0) {
+            $errMsg = trim(implode(' ', $out));
+            $this->respond(['error' => str_contains($errMsg, 'not found') || str_contains($errMsg, 'No such file')
+                ? 'WP-CLI is not installed on this server. Install it at https://wp-cli.org to enable user management.'
+                : 'Command failed: ' . $errMsg]);
+            return;
+        }
+
+        $this->appendLog('[wp-users] ' . $act . ' user ' . $user['login'] . ' (ID ' . $userId . ') on ' . $domain);
+        $result = ['ok' => true, 'users' => self::fetchWpAdmins($domain)['users'] ?? []];
+        if ($newPass !== null) $result['new_password'] = $newPass;
+        $this->respond($result);
+    }
+
+    private static function fetchWpAdmins(string $domain): array
+    {
+        $sources = PleskDomains::wordPressSources();
+        if ($sources === null) return ['error' => 'Could not query WordPress databases', 'users' => []];
+
+        $install = null;
+        foreach ($sources as $s) {
+            if ($s['host'] === $domain || $s['host'] === 'www.' . $domain) { $install = $s; break; }
+        }
+        if (!$install) return ['error' => 'No WordPress install found for this domain', 'users' => []];
+
+        $wpPath = '';
+        foreach (self::wpConfigs() ?? [] as $c) {
+            if (isset($c['db'], $c['prefix']) && $c['db'] === $install['db'] && $c['prefix'] === $install['prefix']) {
+                $wpPath = $c['path'] ?? ''; break;
+            }
+        }
+
+        $pdo = PleskDomains::pdo();
+        if (!$pdo) return ['error' => 'Database unavailable', 'users' => []];
+
+        $db     = $install['db'];
+        $prefix = $install['prefix'];
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $db) || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            return ['error' => 'Invalid database or table prefix', 'users' => []];
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT u.ID, u.user_login, u.user_email, u.user_registered, u.display_name, m.meta_value AS caps
+                 FROM `$db`.`{$prefix}users` u
+                 LEFT JOIN `$db`.`{$prefix}usermeta` m ON m.user_id = u.ID AND m.meta_key = ?
+                 ORDER BY u.ID"
+            );
+            $stmt->execute([$prefix . 'capabilities']);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            return ['error' => 'Could not read user table: ' . $e->getMessage(), 'users' => []];
+        }
+
+        $users = [];
+        foreach ($rows as $row) {
+            $caps = @unserialize((string)($row['caps'] ?? ''));
+            if (!is_array($caps) || !isset($caps['administrator'])) continue;
+            $users[] = [
+                'id'         => (int)$row['ID'],
+                'login'      => (string)$row['user_login'],
+                'email'      => (string)$row['user_email'],
+                'display'    => (string)$row['display_name'],
+                'registered' => (string)$row['user_registered'],
+                'flags'      => self::rogueFlags($row, $domain),
+            ];
+        }
+
+        return ['users' => $users, 'wp_path' => $wpPath, 'db' => $db];
+    }
+
+    /** Heuristic flags that may indicate a WordPress admin is rogue or compromised */
+    private static function rogueFlags(array $row, string $domain): array
+    {
+        $flags = [];
+        $login = strtolower((string)$row['user_login']);
+        $email = strtolower((string)$row['user_email']);
+        $regTs = strtotime((string)($row['user_registered'] ?? '')) ?: 0;
+
+        if ($regTs > 0) {
+            $daysOld = max(0, (int)((time() - $regTs) / 86400));
+            if ($daysOld < 30) {
+                $flags[] = ['code' => 'new_account', 'label' => 'Created ' . $daysOld . ' day' . ($daysOld === 1 ? '' : 's') . ' ago',
+                    'detail' => 'This admin account is only ' . $daysOld . ' day' . ($daysOld === 1 ? '' : 's') . ' old. '
+                        . 'Attackers add an admin user immediately after gaining access, so a recently created admin on a site with infections is a strong red flag. '
+                        . 'If you did not create this account yourself, delete it.'];
+            }
+        }
+
+        static $susNames = ['admin2','admin1','admin0','administrator','wp-admin','wpadmin','wpuser','support',
+                            'wordpress','backup','test','user','webmaster','siteadmin','manager','owner',
+                            'root','server','info','hello','user1','user2','plugin','theme','mod','superuser'];
+        if (in_array($login, $susNames, true) || preg_match('/^[a-f0-9]{12,}$/', $login)) {
+            $flags[] = ['code' => 'suspicious_name', 'label' => 'Generic or bot-added username',
+                'detail' => 'The username "' . htmlspecialchars((string)$row['user_login']) . '" is a known generic or bot-added name. '
+                    . 'Automated attacks use a fixed list of admin usernames to stay hidden in the user list. '
+                    . 'Legitimate admins usually have a personal name or initials.'];
+        }
+
+        static $freeProviders = ['gmail.com','googlemail.com','yahoo.com','hotmail.com','outlook.com','live.com',
+                                  'mail.ru','yandex.com','yandex.ru','protonmail.com','proton.me','icloud.com',
+                                  'me.com','mac.com','aol.com','msn.com','web.de','gmx.com','gmx.de','gmx.net'];
+        $emailDomain = ltrim(substr($email, (int)strrpos($email, '@')), '@');
+
+        if (in_array($emailDomain, $freeProviders, true)) {
+            $flags[] = ['code' => 'free_email', 'label' => 'Free email provider (' . htmlspecialchars($emailDomain) . ')',
+                'detail' => 'The admin uses a free public email service (' . htmlspecialchars((string)$row['user_email']) . '). '
+                    . 'While some real admins use personal email, attackers prefer free accounts that cannot be traced to any organisation. '
+                    . 'Consider whether this matches the people who legitimately manage this site. '
+                    . 'Also note: if this admin account\'s password ever appeared in a data breach, attackers can use it to get full access to every site on the server — '
+                    . 'check the password at haveibeenpwned.com and change it immediately if it was leaked.'];
+        }
+
+        $siteParts = array_reverse(explode('.', $domain));
+        $siteRoot  = count($siteParts) >= 2 ? ($siteParts[1] . '.' . $siteParts[0]) : $domain;
+        if ($emailDomain && !str_ends_with($emailDomain, $siteRoot) && !in_array($emailDomain, $freeProviders, true)) {
+            $flags[] = ['code' => 'foreign_email', 'label' => 'Email from unrelated domain (' . htmlspecialchars($emailDomain) . ')',
+                'detail' => 'The admin email domain (' . htmlspecialchars($emailDomain) . ') is unrelated to the site domain ('
+                    . htmlspecialchars($domain) . '). This may be normal (e.g. a web agency managing a client\'s site), '
+                    . 'but combined with other flags it can indicate a rogue or externally added user.'];
+        }
+
+        return $flags;
     }
 
     /** Which trend history this user sees: the server (admin), or their own sites (reseller, customer) */

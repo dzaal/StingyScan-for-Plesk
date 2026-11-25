@@ -69,17 +69,17 @@ body:has(#vt-wrap) .pul-page-header.page-content-header{display:none}
 /* Budget strip */
 .vt-budget{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;padding:10px 20px}
 .vt-bc-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
-.vt-bc-wrap{position:relative;width:56px;height:56px}
-.vt-bc-svg{width:56px;height:56px;transform:rotate(-90deg)}
-.vt-bc-track{fill:none;stroke:var(--border);stroke-width:3.5}
-.vt-bc-arc{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-dasharray:0 100;transition:stroke-dasharray .5s}
+.vt-bc-wrap{position:relative;width:72px;height:72px}
+.vt-bc-svg{width:72px;height:72px;transform:rotate(-90deg)}
+.vt-bc-track{fill:none;stroke:var(--border);stroke-width:8}
+.vt-bc-arc{fill:none;stroke-width:8;stroke-linecap:butt;stroke-dasharray:0 100;transition:stroke-dasharray .5s}
 .vt-bc-arc.auto{stroke:#2563eb}
 .vt-bc-arc.manual{stroke:#16a34a}
 .vt-bc-arc.quota{stroke:#d97706}
-.vt-bc-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--heading)}
+.vt-bc-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--heading)}
 .vt-bc-name{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
 .vt-bc-sub{font-size:10px;color:var(--muted)}
-.vt-bc-sep{width:1px;height:56px;background:var(--border);align-self:center}
+.vt-bc-sep{width:1px;height:72px;background:var(--border);align-self:center}
 .vt-bc-meta{flex:1;padding-left:4px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 .vt-bc-meta strong{color:var(--heading);font-weight:700}
 .vt-bc-mlbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:3px}
@@ -529,6 +529,23 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-toast.warn{background:#fffbeb;border-color:#fcd34d;color:#92400e}
 @keyframes vtspin{to{transform:rotate(360deg)}}
 @keyframes vt-tin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+/* WordPress admin user scan */
+.vt-wp-users{margin:14px 0 4px;border-top:1px solid var(--border);padding-top:12px}
+.vt-wp-users-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;font-weight:600}
+.vt-wp-users-head a{color:var(--blue);cursor:pointer;font-weight:600}
+.vt-wp-users-head .sp{flex:1}
+.vt-wu-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.vt-wu-tbl th{text-align:left;padding:5px 10px;border-bottom:2px solid var(--border);font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.vt-wu-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.vt-wu-tbl tr:last-child td{border-bottom:none}
+.vt-wu-flags{display:flex;flex-direction:column;gap:4px}
+.vt-wu-flag{display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.4}
+.vt-wu-flag .vt-wu-pill{flex-shrink:0;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+.vt-wu-flag .vt-wu-pill.warn{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
+.vt-wu-flag .vt-wu-pill.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.vt-wu-detail{color:var(--muted);font-size:11px;line-height:1.5;margin-top:3px}
+.vt-wu-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:4px}
+.vt-wu-new-pass{font-family:monospace;font-size:12px;background:#f0fdf4;border:1px solid #86efac;color:#166534;padding:4px 8px;border-radius:5px;margin-top:4px;word-break:break-all}
 </style>
 
 <div id="vt-wrap">
@@ -594,7 +611,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <div class="vt-budget">
       <div class="vt-bc-cell">
         <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc auto" id="vt-auto-ring" cx="18" cy="18" r="15.9"/></svg>
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc auto" id="vt-auto-ring" cx="22" cy="22" r="15.9"/></svg>
           <div class="vt-bc-mid" id="vt-auto-num">—</div>
         </div>
         <div class="vt-bc-name">Auto</div>
@@ -602,7 +619,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
       <div class="vt-bc-cell">
         <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc manual" id="vt-manual-ring" cx="18" cy="18" r="15.9"/></svg>
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc manual" id="vt-manual-ring" cx="22" cy="22" r="15.9"/></svg>
           <div class="vt-bc-mid" id="vt-manual-num">—</div>
         </div>
         <div class="vt-bc-name">Manual left</div>
@@ -610,7 +627,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
       <div class="vt-bc-cell">
         <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 36 36"><circle class="vt-bc-track" cx="18" cy="18" r="15.9"/><circle class="vt-bc-arc quota" id="vt-quota-ring" cx="18" cy="18" r="15.9"/></svg>
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc quota" id="vt-quota-ring" cx="22" cy="22" r="15.9"/></svg>
           <div class="vt-bc-mid" id="vt-quota-num">—</div>
         </div>
         <div class="vt-bc-name">VT quota</div>
@@ -882,6 +899,27 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <span><strong>All hosted websites</strong><br><span class="hint">Every active domain and subdomain with web hosting, whatever it runs</span></span></label>
       <label class="vt-radio"><input type="radio" name="vt-s-scope" id="vt-s-scope-wp" value="wp">
         <span><strong>WordPress sites only</strong><br><span class="hint">Only sites with a WordPress database on this server</span></span></label>
+    </div>
+
+    <div class="vt-card">
+      <h3>WordPress admin user detection</h3>
+      <label class="vt-radio"><input type="checkbox" id="vt-s-rogue-scan">
+        <span><strong>Scan for rogue WordPress admin accounts</strong><br>
+        <span class="hint">Shows all WordPress administrator accounts in a site's Details panel and flags suspicious ones. Only visible to the server administrator.</span></span></label>
+      <div class="hint" style="margin-top:10px;font-size:12px;line-height:1.6">
+        <strong>How detection works:</strong> Four heuristics are checked for every admin account:
+        <ul style="margin:4px 0 0;padding-left:18px">
+          <li><strong>Recently created</strong> — account younger than 30 days. Attackers add an admin user right after gaining access.</li>
+          <li><strong>Generic username</strong> — names like <code>admin2</code>, <code>wpuser</code>, <code>backup</code>, <code>support</code>, etc. that bots commonly use.</li>
+          <li><strong>Free email provider</strong> — Gmail, Yahoo, Hotmail etc. Attackers use throwaway accounts that cannot be traced.</li>
+          <li><strong>Foreign email domain</strong> — email domain unrelated to the site domain. Combined with other flags this is suspicious.</li>
+        </ul>
+        A flag is a reason to investigate, not proof. Always verify before deleting an account.<br>
+        <strong>Pwned passwords:</strong> even a known admin account is dangerous if its password was leaked in a data breach — the attacker can log in and infect every site on the server. Use <em>Reset password</em> and check the old one at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.
+      </div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
     </div>
 
     <div class="vt-card">
@@ -1318,7 +1356,7 @@ function vtBar(id,pct){
 function vtRing(id,pct){
   const el=document.getElementById(id); if(!el) return;
   const p=Math.max(0,Math.min(100,pct));
-  el.setAttribute('stroke-dasharray',p+' 100');
+  el.style.strokeDasharray=p+' 100';
   if(p>85) el.style.stroke='#dc2626'; else el.style.removeProperty('stroke');
 }
 
@@ -2286,6 +2324,7 @@ function loadSettingsForm(cfg){
   }
   document.getElementById(cfg.wordpress_only?'vt-s-scope-wp':'vt-s-scope-all').checked=true;
   savedWpOnly=!!cfg.wordpress_only;
+  document.getElementById('vt-s-rogue-scan').checked=cfg.wp_rogue_scan!==false;
   // Notifications: only offer the recipients this role may use
   document.getElementById('vt-n-enabled').checked=!!cfg.notify_enabled;
   const evs=cfg.notify_events||['infected','suspicious'];
@@ -2431,8 +2470,9 @@ window.vtSaveSettings=async function(){
   const cttl =parseInt(document.getElementById('vt-s-clean-ttl').value)||30;
   const ittl =parseInt(document.getElementById('vt-s-inf-ttl').value)||1;
   const wpOnly=document.getElementById('vt-s-scope-wp').checked;
+  const rogueScan=document.getElementById('vt-s-rogue-scan').checked;
   const checked=n=>[...document.querySelectorAll('input[name='+n+']:checked')].map(c=>c.value).join(',');
-  const payload={wordpress_only:wpOnly?'true':'false',
+  const payload={wordpress_only:wpOnly?'true':'false',wp_rogue_scan:rogueScan?'true':'false',
     notify_enabled:document.getElementById('vt-n-enabled').checked?'true':'false',
     notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
@@ -2627,7 +2667,9 @@ const VT_FP_TIP={
   socradar:'No form; e-mail with the VirusTotal link. Site owners report this works.',
   cyradar:'Form at cyradar.com/reportfp — no separate domain field, put the domain in the Message box.',
   malwareurl:'No form; e-mail with the VirusTotal link.',
-  spamhaus:'Check the domain first; removal needs the cause fixed.'
+  spamhaus:'Check the domain first; removal needs the cause fixed.',
+  avg:'The whitelist form asks for your AVG Browser extension ID. This ID is only shown in the full AVG Browser app — not in a Chrome/Firefox extension. Download and open AVG Browser, go to Settings → Extensions, and copy the ID of the AVG Online Security extension. Paste it into the form together with the site URL.',
+  avast:'The whitelist form is shared with AVG (both are Gen Digital). If the form asks for a browser extension ID, download the full Avast Browser (not the Chrome extension), go to Settings → Extensions, copy the ID of the Avast Online Security extension, and paste it into the form.'
 };
 function vtFpKey(vendor){
   const n=String(vendor).toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -2709,6 +2751,7 @@ function vtWhyRowHTML(domain,st){
     +(list.length?'<span>review requested at '+list.filter(([v])=>reviews[domain]?.[v]).length+' of '+list.length+'</span>':'')
     +'<span class="sp"></span><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">Full report ↗</a> · '+close+'</div>';
   h+=fsToolsHTML(domain)+faHandledHTML(domain);
+  if(scIsAdmin) h+=vtWpUsersHTML(domain);
   h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
@@ -2739,6 +2782,7 @@ document.addEventListener('click',ev=>{
 window.vtWhyClick=function(domain){
   if(fsOpen[domain]==='vt'){vtFsClose(domain);return;}
   fsOpen[domain]='vt'; vtFsRefresh(domain); vtLoadSiteHist(domain); vtAvastLive(domain); vtGsbLive(domain); vtFaLoad(domain);
+  if(scIsAdmin) vtWpUsersLoad(domain);
 };
 window.vtLoadSiteHist=async function(domain){
   const r=await vtFetch('?action=site-history&domain='+encodeURIComponent(domain)).catch(()=>null);
@@ -3188,6 +3232,96 @@ function vtToast(msg,type){
   const t=document.createElement('div');
   t.className='vt-toast '+type; t.textContent=msg; c.prepend(t);
   setTimeout(()=>t.remove(),5000);
+}
+
+// ── WordPress rogue admin user detection ─────────────────────
+let wpUsersData={}; // {domain: 'loading' | {users, error, wp_path} | null}
+let wpUsersPwd={}; // {domain+'|'+id: newPassword} — temporary after reset
+
+function vtWpUsersRefresh(domain){
+  if(fsOpen[domain]==='vt') updateRow(domain,results[domain]||null);
+}
+
+async function vtWpUsersLoad(domain,force){
+  if(!scIsAdmin) return;
+  if(!force&&wpUsersData[domain]&&wpUsersData[domain]!=='loading') return;
+  wpUsersData[domain]='loading'; vtWpUsersRefresh(domain);
+  const r=await vtFetch('?action=wp-users&domain='+encodeURIComponent(domain)).catch(()=>null);
+  wpUsersData[domain]=r||{error:'Request failed',users:[]};
+  vtWpUsersRefresh(domain);
+}
+
+window.vtWpUserAction=async function(domain,userId,act){
+  const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  const btn=document.querySelector('[data-wu-act="'+act+'-'+userId+'"]');
+  if(btn){btn.disabled=true;btn.textContent=act==='delete'?'Deleting…':'Resetting…';}
+  const r=await fetch(BASE+'?action=wp-user-action',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},
+    body:new URLSearchParams({domain,user_id:userId,action:act})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.error){
+    vtToast(r.error,'error');
+    if(btn){btn.disabled=false;btn.textContent=act==='delete'?'Delete':'Reset password';}
+    return;
+  }
+  if(r.new_password) wpUsersPwd[domain+'|'+userId]=r.new_password;
+  if(r.users) (wpUsersData[domain]=wpUsersData[domain]||{}).users=r.users;
+  vtToast(act==='delete'?'User deleted':'Password reset — copy the new password now','ok');
+  vtWpUsersRefresh(domain);
+};
+
+function vtWpUsersHTML(domain){
+  const data=wpUsersData[domain];
+  const e=vtEsca(domain);
+  let h='<div class="vt-wp-users">';
+  h+='<div class="vt-wp-users-head"><strong>WordPress admin accounts</strong>';
+  if(data&&data!=='loading') h+='<a onclick="vtWpUsersLoad(\''+e+'\',true)" title="Check again">↺ Refresh</a>';
+  h+='<span class="sp"></span></div>';
+
+  if(!data){
+    h+='<div class="vt-fs-note">Not checked yet. <a onclick="vtWpUsersLoad(\''+e+'\')">Check now</a></div>';
+  }else if(data==='loading'){
+    h+='<div class="vt-fs-note"><span class="vt-spin"></span> Checking admin accounts…</div>';
+  }else if(data.error){
+    h+='<div class="vt-fs-note"><span style="color:var(--red)">'+vtEsc(data.error)+'</span>'+(data.disabled?'':' · <a onclick="vtWpUsersLoad(\''+e+'\',true)">Retry</a>')+'</div>';
+  }else{
+    const users=data.users||[];
+    if(!users.length){
+      h+='<div class="vt-fs-note good">No WordPress admin accounts found.</div>';
+    }else{
+      const suspicious=users.filter(u=>u.flags?.length);
+      if(suspicious.length) h+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+suspicious.length+' suspicious account'+(suspicious.length===1?'':'s')+' found — review below.</div>';
+      h+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags &amp; reason</th><th>Action</th></tr></thead><tbody>';
+      for(const u of users){
+        const flags=u.flags||[];
+        const isSus=flags.length>0;
+        const pwd=wpUsersPwd[domain+'|'+u.id];
+        let flagsHTML='';
+        if(!flags.length) flagsHTML='<span style="color:var(--green)">✓ No flags</span>';
+        else for(const f of flags){
+          const isNew=f.code==='new_account';
+          flagsHTML+='<div class="vt-wu-flag"><span class="vt-wu-pill '+(isNew?'warn':'info')+'">'+vtEsc(f.label)+'</span></div>'
+            +'<div class="vt-wu-detail">'+vtEsc(f.detail)+'</div>';
+        }
+        if(pwd) flagsHTML+='<div class="vt-wu-new-pass">New password: '+vtEsc(pwd)+'<br><small>Copy and store it now — it is only shown once.</small></div>';
+        const actHTML='<div class="vt-wu-actions">'
+          +'<button type="button" class="vt-btn sm danger" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
+          +'<button type="button" class="vt-btn sm ghost" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset password</button>'
+          +'</div>';
+        const regDate=u.registered?u.registered.substring(0,10):'—';
+        h+='<tr'+(isSus?' style="background:rgba(239,68,68,.04)"':'')+'>'
+          +'<td><strong>'+vtEsc(u.login)+'</strong>'+(u.display&&u.display!==u.login?'<br><span class="hint">'+vtEsc(u.display)+'</span>':'')+'</td>'
+          +'<td style="font-size:11px">'+vtEsc(u.email)+'</td>'
+          +'<td style="font-size:11px;white-space:nowrap">'+vtEsc(regDate)+'</td>'
+          +'<td>'+flagsHTML+'</td>'
+          +'<td>'+actHTML+'</td>'
+          +'</tr>';
+      }
+      h+='</tbody></table>';
+      h+='<div class="vt-fs-note" style="margin-top:8px">Actions use WP-CLI. <strong>Delete</strong> removes the user permanently. <strong>Reset password</strong> generates a strong random password — copy it immediately. '
+        +'<strong>Important:</strong> if a known admin\'s password was leaked in a data breach, the attacker already has access. Reset all admin passwords and check at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
+    }
+  }
+  h+='</div>';
+  return h;
 }
 
 init().then(()=>vtCheckUpdate());

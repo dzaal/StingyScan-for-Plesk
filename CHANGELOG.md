@@ -3,6 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.2 — 2026-11-25
+- **WordPress admin user detection.** A site's Details panel now shows all WordPress administrator accounts and flags suspicious ones. Four heuristics: account younger than 30 days, generic/bot-added username, free email provider, and email domain unrelated to the site. Each flag comes with a full explanation. Requires the administrator role; can be switched off in Settings → WordPress admin user detection.
+- **Delete or reset password** for a flagged (or any) admin user, using WP-CLI. Reset shows the new random password once; it is never stored. Useful when a pwned password may have given an attacker access to every site on the server.
+- **Pwned password warning** in the WP admin section and in the flag details: even a known legitimate admin account is dangerous when its password appeared in a data breach — the attacker can log in and infect all sites on the server.
+- **AVG / Avast false-positive help**: the contact tip for AVG now explains that the whitelist form requires a browser extension ID that is only visible inside the full AVG Browser app (not a Chrome extension). Same context added for Avast.
+
 ## 2.5.1 — 2026-11-24
 - Installing or upgrading to Stingy Scanner now automatically removes the old VT Site Scanner extension (`virustotal-extension`) if it is still installed. Settings, results and history are copied over first.
 

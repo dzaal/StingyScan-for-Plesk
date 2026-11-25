@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.1 — 2026-11-25
+- **Pwned?** works like the site list: a **search** box (site, customer, login, e-mail address or breach name), filter buttons **All · Pwned · Not pwned · Not checked** with their counts, and **Group / Sort**. *Group* shows one block per WordPress site; *Sort* shows each e-mail address once, with every site it is administrator of, sortable by address, number of sites or number of breaches.
+- A pwned address shows the same **red shield** as in a site's WordPress admin accounts, and is printed in red.
+
 ## 2.6.0 — 2026-11-25
 - **Pwned?** tab next to Statistics: the administrator accounts of every WordPress site in one list, with whether each e-mail address is in a known data breach (breach names and years). *Only pwned* shows just the ones that need a new password. Each address is checked **once** and never again; **Check N addresses** does the rest within the rate limit, and the nightly run checks new ones.
 - Add **other e-mail addresses** by hand in the Pwned? tab, and remove them again.

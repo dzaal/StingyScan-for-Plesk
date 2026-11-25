@@ -169,6 +169,8 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-src input[type=password]{padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:monospace;width:280px}
 .vt-fs-tbl.vt-pw-tbl td,.vt-fs-tbl.vt-pw-tbl td:last-child{white-space:normal;color:var(--text);word-break:normal;font-family:inherit}.vt-fs-tbl.vt-pw-tbl td:first-child{word-break:break-word}.vt-fs-tbl.vt-pw-tbl td.vt-fa-cell{white-space:nowrap}
 .vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
+.vt-pw-em.bad{color:#dc2626;font-weight:600}
+.vt-pw-shield{color:#dc2626;display:inline-block;vertical-align:-3px;margin-right:4px;cursor:help}
 .vt-pw-tbl td.site small{display:block;font-weight:400;color:var(--muted)}
 .vt-domain-age{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;font-weight:600;margin-left:4px;vertical-align:middle}
 .vt-domain-age.new-30d{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
@@ -785,6 +787,17 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         Each address is checked once; the result stays valid, so it is never checked again.</div>
       <div id="vt-pw-src"></div>
       <div id="vt-pw-note"></div>
+      <div class="vt-toolbar" style="margin-top:6px">
+        <input class="vt-search" type="text" id="vt-pw-search" placeholder="Search site, customer, login, e-mail or breach..." oninput="vtRenderPwned()" style="width:300px">
+        <div class="vt-filters">
+          <button class="vt-fbtn active" data-pwf="all" onclick="vtPwFilter('all')">All <strong id="vt-pw-cnt-all">0</strong></button>
+          <button class="vt-fbtn" data-pwf="bad" onclick="vtPwFilter('bad')"><span class="vt-dot dot-r"></span> Pwned <strong id="vt-pw-cnt-bad">0</strong></button>
+          <button class="vt-fbtn" data-pwf="ok" onclick="vtPwFilter('ok')"><span class="vt-dot dot-g"></span> Not pwned <strong id="vt-pw-cnt-ok">0</strong></button>
+          <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not checked <strong id="vt-pw-cnt-new">0</strong></button>
+        </div>
+        <div class="vt-spacer"></div>
+        <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per WordPress site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
+      </div>
       <div id="vt-pw-list"><span class="hint">Loading…</span></div>
       <div class="vt-tr-title">Other e-mail addresses <span class="hint">(added by hand, for example your own or a customer's)</span></div>
       <div class="vt-pw-add"><input type="email" id="vt-pw-new" placeholder="name@example.com" autocomplete="off" onkeydown="if(event.key==='Enter')vtPwAdd()"><button type="button" class="vt-btn primary" onclick="vtPwAdd()">Add address</button><span id="vt-pw-addmsg" class="hint"></span></div>
@@ -2626,7 +2639,19 @@ window.vtExtRemove=async function(domain){
 };
 
 // ── Pwned? (WordPress administrators in known data breaches) ──
-let pw=null, pwRun=false, pwBusy=null, pwNote='', pwAsk=null, pwOnlyBad=false;
+let pw=null, pwRun=false, pwBusy=null, pwNote='', pwAsk=null, pwFilter='all';
+let pwViewMode=localStorage.getItem('vt_pw_view')||'group', pwSortCol=localStorage.getItem('vt_pw_sort')||'email', pwSortDir=localStorage.getItem('vt_pw_dir')||'asc';
+// Same red shield as in a site's WordPress admin accounts
+const PW_SHIELD='<span class="vt-pw-shield" title="This address is in a known data breach"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></span>';
+/** Status of an address: bad (pwned), ok (not pwned) or new (not checked yet, or the check failed) */
+function pwState(email){const r=pw.results?.[email]; return r?.state==='ok'?(r.breaches?.length?'bad':'ok'):'new';}
+function pwEmailHTML(email){return pwState(email)==='bad'?'<span class="vt-pw-em bad">'+PW_SHIELD+vtEsc(email)+'</span>':vtEsc(email||'—');}
+window.vtPwFilter=function(f){pwFilter=f; vtRenderPwned();};
+window.vtPwView=function(v){pwViewMode=v; localStorage.setItem('vt_pw_view',v); vtRenderPwned();};
+window.vtPwSort=function(col){
+  if(pwSortCol===col) pwSortDir=pwSortDir==='asc'?'desc':'asc'; else {pwSortCol=col; pwSortDir=col==='email'?'asc':'desc';}
+  localStorage.setItem('vt_pw_sort',pwSortCol); localStorage.setItem('vt_pw_dir',pwSortDir); vtRenderPwned();
+};
 window.vtLoadPwned=async function(fresh){
   if(fresh) document.getElementById('vt-pw-list').innerHTML='<span class="vt-spin"></span> Reading the WordPress accounts…';
   const r=await vtFetch('?action=pwned'+(fresh?'&fresh=1':'')).catch(()=>null);
@@ -2666,7 +2691,6 @@ function vtRenderPwned(){
   let act='';
   if(c.source&&(left||pwRun)) act+='<button type="button" class="vt-btn'+(pwRun?' ghost':' primary')+'" onclick="vtPwRun()">'+(pwRun?'Stop':'Check '+left+' address'+(left===1?'':'es'))+'</button> ';
   if(c.admin) act+='<button type="button" class="vt-btn ghost" onclick="vtLoadPwned(1)" title="Read the administrator accounts from the WordPress databases again (they are read every 6 hours)">Read accounts again</button> ';
-  act+='<label class="hint" style="cursor:pointer"><input type="checkbox" '+(pwOnlyBad?'checked ':'')+'onchange="vtPwOnly(this.checked)"> only pwned</label>';
   document.getElementById('vt-pw-actions').innerHTML=act;
   // Source
   let src='';
@@ -2683,28 +2707,60 @@ function vtRenderPwned(){
   }
   document.getElementById('vt-pw-src').innerHTML=src;
   document.getElementById('vt-pw-note').innerHTML=pwNote?'<div class="vt-fs-note">'+pwNote+'</div>':'';
-  // Accounts per site
-  let rows='';
-  for(const h of hosts){
-    let list=sites[h]; if(pwOnlyBad) list=list.filter(a=>pwBad(a.email)); if(!list.length) continue;
-    const o=pw.owners?.[h], who=o?(o.ct==='admin'?'Administrator':o.c):'';
-    rows+=list.map((a,i)=>'<tr>'+(i===0?'<td class="site" rowspan="'+list.length+'">'+vtEsc(h)+(who?'<small>'+vtEsc(who)+'</small>':'')+'</td>':'')
-      +'<td>'+vtEsc(a.login)+(a.registered?'<div class="vt-pw-br">since '+new Date(a.registered*1000).toLocaleDateString()+'</div>':'')+'</td><td>'+vtEsc(a.email||'—')+'</td><td>'+(a.email?pwStatusHTML(a.email):'')+'</td></tr>').join('');
+  // Filter buttons (counted per address) and search
+  const cnt={all:emails.length,bad:0,ok:0,new:0}; for(const em of emails) cnt[pwState(em)]++;
+  for(const k in cnt) vtSet('vt-pw-cnt-'+k,cnt[k]);
+  document.querySelectorAll('[data-pwf]').forEach(b=>b.classList.toggle('active',b.dataset.pwf===pwFilter));
+  document.querySelectorAll('#vt-pw-view button').forEach(b=>b.classList.toggle('on',b.dataset.v===pwViewMode));
+  const q=(document.getElementById('vt-pw-search')?.value||'').trim().toLowerCase();
+  const breachText=em=>(pw.results?.[em]?.breaches||[]).map(b=>(b.title||b.name)).join(' ').toLowerCase();
+  const who=h=>{const o=pw.owners?.[h]; return o?(o.ct==='admin'?'Administrator':o.c):'';};
+  const stOk=em=>pwFilter==='all'||pwState(em)===pwFilter;
+  const filterNote=pwFilter==='bad'?'No pwned addresses':pwFilter==='ok'?'No addresses that were checked and found clean':pwFilter==='new'?'Every address has been checked':'Nothing';
+  let html='';
+  if(pwViewMode==='sort'){
+    // One row per address: the sites it administers, sortable
+    const by={};
+    for(const h of hosts) for(const a of sites[h]) if(a.email) (by[a.email]=by[a.email]||{email:a.email,sites:[],custom:null}).sites.push({h,login:a.login});
+    for(const [em,x] of Object.entries(pw.custom||{})) (by[em]=by[em]||{email:em,sites:[],custom:null}).custom=x;
+    let list=Object.values(by).filter(x=>stOk(x.email)&&(!q||x.email.includes(q)||breachText(x.email).includes(q)
+      ||x.sites.some(s=>s.h.includes(q)||s.login.toLowerCase().includes(q)||who(s.h).toLowerCase().includes(q))));
+    const nB=em=>pw.results?.[em]?.state==='ok'?(pw.results[em].breaches?.length||0):-1, dir=pwSortDir==='asc'?1:-1;
+    list.sort((a,b)=>(pwSortCol==='sites'?(a.sites.length-b.sites.length):pwSortCol==='breaches'?(nB(a.email)-nB(b.email)):0)*dir||(pwSortCol==='email'?dir:1)*a.email.localeCompare(b.email));
+    const th=(col,label)=>'<th class="vt-sortable'+(pwSortCol===col?' vt-sort-'+pwSortDir:'')+'" onclick="vtPwSort(\''+col+'\')">'+label+'</th>';
+    html=list.length?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr>'+th('email','E-mail address')+th('sites','Administrator of')+th('breaches','Data breaches')+'</tr></thead><tbody>'
+      +list.map(x=>'<tr><td>'+pwEmailHTML(x.email)+'</td><td>'
+        +x.sites.map(s=>'<div><strong>'+vtEsc(s.h)+'</strong> <span class="vt-pw-br">as '+vtEsc(s.login)+(who(s.h)?' · '+vtEsc(who(s.h)):'')+'</span></div>').join('')
+        +(x.custom?'<div class="vt-pw-br">added by hand'+(x.custom.by?' by '+vtEsc(x.custom.by):'')+'</div>':'')
+        +'</td><td>'+pwStatusHTML(x.email)+'</td></tr>').join('')+'</tbody></table>'
+      :'<div class="hint">'+(q?'No address matches this search.':filterNote+'.')+'</div>';
+  }else{
+    // One block per WordPress site
+    let rows='';
+    for(const h of hosts){
+      const siteHit=!q||h.includes(q)||who(h).toLowerCase().includes(q);
+      const list=sites[h].filter(a=>stOk(a.email)&&(siteHit||a.login.toLowerCase().includes(q)||(a.email||'').includes(q)||breachText(a.email).includes(q)));
+      if(!list.length) continue;
+      rows+=list.map((a,i)=>'<tr>'+(i===0?'<td class="site" rowspan="'+list.length+'">'+vtEsc(h)+(who(h)?'<small>'+vtEsc(who(h))+'</small>':'')+'</td>':'')
+        +'<td>'+vtEsc(a.login)+(a.registered?'<div class="vt-pw-br">since '+new Date(a.registered*1000).toLocaleDateString()+'</div>':'')+'</td><td>'+pwEmailHTML(a.email)+'</td><td>'+(a.email?pwStatusHTML(a.email):'')+'</td></tr>').join('');
+    }
+    html=rows?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr><th>WordPress site</th><th>Administrator</th><th>E-mail address</th><th>Data breaches</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      :'<div class="hint">'+(q?'No account matches this search.':hosts.length?filterNote+' among the WordPress administrators.':'No WordPress sites with administrator accounts found.')+'</div>';
   }
-  document.getElementById('vt-pw-list').innerHTML=rows?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr><th>WordPress site</th><th>Administrator</th><th>E-mail address</th><th>Data breaches</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    :'<div class="hint">'+(pwOnlyBad?'No pwned administrator addresses.':'No WordPress sites with administrator accounts found.')+'</div>';
-  // Addresses added by hand
-  let cl=Object.entries(pw.custom||{}).sort((a,b)=>a[0].localeCompare(b[0])); if(pwOnlyBad) cl=cl.filter(([e])=>pwBad(e));
+  document.getElementById('vt-pw-list').innerHTML=html;
+  // Addresses added by hand (same filter and search)
+  const all=Object.entries(pw.custom||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const cl=all.filter(([em])=>stOk(em)&&(!q||em.includes(q)||breachText(em).includes(q)));
   document.getElementById('vt-pw-custom').innerHTML=cl.length?'<table class="vt-fs-tbl vt-pw-tbl"><thead><tr><th>E-mail address</th><th>Added</th><th>Data breaches</th><th></th></tr></thead><tbody>'
-    +cl.map(([em,x])=>{const e=vtEsca(em); return '<tr><td>'+vtEsc(em)+'</td><td>'+(x.added?new Date(x.added*1000).toLocaleDateString():'')+(x.by?' · '+vtEsc(x.by):'')+'</td><td>'+pwStatusHTML(em)+'</td><td class="vt-fa-cell">'
+    +cl.map(([em,x])=>{const e=vtEsca(em); return '<tr><td>'+pwEmailHTML(em)+'</td><td>'+(x.added?new Date(x.added*1000).toLocaleDateString():'')+(x.by?' · '+vtEsc(x.by):'')+'</td><td>'+pwStatusHTML(em)+'</td><td class="vt-fa-cell">'
       +(pwAsk===em?'<strong>Remove?</strong> <a class="vt-fa-del" onclick="vtPwRemove(\''+e+'\')">Yes</a> · <a onclick="vtPwAskRm(null)">No</a>'
                   :'<a class="vt-fa-del" onclick="vtPwAskRm(\''+e+'\')">Remove</a>')+'</td></tr>';}).join('')+'</tbody></table>'
-    :'<div class="hint">'+(pwOnlyBad&&Object.keys(pw.custom||{}).length?'None of these addresses is pwned.':'No addresses added.')+'</div>';
+    :'<div class="hint">'+(all.length?'None of the added addresses matches.':'No addresses added.')+'</div>';
   document.getElementById('vt-pw-attr').innerHTML=c.source==='hibp'?'Breach data: <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned ↗</a> (CC BY 4.0)'
     :c.source==='xon'?'Breach data: <a href="https://xposedornot.com" target="_blank" rel="noopener">XposedOrNot ↗</a>':'';
 }
-window.vtPwOnly=function(v){pwOnlyBad=v; vtRenderPwned();};
 window.vtPwAskRm=function(e){pwAsk=e; vtRenderPwned();};
+window.vtRenderPwned=vtRenderPwned; // the search box redraws the list on every key
 window.vtPwSaveSrc=async function(){
   const src=document.querySelector('input[name=vt-pw-src]:checked')?.value||'', key=document.getElementById('vt-pw-key').value.trim();
   const m=document.getElementById('vt-pw-srcmsg'); m.textContent=key?'Testing the key…':'Saving…';

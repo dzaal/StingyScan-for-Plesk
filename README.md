@@ -182,7 +182,7 @@ WP-CLI must be installed on the server for Delete and Reset pwd. Without it, tho
 
 ## Pwned? (data breaches)
 
-The **Pwned?** tab (next to Statistics) lists the administrator accounts of every WordPress site at once: site, login, e-mail address, and whether that address appears in a known data breach (*Pwned: 3 breaches*, with the breach names and years). Tick **only pwned** to see just the addresses that need attention: change the WordPress password of those accounts, and everywhere else it was used, and turn on two-factor login.
+The **Pwned?** tab (next to Statistics) lists the administrator accounts of every WordPress site at once: site, login, e-mail address, and whether that address appears in a known data breach (*Pwned: 3 breaches*, with the breach names and years). It works like the site list: **search** (site, customer, login, address or breach name), filter buttons **All · Pwned · Not pwned · Not checked**, and **Group** (one block per site) or **Sort** (each address once, with every site it administers; click a column to sort by address, number of sites or number of breaches). A pwned address has a red shield. For those addresses: change the WordPress password of those accounts, and everywhere else it was used, and turn on two-factor login.
 
 - **Each address is checked once.** A breach is history, so the result stays valid and is never checked again (a failed check is tried again). The same results show in a site's *WordPress admin accounts* section.
 - **Check N addresses** checks the ones that were never checked, one after another within the service's rate limit; the nightly run also checks up to 10 minutes' worth.

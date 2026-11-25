@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.9.2 — 2026-11-25
+- Wotan sites: the *Forgot password* link in the Pwned? e-mails now goes to `/login/forgotpassword/`.
+
 ## 2.9.1 — 2026-11-25
 - Fix… panel: in the e-mail preview the buttons and links are grey and cannot be clicked (they would open the customer's site); the real e-mail is unchanged.
 

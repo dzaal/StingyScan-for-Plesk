@@ -452,7 +452,7 @@ class VtPwned
         switch ($a['type'] ?? 'wordpress') {
             case 'joomla': return ['login' => $b . '/administrator/', 'lost' => $b . '/index.php?option=com_users&view=reset'];
             case 'drupal': return ['login' => $b . '/user/login', 'lost' => $b . '/user/password'];
-            case 'wotan':  return ['login' => $b . '/login/', 'lost' => $b . '/forgotpassword/'];
+            case 'wotan':  return ['login' => $b . '/login/', 'lost' => $b . '/login/forgotpassword/'];
             default:       return ['login' => $b . '/wp-admin/profile.php', 'lost' => $b . '/wp-login.php?action=lostpassword'];
         }
     }

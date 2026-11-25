@@ -866,6 +866,8 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         unset($s['gsb_api_key']); // the Google key never goes to the browser
         if ($this->role() === 'admin') {
+            $hibpKey = (string)((new VtSettings('admin'))->get('hibp_api_key', ''));
+            $s['hibp_key_set'] = $hibpKey !== '';
             $s['gsb'] = ['enabled' => (bool)(new VtSettings('admin'))->get('gsb_enabled', false),
                          'key' => VtSafeBrowsing::maskedKey(), 'calls' => VtSafeBrowsing::callsToday(), 'last' => VtSafeBrowsing::lastStatus()];
         }
@@ -938,6 +940,15 @@ class IndexController extends pm_Controller_Action
             if ($this->settings->getUserId() === 'admin') $save['avast_products'] = $ps; // same file: saved below
             else (new VtSettings('admin'))->set('avast_products', $ps);
         }
+        // Have I Been Pwned API key (admin only, server-wide)
+        if ($this->role() === 'admin' && isset($input['hibp_api_key'])) {
+            $hk = trim((string)$input['hibp_api_key']);
+            if ($hk !== '') {
+                $adminSettings = $this->settings->getUserId() === 'admin' ? $this->settings : new VtSettings('admin');
+                $adminSettings->set('hibp_api_key', $hk);
+            }
+        }
+
         // Google Safe Browsing: server-wide settings of the administrator; a new key is tested first
         $gsbMsg = null;
         if ($this->role() === 'admin' && (isset($input['gsb_enabled']) || isset($input['gsb_api_key']))) {
@@ -1121,7 +1132,7 @@ class IndexController extends pm_Controller_Action
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
         $domain = $this->sanitize($this->_getParam('domain', ''));
         $userId = (int)$this->_getParam('user_id', 0);
-        $act    = (string)$this->_getParam('action', '');
+        $act    = (string)$this->_getParam('act', '');  // 'action' is reserved by Plesk routing
         if (!$domain || !$userId || !in_array($act, ['delete', 'reset'], true)) {
             $this->respond(['error' => 'Invalid parameters']); return;
         }
@@ -1224,7 +1235,70 @@ class IndexController extends pm_Controller_Action
             ];
         }
 
+        // Have I Been Pwned: check each admin email if a key is configured
+        $hibpKey = (string)((new VtSettings('admin'))->get('hibp_api_key', ''));
+        if ($hibpKey !== '') {
+            foreach ($users as &$user) {
+                $breaches = self::hibpCheck($user['email'], $hibpKey);
+                if ($breaches !== null && count($breaches) > 0) {
+                    $n    = count($breaches);
+                    $list = implode(', ', array_slice($breaches, 0, 5)) . ($n > 5 ? '…' : '');
+                    $user['flags'][] = [
+                        'code'   => 'hibp_breach',
+                        'label'  => 'In ' . $n . ' data breach' . ($n === 1 ? '' : 'es'),
+                        'detail' => 'The email address ' . htmlspecialchars($user['email']) . ' was found in ' . $n
+                            . ' known data breach' . ($n === 1 ? '' : 'es') . ' (' . $list . '). '
+                            . 'If the same or a similar password is used for this WordPress admin account, '
+                            . 'attackers can log in and infect every site on this server. '
+                            . 'Reset this admin\'s password immediately with the button below.',
+                    ];
+                }
+            }
+            unset($user);
+        }
+
         return ['users' => $users, 'wp_path' => $wpPath, 'db' => $db];
+    }
+
+    /**
+     * Check one email against the Have I Been Pwned v3 API.
+     * Returns an array of breach names (empty = clean), or null on API error / rate limit.
+     * Results are cached per email for 24 hours.
+     */
+    private static function hibpCheck(string $email, string $apiKey): ?array
+    {
+        $cacheFile = VtDataDir::path('vt_hibp_cache.json');
+        $cache     = is_file($cacheFile) ? (json_decode((string)file_get_contents($cacheFile), true) ?: []) : [];
+        $cacheKey  = md5(strtolower(trim($email)));
+        $now       = time();
+
+        if (isset($cache[$cacheKey]) && $now - (int)($cache[$cacheKey]['t'] ?? 0) < 86400) {
+            return $cache[$cacheKey]['b'];
+        }
+
+        $url = 'https://haveibeenpwned.com/api/v3/breachedaccount/' . rawurlencode(strtolower(trim($email))) . '?truncateResponse=true';
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => ['hibp-api-key: ' . $apiKey, 'User-Agent: Stingy-Scanner-for-Plesk/2.5'],
+        ]);
+        $body = (string)curl_exec($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($code === 404) {
+            $breaches = [];
+        } elseif ($code === 200) {
+            $data     = json_decode($body, true);
+            $breaches = is_array($data) ? array_column($data, 'Name') : [];
+        } else {
+            return null; // rate limited or API error — do not cache
+        }
+
+        $cache[$cacheKey] = ['t' => $now, 'b' => $breaches];
+        @file_put_contents($cacheFile, json_encode($cache));
+        return $breaches;
     }
 
     /** Heuristic flags that may indicate a WordPress admin is rogue or compromised */

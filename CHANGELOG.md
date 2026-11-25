@@ -3,6 +3,11 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.3 — 2026-11-25
+- **Have I Been Pwned integration.** Add a HIBP API key in Settings → WordPress admin user detection. Each admin email is then checked against the HIBP database; a red badge appears if the address was found in a known data breach, with the breach names as a tooltip. Results are cached 24 hours.
+- **Fix: Reset password / Delete returned "invalid parameters"** — the POST parameter was named `action`, which Plesk's router reserves for routing. Renamed to `act`.
+- **Delete tooltip** shows which admin will receive the deleted user's posts and pages (or warns when there is no other admin).
+
 ## 2.5.2 — 2026-11-25
 - **WordPress admin user detection.** A site's Details panel now shows all WordPress administrator accounts and flags suspicious ones. Four heuristics: account younger than 30 days, generic/bot-added username, free email provider, and email domain unrelated to the site. Each flag comes with a full explanation. Requires the administrator role; can be switched off in Settings → WordPress admin user detection.
 - **Delete or reset password** for a flagged (or any) admin user, using WP-CLI. Reset shows the new random password once; it is never stored. Useful when a pwned password may have given an attacker access to every site on the server.

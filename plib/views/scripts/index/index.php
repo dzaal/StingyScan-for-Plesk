@@ -542,6 +542,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-wu-pill{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;cursor:help;margin-right:3px}
 .vt-wu-pill.warn{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
 .vt-wu-pill.info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.vt-wu-pill.bad{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
 .vt-wu-actions{display:flex;gap:5px;justify-content:flex-end}
 .vt-wu-actions button{font-size:11px;padding:2px 8px;line-height:1.6}
 .vt-wu-new-pass{font-family:monospace;font-size:11px;background:#f0fdf4;border:1px solid #86efac;color:#166534;padding:3px 8px;border-radius:5px;word-break:break-all}
@@ -912,9 +913,14 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <li><strong>Generic username</strong> — names like <code>admin2</code>, <code>wpuser</code>, <code>backup</code>, <code>support</code>, etc. that bots commonly use.</li>
           <li><strong>Free email provider</strong> — Gmail, Yahoo, Hotmail etc. Attackers use throwaway accounts that cannot be traced.</li>
           <li><strong>Foreign email domain</strong> — email domain unrelated to the site domain. Combined with other flags this is suspicious.</li>
+          <li><strong>Have I Been Pwned</strong> — email address found in a known data breach. If the same password is reused, the attacker can log straight in.</li>
         </ul>
-        A flag is a reason to investigate, not proof. Always verify before deleting an account.<br>
-        <strong>Pwned passwords:</strong> even a known admin account is dangerous if its password was leaked in a data breach — the attacker can log in and infect every site on the server. Use <em>Reset password</em> and check the old one at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.
+        A flag is a reason to investigate, not proof. Always verify before deleting an account.
+      </div>
+      <div class="vt-field" style="margin-top:14px;max-width:480px">
+        <label for="vt-s-hibp-key">Have I Been Pwned API key <span id="vt-hibp-keystate" class="vt-key-state"></span></label>
+        <input type="password" id="vt-s-hibp-key" autocomplete="new-password" placeholder="Enter HIBP API key to enable breach checks">
+        <div class="hint" style="margin-top:4px">Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key</a> (~€3.50/month). Each admin email is checked against the HIBP database; results are cached 24 hours.</div>
       </div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -2324,6 +2330,10 @@ function loadSettingsForm(cfg){
   document.getElementById(cfg.wordpress_only?'vt-s-scope-wp':'vt-s-scope-all').checked=true;
   savedWpOnly=!!cfg.wordpress_only;
   document.getElementById('vt-s-rogue-scan').checked=cfg.wp_rogue_scan!==false;
+  if(cfg.role==='admin'){
+    const ks=document.getElementById('vt-hibp-keystate');
+    if(ks){ks.className='vt-key-state'+(cfg.hibp_key_set?' ok':' off');ks.textContent=cfg.hibp_key_set?'API key set':'no key';}
+  }
   // Notifications: only offer the recipients this role may use
   document.getElementById('vt-n-enabled').checked=!!cfg.notify_enabled;
   const evs=cfg.notify_events||['infected','suspicious'];
@@ -2485,6 +2495,8 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
+  const hibpKey=document.getElementById('vt-s-hibp-key')?.value.trim();
+  if(hibpKey) payload.hibp_api_key=hibpKey;
   if(document.getElementById('vt-q-card').style.display!=='none'){
     const qd=parseInt(document.getElementById('vt-s-q-days').value);
     payload.quarantine_days=isNaN(qd)?30:Math.max(0,Math.min(3650,qd));
@@ -3258,7 +3270,7 @@ window.vtWpUserAction=async function(domain,userId,act){
   const btn=document.querySelector('[data-wu-act="'+act+'-'+userId+'"]');
   if(btn) btn.textContent=act==='delete'?'Deleting…':'Resetting…';
   const r=await fetch(BASE+'?action=wp-user-action',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},
-    body:new URLSearchParams({domain,user_id:userId,action:act})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+    body:new URLSearchParams({domain,user_id:userId,act})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
   if(r.error){
     vtToast(r.error,'error');
     document.querySelectorAll('[data-wu-act^="delete-'+userId+'"],[data-wu-act^="reset-'+userId+'"]')
@@ -3299,11 +3311,13 @@ function vtWpUsersHTML(domain){
         const isSus=flags.length>0;
         const pwd=wpUsersPwd[domain+'|'+u.id];
         const flagsHTML=flags.length
-          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+vtEsc(f.label)+'</span>').join('')
+          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='hibp_breach'?'bad':f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+vtEsc(f.label)+'</span>').join('')
           : '<span style="color:var(--green);font-size:11px">✓ clean</span>';
+        const otherAdmin=users.find(x=>x.id!==u.id);
+        const delTitle=otherAdmin?'Posts and pages are reassigned to '+otherAdmin.login:'No other admin — posts will be unassigned. Consider resetting the password instead.';
         const actHTML='<div class="vt-wu-actions">'
-          +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
-          +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>'
+          +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="'+vtEsc(delTitle)+'" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
+          +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Generates a strong random password — copy it immediately" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>'
           +'</div>';
         const login=vtEsc(u.login)+(u.display&&u.display!==u.login?' <span class="hint">'+vtEsc(u.display)+'</span>':'');
         const regDate=u.registered?u.registered.substring(0,10):'—';
@@ -3317,7 +3331,7 @@ function vtWpUsersHTML(domain){
         if(pwd) h+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
       }
       h+='</tbody></table>';
-      h+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. <strong>Delete</strong> is permanent. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. If a known admin\'s password was in a data breach, attackers already have access — reset it and verify at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
+      h+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. If a known admin\'s password was in a data breach, attackers already have access — reset it and verify at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
     }
   }
   h+='</div>';

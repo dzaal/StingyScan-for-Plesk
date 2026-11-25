@@ -530,10 +530,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 @keyframes vtspin{to{transform:rotate(360deg)}}
 @keyframes vt-tin{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
 /* WordPress admin user scan */
-.vt-wp-users{margin:14px 0 4px;border-top:1px solid var(--border);padding-top:12px}
-.vt-wp-users-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:13px;font-weight:600}
-.vt-wp-users-head a{color:var(--blue);cursor:pointer;font-weight:600}
-.vt-wp-users-head .sp{flex:1}
+.vt-wu-collapsible{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+.vt-wu-collapsible>summary{cursor:pointer;font-size:13px;font-weight:600;padding:2px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:6px}
+.vt-wu-collapsible>summary::-webkit-details-marker{display:none}
+.vt-wu-collapsible>summary::before{content:'▸';font-size:10px;color:var(--muted);flex-shrink:0}
+.vt-wu-collapsible[open]>summary::before{content:'▾'}
 .vt-wu-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
 .vt-wu-tbl th{text-align:left;padding:4px 8px;border-bottom:2px solid var(--border);font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .vt-wu-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
@@ -2763,7 +2764,6 @@ function vtWhyRowHTML(domain,st){
     +(list.length?'<span>review requested at '+list.filter(([v])=>reviews[domain]?.[v]).length+' of '+list.length+'</span>':'')
     +'<span class="sp"></span><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">Full report ↗</a> · '+close+'</div>';
   h+=fsToolsHTML(domain)+faHandledHTML(domain);
-  if(scIsAdmin) h+=vtWpUsersHTML(domain);
   h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
@@ -2772,7 +2772,7 @@ function vtWhyRowHTML(domain,st){
       +list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')+'</tbody></table>';
   }
   h+='<div class="vt-sh"><div class="vt-tr-title" style="margin-top:12px">History of this site <span class="hint">(newest first)</span></div><div id="vtsh-'+rid(domain)+'">'+vtSiteHistHTML(domain)+'</div></div>';
-  if(!list.length) return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
+  if(!list.length){h+=vtWpUsersHTML(domain);return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';}
   h+='<ol class="vt-why-steps">'
     +'<li><strong>Clean the site first.</strong> Use the file scanner buttons above to find infected files. Update WordPress, plugins and themes, remove plugins you don\'t use, change all passwords (admin, FTP/SFTP, database, hosting) and remove admin users you don\'t know. Otherwise the site is infected again soon and the vendors list it again.</li>'
     +'<li><strong>Click Rescan.</strong> VirusTotal then checks the site address again with all vendors (this uses one manual call). The score shown here comes from the VirusTotal report for the whole domain, which follows when the vendors update their own lists, so it does not always drop right away.</li>'
@@ -2781,6 +2781,7 @@ function vtWhyRowHTML(domain,st){
     +'<li><strong>Click Rescan again after a few days</strong> to see which vendors have removed the site from their list. Results of infected sites are refreshed every day by the background scan anyway. '
     +'When a vendor says it has removed the site but VirusTotal still shows it: VirusTotal keeps separate reports for <code>www.</code> and <code>http://</code> versions of the address; open them on virustotal.com and click <em>Reanalyze</em> on each.</li>'
     +'</ol><div class="vt-fs-note">Contacts from <a href="'+VT_FP_LIST+'" target="_blank" rel="noopener">VirusTotal\'s list of vendor contacts</a>. Stingy Scanner never changes anything on the site; cleaning is up to you.</div>';
+  h+=vtWpUsersHTML(domain);
   return '<tr class="vt-fs-row" id="vtfs-'+rid(domain)+'" data-domain="'+vtEsc(domain)+'" data-status="'+st+'"'+(inQueue(domain)?' data-job="1"':'')+'><td colspan="5"><div class="vt-fs">'+h+'</div></td></tr>';
 }
 // A click anywhere on a site's row (not on a button, link or field) opens or closes its details
@@ -3249,8 +3250,20 @@ function vtToast(msg,type){
 // ── WordPress rogue admin user detection ─────────────────────
 let wpUsersData={}; // {domain: 'loading' | {users, error, wp_path} | null}
 let wpUsersPwd={}; // {domain+'|'+id: newPassword} — temporary after reset
+let wpUsersOpen={}; // {domain: bool} — tracks open/closed state across re-renders
+
+window.vtWpUsersToggle=function(el,domain){
+  wpUsersOpen[domain]=el.open;
+  if(el.open) vtWpUsersLoad(domain);
+};
 
 function vtWpUsersRefresh(domain){
+  // Auto-open the collapsible when suspicious users are found (first time only)
+  const data=wpUsersData[domain];
+  if(data&&data!=='loading'&&!data.error&&wpUsersOpen[domain]===undefined){
+    const nSus=(data.users||[]).filter(u=>u.flags?.length).length;
+    if(nSus) wpUsersOpen[domain]=true;
+  }
   if(fsOpen[domain]==='vt') updateRow(domain,results[domain]||null);
 }
 
@@ -3286,27 +3299,37 @@ window.vtWpUserAction=async function(domain,userId,act){
 };
 
 function vtWpUsersHTML(domain){
+  if(!scIsAdmin) return '';
   const data=wpUsersData[domain];
   const e=vtEsca(domain);
-  let h='<div class="vt-wp-users">';
-  h+='<div class="vt-wp-users-head"><strong>WordPress admin accounts</strong>';
-  if(data&&data!=='loading') h+=' · <a onclick="vtWpUsersLoad(\''+e+'\',true)" title="Check again">↺ Refresh</a>';
-  h+='<span class="sp"></span></div>';
+  const isOpen=!!wpUsersOpen[domain];
 
+  // Build the summary label
+  let tail='';
+  if(data==='loading') tail=' <span class="vt-spin" style="margin-left:4px"></span>';
+  else if(data&&!data.error){
+    const users=data.users||[];
+    const nSus=users.filter(u=>u.flags?.length).length;
+    if(nSus) tail=' · <span style="color:var(--red);font-weight:700">'+nSus+' suspicious</span>';
+    else if(users.length) tail=' <span class="hint">· '+users.length+' admin'+(users.length===1?'':'s')+', no flags</span>';
+    else tail=' <span class="hint">· no WP install</span>';
+  }else if(data&&data.error) tail=' <span style="color:var(--red);font-size:11px">· error</span>';
+
+  let inner='';
   if(!data){
-    h+='<div class="vt-fs-note">Not checked yet. <a onclick="vtWpUsersLoad(\''+e+'\')">Check now</a></div>';
+    inner='<div class="vt-fs-note hint" style="padding:6px 0">Opens on first click.</div>';
   }else if(data==='loading'){
-    h+='<div class="vt-fs-note"><span class="vt-spin"></span> Checking admin accounts…</div>';
+    inner='<div class="vt-fs-note"><span class="vt-spin"></span> Checking admin accounts…</div>';
   }else if(data.error){
-    h+='<div class="vt-fs-note"><span style="color:var(--red)">'+vtEsc(data.error)+'</span>'+(data.disabled?'':' · <a onclick="vtWpUsersLoad(\''+e+'\',true)">Retry</a>')+'</div>';
+    inner='<div class="vt-fs-note"><span style="color:var(--red)">'+vtEsc(data.error)+'</span>'+(data.disabled?'':' · <a onclick="vtWpUsersLoad(\''+e+'\',true)">Retry</a>')+'</div>';
   }else{
     const users=data.users||[];
     if(!users.length){
-      h+='<div class="vt-fs-note">No WordPress admin accounts found.</div>';
+      inner+='<div class="vt-fs-note">No WordPress admin accounts found.</div>';
     }else{
       const nSus=users.filter(u=>u.flags?.length).length;
-      if(nSus) h+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' suspicious account'+(nSus===1?'':'s')+' — hover a badge for the reason.</div>';
-      h+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
+      if(nSus) inner+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' suspicious account'+(nSus===1?'':'s')+' — hover a badge for the reason.</div>';
+      inner+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
       for(const u of users){
         const flags=u.flags||[];
         const isSus=flags.length>0;
@@ -3322,21 +3345,23 @@ function vtWpUsersHTML(domain){
           +'</div>';
         const login=vtEsc(u.login)+(u.display&&u.display!==u.login?' <span class="hint">'+vtEsc(u.display)+'</span>':'');
         const regDate=u.registered?u.registered.substring(0,10):'—';
-        h+='<tr'+(isSus?' style="background:rgba(239,68,68,.04)"':'')+'>'
+        inner+='<tr'+(isSus?' style="background:rgba(239,68,68,.04)"':'')+'>'
           +'<td><strong>'+login+'</strong></td>'
           +'<td style="color:var(--muted)">'+vtEsc(u.email)+'</td>'
           +'<td>'+vtEsc(regDate)+'</td>'
           +'<td class="wrap">'+flagsHTML+'</td>'
           +'<td>'+actHTML+'</td>'
           +'</tr>';
-        if(pwd) h+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
+        if(pwd) inner+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
       }
-      h+='</tbody></table>';
-      h+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. If a known admin\'s password was in a data breach, attackers already have access — reset it and verify at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a>.</div>';
+      inner+='</tbody></table>';
+      inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. Breach check by <a href="https://emailrep.io" target="_blank" rel="noopener">EmailRep.io</a> (free, no key needed).</div>';
     }
   }
-  h+='</div>';
-  return h;
+  return '<details class="vt-wu-collapsible"'+(isOpen?' open':'')+' ontoggle="vtWpUsersToggle(this,\''+e+'\')">'
+    +'<summary>WordPress admin accounts'+tail+' <a onclick="event.stopPropagation();vtWpUsersLoad(\''+e+'\',true)" title="Reload" style="margin-left:auto;font-weight:400;font-size:11px;color:var(--blue)">↺</a></summary>'
+    +inner
+    +'</details>';
 }
 
 init().then(()=>vtCheckUpdate());

@@ -214,7 +214,7 @@ The **Pwned?** tab (next to Statistics) shows where that risk is:
 
 | Choice | Notes |
 |---|---|
-| **XposedOrNot** (default) | Free, no key. It allows about 25 tests an hour and Stingy Scanner keeps to 90 a day, so a large server is done in a few days, in the background. |
+| **XposedOrNot** (default) | Free, no key. Breach years and leaked data come from its public breach list, fetched once a week. It allows about 25 tests an hour and Stingy Scanner keeps to 90 a day, so a large server is done in a few days, in the background. |
 | **Have I Been Pwned** | Your own API key from [haveibeenpwned.com/API/Key](https://haveibeenpwned.com/API/Key) (paid subscription). The key is tested and its rate limit read when you save it. Breach data under CC BY 4.0. |
 | **Off** | Nothing is sent; the overview still lists the accounts, without breach results. |
 

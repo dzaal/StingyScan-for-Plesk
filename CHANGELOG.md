@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.6.7 — 2026-11-25
+- Pwned?: every breach shows its **year** (for example *Collection-1 (2019), MyHeritage (2017)*), newest first, with the kind of data that leaked on hover. With Have I Been Pwned the date comes with each result; XposedOrNot only gives breach names per address, so there the dates come from its public list of breaches, fetched once a week. A site's WordPress admin accounts show the years too.
+
 ## 2.6.6 — 2026-11-25
 - About tab: instead of the maker, it now explains what happens when a WordPress administrator is pwned (infection, blocklists and web shields, e-mail refused because it mentions a listed site), what Stingy Scanner does about it, and that it runs entirely on free APIs, optionally with Imunify, Maldet or ClamAV.
 

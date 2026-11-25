@@ -200,6 +200,55 @@ class VtPwned
         return is_array($st) && ($st['day'] ?? '') === gmdate('Y-m-d') ? (int)$st['calls'] : 0;
     }
 
+    // ── Breach details (XposedOrNot only gives names per address) ──
+
+    const XON_CATALOG = 'https://api.xposedornot.com/v1/breaches';
+
+    /**
+     * XposedOrNot's public list of all breaches, kept as { name: {date, data, pw} } in vt_xon_breaches.json.
+     * Fetched at most once a week (one request, not per address); after a failed fetch, an hour later.
+     */
+    public static function xonCatalog(): array
+    {
+        $file = VtDataDir::path('vt_xon_breaches.json');
+        $c    = json_decode((string)@file_get_contents($file), true);
+        $age  = is_array($c) ? time() - (int)($c['t'] ?? 0) : PHP_INT_MAX;
+        if ($age < (!empty($c['list']) ? 7 * 86400 : 3600)) return $c['list'] ?? [];
+        [$code, $body] = self::get(self::XON_CATALOG);
+        $list = [];
+        foreach ((json_decode($body, true)['exposedBreaches'] ?? []) as $b) {
+            if (empty($b['breachID'])) continue;
+            $list[(string)$b['breachID']] = ['date' => substr((string)($b['breachedDate'] ?? ''), 0, 10),
+                                             'data' => array_slice(array_map('strval', (array)($b['exposedData'] ?? [])), 0, 12),
+                                             'pw'   => (string)($b['passwordRisk'] ?? '')];
+        }
+        if ($code !== 200 || !$list) $list = $c['list'] ?? []; // keep the old list; try again in an hour
+        @file_put_contents($file, json_encode(['t' => time(), 'list' => $list]));
+        return $list;
+    }
+
+    /** Add the date and the leaked data to XposedOrNot breaches (from the catalog), newest first */
+    public static function withDetails(array $results): array
+    {
+        $need = false;
+        foreach ($results as $r) foreach ($r['breaches'] ?? [] as $b) if (empty($b['date'])) { $need = true; break 2; }
+        if (!$need) return $results;
+        $cat = self::xonCatalog();
+        foreach ($results as &$r) {
+            if (empty($r['breaches'])) continue;
+            foreach ($r['breaches'] as &$b) {
+                $d = $cat[$b['name']] ?? null;
+                if (!$d) continue;
+                if (empty($b['date'])) $b['date'] = $d['date'];
+                if (empty($b['data'])) $b['data'] = $d['data'];
+            }
+            unset($b);
+            usort($r['breaches'], fn($a, $b) => strcmp((string)($b['date'] ?? ''), (string)($a['date'] ?? '')));
+        }
+        unset($r);
+        return $results;
+    }
+
     // ── Addresses added by hand ────────────────────────────────
 
     public static function custom(): array

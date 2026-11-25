@@ -1096,7 +1096,7 @@ class IndexController extends pm_Controller_Action
         $this->respond([
             'sites'   => $sites,
             'custom'  => $custom,
-            'results' => array_intersect_key(VtPwned::results(), $emails),
+            'results' => VtPwned::withDetails(array_intersect_key(VtPwned::results(), $emails)),
             'owners'  => $this->role() === 'client' ? [] : PleskDomains::owners(array_keys($sites)),
             'config'  => $this->pwnedSummary(),
         ]);
@@ -1122,7 +1122,7 @@ class IndexController extends pm_Controller_Action
         $res  = VtPwned::results();
         $left = 0;
         foreach ($emails as $e => $_) if (VtPwned::needsCheck($res[$e] ?? null)) $left++;
-        $this->respond(['email' => $want, 'result' => $r, 'remaining' => $left]);
+        $this->respond(['email' => $want, 'result' => VtPwned::withDetails([$r])[0], 'remaining' => $left]);
     }
 
     /** Add or remove an address of your own: op=add|remove, email */
@@ -1491,7 +1491,8 @@ class IndexController extends pm_Controller_Action
         $r = VtPwned::results()[$email] ?? null;
         if (VtPwned::needsCheck($r)) $r = VtPwned::check($email);
         if (($r['state'] ?? '') !== 'ok') return null;
-        return array_map(fn($b) => (string)($b['title'] ?? $b['name']), $r['breaches'] ?? []);
+        $r = VtPwned::withDetails([$r])[0];
+        return array_map(fn($b) => (string)($b['title'] ?? $b['name']) . (!empty($b['date']) ? ' (' . substr($b['date'], 0, 4) . ')' : ''), $r['breaches'] ?? []);
     }
 
     /** Heuristic flags that may indicate a WordPress admin is rogue or compromised */

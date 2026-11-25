@@ -866,8 +866,7 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         unset($s['gsb_api_key']); // the Google key never goes to the browser
         if ($this->role() === 'admin') {
-            $hibpKey = (string)((new VtSettings('admin'))->get('hibp_api_key', ''));
-            $s['hibp_key_set'] = $hibpKey !== '';
+                $s['emailrep_key_set'] = (string)((new VtSettings('admin'))->get('emailrep_api_key', '')) !== '';
             $s['gsb'] = ['enabled' => (bool)(new VtSettings('admin'))->get('gsb_enabled', false),
                          'key' => VtSafeBrowsing::maskedKey(), 'calls' => VtSafeBrowsing::callsToday(), 'last' => VtSafeBrowsing::lastStatus()];
         }
@@ -940,12 +939,12 @@ class IndexController extends pm_Controller_Action
             if ($this->settings->getUserId() === 'admin') $save['avast_products'] = $ps; // same file: saved below
             else (new VtSettings('admin'))->set('avast_products', $ps);
         }
-        // Have I Been Pwned API key (admin only, server-wide)
-        if ($this->role() === 'admin' && isset($input['hibp_api_key'])) {
-            $hk = trim((string)$input['hibp_api_key']);
-            if ($hk !== '') {
+        // EmailRep.io API key (admin only, server-wide, optional — free registration raises limit from 100 to 1000/day)
+        if ($this->role() === 'admin' && isset($input['emailrep_api_key'])) {
+            $ek = trim((string)$input['emailrep_api_key']);
+            if ($ek !== '') {
                 $adminSettings = $this->settings->getUserId() === 'admin' ? $this->settings : new VtSettings('admin');
-                $adminSettings->set('hibp_api_key', $hk);
+                $adminSettings->set('emailrep_api_key', $ek);
             }
         }
 
@@ -1204,7 +1203,7 @@ class IndexController extends pm_Controller_Action
 
         $db     = $install['db'];
         $prefix = $install['prefix'];
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $db) || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+        if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $db) || !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
             return ['error' => 'Invalid database or table prefix', 'users' => []];
         }
 
@@ -1235,70 +1234,71 @@ class IndexController extends pm_Controller_Action
             ];
         }
 
-        // Have I Been Pwned: check each admin email if a key is configured
-        $hibpKey = (string)((new VtSettings('admin'))->get('hibp_api_key', ''));
-        if ($hibpKey !== '') {
-            foreach ($users as &$user) {
-                $breaches = self::hibpCheck($user['email'], $hibpKey);
-                if ($breaches !== null && count($breaches) > 0) {
-                    $n    = count($breaches);
-                    $list = implode(', ', array_slice($breaches, 0, 5)) . ($n > 5 ? '…' : '');
-                    $user['flags'][] = [
-                        'code'   => 'hibp_breach',
-                        'label'  => 'In ' . $n . ' data breach' . ($n === 1 ? '' : 'es'),
-                        'detail' => 'The email address ' . htmlspecialchars($user['email']) . ' was found in ' . $n
-                            . ' known data breach' . ($n === 1 ? '' : 'es') . ' (' . $list . '). '
-                            . 'If the same or a similar password is used for this WordPress admin account, '
-                            . 'attackers can log in and infect every site on this server. '
-                            . 'Reset this admin\'s password immediately with the button below.',
-                    ];
-                }
+        // EmailRep.io: check each admin email for data breaches (free, no key required)
+        $emailRepKey = (string)((new VtSettings('admin'))->get('emailrep_api_key', ''));
+        foreach ($users as &$user) {
+            $rep = self::emailRepCheck($user['email'], $emailRepKey);
+            if ($rep !== null && (!empty($rep['data_breach']) || !empty($rep['credentials_leaked']))) {
+                $user['flags'][] = [
+                    'code'   => 'hibp_breach',
+                    'label'  => !empty($rep['credentials_leaked']) ? 'Credentials leaked' : 'Found in data breach',
+                    'detail' => 'The email address ' . htmlspecialchars($user['email'])
+                        . ' was found in known data breach records (source: EmailRep.io). '
+                        . 'If the same or a similar password is used for this WordPress admin account, '
+                        . 'attackers can log in and infect every site on this server. '
+                        . 'Reset this admin\'s password immediately with the button below.',
+                ];
             }
-            unset($user);
         }
+        unset($user);
 
         return ['users' => $users, 'wp_path' => $wpPath, 'db' => $db];
     }
 
     /**
-     * Check one email against the Have I Been Pwned v3 API.
-     * Returns an array of breach names (empty = clean), or null on API error / rate limit.
+     * Check one email against EmailRep.io — free, no key required (100 req/day without key,
+     * 1000/day with a free key from emailrep.io). Returns relevant detail fields, or null on error.
      * Results are cached per email for 24 hours.
      */
-    private static function hibpCheck(string $email, string $apiKey): ?array
+    private static function emailRepCheck(string $email, string $apiKey = ''): ?array
     {
-        $cacheFile = VtDataDir::path('vt_hibp_cache.json');
+        $cacheFile = VtDataDir::path('vt_emailrep_cache.json');
         $cache     = is_file($cacheFile) ? (json_decode((string)file_get_contents($cacheFile), true) ?: []) : [];
         $cacheKey  = md5(strtolower(trim($email)));
         $now       = time();
 
         if (isset($cache[$cacheKey]) && $now - (int)($cache[$cacheKey]['t'] ?? 0) < 86400) {
-            return $cache[$cacheKey]['b'];
+            return $cache[$cacheKey]['d'];
         }
 
-        $url = 'https://haveibeenpwned.com/api/v3/breachedaccount/' . rawurlencode(strtolower(trim($email))) . '?truncateResponse=true';
-        $ch  = curl_init($url);
+        $headers = ['User-Agent: Stingy-Scanner-for-Plesk/2.5'];
+        if ($apiKey !== '') $headers[] = 'Key: ' . $apiKey;
+
+        $ch = curl_init('https://emailrep.io/' . rawurlencode(strtolower(trim($email))));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 10,
-            CURLOPT_HTTPHEADER     => ['hibp-api-key: ' . $apiKey, 'User-Agent: Stingy-Scanner-for-Plesk/2.5'],
+            CURLOPT_HTTPHEADER     => $headers,
         ]);
         $body = (string)curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($code === 404) {
-            $breaches = [];
-        } elseif ($code === 200) {
-            $data     = json_decode($body, true);
-            $breaches = is_array($data) ? array_column($data, 'Name') : [];
-        } else {
-            return null; // rate limited or API error — do not cache
-        }
+        if ($code !== 200) return null; // rate limited or API error — do not cache
 
-        $cache[$cacheKey] = ['t' => $now, 'b' => $breaches];
+        $data = json_decode($body, true);
+        if (!is_array($data)) return null;
+
+        $detail = $data['details'] ?? [];
+        $result = [
+            'data_breach'          => !empty($detail['data_breach']),
+            'credentials_leaked'   => !empty($detail['credentials_leaked']),
+            'credentials_leaked_recent' => !empty($detail['credentials_leaked_recent']),
+        ];
+
+        $cache[$cacheKey] = ['t' => $now, 'd' => $result];
         @file_put_contents($cacheFile, json_encode($cache));
-        return $breaches;
+        return $result;
     }
 
     /** Heuristic flags that may indicate a WordPress admin is rogue or compromised */

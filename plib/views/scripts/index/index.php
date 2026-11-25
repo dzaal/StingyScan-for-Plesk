@@ -917,10 +917,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </ul>
         A flag is a reason to investigate, not proof. Always verify before deleting an account.
       </div>
-      <div class="vt-field" style="margin-top:14px;max-width:480px">
-        <label for="vt-s-hibp-key">Have I Been Pwned API key <span id="vt-hibp-keystate" class="vt-key-state"></span></label>
-        <input type="password" id="vt-s-hibp-key" autocomplete="new-password" placeholder="Enter HIBP API key to enable breach checks">
-        <div class="hint" style="margin-top:4px">Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key</a> (~€3.50/month). Each admin email is checked against the HIBP database; results are cached 24 hours.</div>
+      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin email is automatically checked against <a href="https://emailrep.io" target="_blank" rel="noopener">EmailRep.io</a> — free, no key needed (100 checks/day). A red badge appears when an email was found in known breach data. Results are cached 24 hours.</div>
+      <div class="vt-field" style="margin-top:10px;max-width:480px">
+        <label for="vt-s-emailrep-key">EmailRep.io API key <span id="vt-emailrep-keystate" class="vt-key-state"></span> <span class="hint">(optional — raises limit to 1000/day)</span></label>
+        <input type="password" id="vt-s-emailrep-key" autocomplete="new-password" placeholder="Free key from emailrep.io — optional">
+        <div class="hint" style="margin-top:4px">Register for free at <a href="https://emailrep.io" target="_blank" rel="noopener">emailrep.io</a> to get an API key with a higher daily limit.</div>
       </div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -2331,8 +2332,8 @@ function loadSettingsForm(cfg){
   savedWpOnly=!!cfg.wordpress_only;
   document.getElementById('vt-s-rogue-scan').checked=cfg.wp_rogue_scan!==false;
   if(cfg.role==='admin'){
-    const ks=document.getElementById('vt-hibp-keystate');
-    if(ks){ks.className='vt-key-state'+(cfg.hibp_key_set?' ok':' off');ks.textContent=cfg.hibp_key_set?'API key set':'no key';}
+    const ks=document.getElementById('vt-emailrep-keystate');
+    if(ks){ks.className='vt-key-state'+(cfg.emailrep_key_set?' ok':' off');ks.textContent=cfg.emailrep_key_set?'key set':'no key (using free tier)';}
   }
   // Notifications: only offer the recipients this role may use
   document.getElementById('vt-n-enabled').checked=!!cfg.notify_enabled;
@@ -2495,8 +2496,8 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
-  const hibpKey=document.getElementById('vt-s-hibp-key')?.value.trim();
-  if(hibpKey) payload.hibp_api_key=hibpKey;
+  const emailrepKey=document.getElementById('vt-s-emailrep-key')?.value.trim();
+  if(emailrepKey) payload.emailrep_api_key=emailrepKey;
   if(document.getElementById('vt-q-card').style.display!=='none'){
     const qd=parseInt(document.getElementById('vt-s-q-days').value);
     payload.quarantine_days=isNaN(qd)?30:Math.max(0,Math.min(3650,qd));

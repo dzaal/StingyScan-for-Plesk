@@ -3,8 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.5.4 — 2026-11-25
+- **Free breach check via EmailRep.io.** Each WordPress admin email is automatically checked against EmailRep.io (free, no key required, 100 checks/day). A red "Credentials leaked" or "Found in data breach" badge appears when an email was found in known breach data; results are cached 24 hours. An optional free EmailRep.io API key raises the limit to 1000/day.
+- **Fix: "Invalid database or table prefix"** for sites whose database name contains a hyphen (common in Plesk-generated names). The validation regex now allows hyphens in database names.
+
 ## 2.5.3 — 2026-11-25
-- **Have I Been Pwned integration.** Add a HIBP API key in Settings → WordPress admin user detection. Each admin email is then checked against the HIBP database; a red badge appears if the address was found in a known data breach, with the breach names as a tooltip. Results are cached 24 hours.
+- **Have I Been Pwned integration** (replaced in 2.5.4 by EmailRep.io). Add a HIBP API key in Settings → WordPress admin user detection. Each admin email is then checked against the HIBP database; a red badge appears if the address was found in a known data breach, with the breach names as a tooltip. Results are cached 24 hours.
 - **Fix: Reset password / Delete returned "invalid parameters"** — the POST parameter was named `action`, which Plesk's router reserves for routing. Renamed to `act`.
 - **Delete tooltip** shows which admin will receive the deleted user's posts and pages (or warns when there is no other admin).
 

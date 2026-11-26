@@ -990,7 +990,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
     <div class="vt-card vt-settings-experimental" id="vt-av-card" style="display:none" data-toc="AVG &amp; Avast">
       <div class="vt-settings-title"><h3>External reputation checks</h3><span class="vt-experimental-tag">Experimental</span></div>
-      <p class="hint">Optional direct checks with AVG and Avast. These unofficial services may change or become unavailable. Checks run when opening site details and after a rescan.</p>
+      <p class="hint">Optional direct checks with AVG and Avast. Checks run when opening site details and after a rescan. Off by default.</p>
+      <div class="vt-why-note" style="margin-top:6px"><strong>Experimental, undocumented endpoints.</strong> AVG and Avast do not offer a public API for these checks: Stingy Scanner asks the same reputation service their browser protection uses. That service is not documented or supported by Gen Digital, so it may change, give different answers, limit requests or stop working at any time, without notice. Use the results as a hint, not as proof; VirusTotal (which also includes AVG and Avast) stays the main source.</div>
       <div class="vt-provider-list">
         <div class="vt-provider vt-svc avg">
           <label class="vt-radio"><input type="checkbox" name="vt-av" value="147"><span class="vt-av-title"><strong><img class="vt-brand-ico lg" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/brands/avg.png') ?>" alt="" width="32" height="32">AVG Web Shield</strong><small>URL reputation of AVG AntiVirus and the AVG Online Security browser extension</small></span></label>

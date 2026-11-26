@@ -577,9 +577,10 @@ if ($mode === 'dump') {
     if ($prefix === '-') $prefix = '';
     if (!preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $db) || !preg_match('/^[A-Za-z0-9_]{0,32}$/', $prefix)
         || ($host !== '' && !preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z0-9\-]{2,}$/', $host))) out(['error' => 'Invalid database, prefix or hostname']);
+    // Only Plesk's own documented commands: `plesk db` and `plesk db dump` log in to the database server
+    // themselves, so this helper never reads or handles a database password
     $q   = fn(string $sql) => trim((string)shell_exec('plesk db -Ne ' . escapeshellarg($sql) . ' 2>/dev/null'));
-    putenv('MYSQL_PWD=' . trim((string)@file_get_contents('/etc/psa/.psa.shadow')));
-    if (trim((string)shell_exec('mysql -uadmin -N -e ' . escapeshellarg("SHOW DATABASES LIKE '" . str_replace('_', '\\_', $db) . "'") . ' 2>/dev/null')) !== $db) {
+    if ($q("SHOW DATABASES LIKE '" . str_replace('_', '\\_', $db) . "'") !== $db) {
         out(['error' => 'Database ' . $db . ' does not exist on the local database server']);
     }
     $row = $q("SELECT COALESCE(NULLIF(d.webspace_id,0), d.id), s.host FROM data_bases b JOIN domains d ON d.id = b.dom_id "
@@ -602,29 +603,32 @@ if ($mode === 'dump') {
     if (!$login || strpos(rtrim($home, '/') . '/', VHOSTS) !== 0 || !is_dir($home)) out(['error' => 'Could not find the subscription folder']);
     if ((int)(posix_getpwnam($login)['uid'] ?? 0) < UID_MIN) out(['error' => 'The subscription has no site user']);
 
-    putenv('MYSQL_PWD=' . trim((string)@file_get_contents('/etc/psa/.psa.shadow')));
-    $tables = [];
+    // Only the tables with this prefix: `plesk db dump` takes no list of tables, so the others are skipped
+    // with --ignore-table (only for plain table names, so nothing else can end up in the backup)
+    $tables = []; $skip = [];
     if ($prefix !== '') {
-        foreach (explode("\n", trim((string)shell_exec('mysql -uadmin -N -e ' . escapeshellarg('SHOW TABLES FROM `' . $db . '`') . ' 2>/dev/null'))) as $t) {
-            if ($t !== '' && strpos($t, $prefix) === 0) $tables[] = $t;
+        foreach (explode("\n", $q('SHOW TABLES FROM `' . $db . '`')) as $t) {
+            if ($t === '') continue;
+            if (strpos($t, $prefix) === 0) { $tables[] = $t; continue; }
+            if (!preg_match('/^[A-Za-z0-9_$\-]{1,64}$/', $t)) out(['error' => 'Table ' . $t . ' has an unusual name; back up this database in Plesk instead']);
+            $skip[] = '--ignore-table=' . $db . '.' . $t;
         }
         if (!$tables) out(['error' => 'No tables with prefix ' . $prefix . ' in ' . $db]);
     }
     $private = rtrim($home, '/') . '/private';
     if (!is_dir($private) || is_link($private)) out(['error' => 'The subscription has no private folder']);
     // The site user owns this folder, so root creates and writes nothing in it: the folder and the file are made
-    // by the site user (runuser, without root's database password in its environment). Root only runs mysqldump
+    // by the site user (runuser). Root only runs `plesk db dump`
     // and passes the data through a pipe. A link put there only points the user's own write at their own files.
     $dir  = $private . '/vt-db-backups';
     $file = $dir . '/' . $db . ($prefix !== '' ? '-' . rtrim($prefix, '_') : '') . '-' . date('Ymd-His') . '.sql.gz';
-    $as   = 'env -u MYSQL_PWD runuser -u ' . escapeshellarg($login) . ' -- ';
+    $as   = 'runuser -u ' . escapeshellarg($login) . ' -- ';
     $cmd  = $as . 'sh -c ' . escapeshellarg('umask 077 && mkdir -p "$0"') . ' ' . escapeshellarg($dir) . ' || { echo 9; exit; }; '
-          . 'mysqldump -uadmin --single-transaction --quick --no-tablespaces ' . escapeshellarg($db) . ' '
-          . implode(' ', array_map('escapeshellarg', $tables)) . ' 2>/dev/null | gzip -9 | '
+          . 'plesk db dump --single-transaction --quick --no-tablespaces ' . implode(' ', array_map('escapeshellarg', $skip)) . ' '
+          . escapeshellarg($db) . ' 2>/dev/null | gzip -9 | '
           . $as . 'sh -c ' . escapeshellarg('umask 077 && cat > "$0"') . ' ' . escapeshellarg($file)
           . '; echo "${PIPESTATUS[0]}${PIPESTATUS[2]}"';
     $code = trim((string)shell_exec('bash -c ' . escapeshellarg($cmd)));
-    putenv('MYSQL_PWD');
     clearstatcache();
     $size = is_file($file) && !is_link($file) ? (int)filesize($file) : 0;
     if ($code !== '00' || $size < 100) {

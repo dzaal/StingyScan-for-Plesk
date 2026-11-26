@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module>
     <id>stingyscan</id>
-    <name>Stingy Scanner by Digizaal</name>
-    <description>Reputation scanner for every website on your Plesk server, and a helper to win a site's good name back after an attack. Checks every hosted site (and external sites you add) with VirusTotal, Google Safe Browsing and AVG/Avast for malware, phishing and spam, without burning your daily API quota. When a site is flagged: scan its files with ClamAV, Maldet or Imunify and clean or quarantine them, find rogue WordPress admins, see which administrator e-mail addresses are pwned in known data breaches (Pwned? overview, XposedOrNot or Have I Been Pwned), and ask every vendor that still flags the site for a review, with the full history of the site. Built by Digizaal, an Amsterdam web agency hosting 600+ websites on Plesk.</description>
+    <name>Stingy Reputation Scanner</name>
+    <description>Reputation scanner for every website on your Plesk server, and a helper to win a site's good name back after an attack. Checks every hosted site (and external sites you add) with VirusTotal, Google Safe Browsing and AVG/Avast for malware, phishing and spam, without burning your daily API quota. When a site is flagged: scan its files with ClamAV, Maldet or Imunify and clean or quarantine them, find rogue admin accounts in WordPress, Joomla, Drupal and more (new admins and changed admin rights are reported every hour), see which administrator e-mail addresses are pwned in known data breaches (Pwned Admins, XposedOrNot or Have I Been Pwned), and ask every vendor that still flags the site for a review, with the full history of the site. Built by Digizaal, an Amsterdam web agency hosting 600+ websites on Plesk.</description>
     <category>security</category>
-    <version>2.17.0</version>
+    <version>2.17.1</version>
     <release>1</release>
     <vendor>Digizaal</vendor>
     <url>https://www.digizaal.nl/stingy-scanner/</url>

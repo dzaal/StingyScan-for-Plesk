@@ -1,4 +1,4 @@
-Stingy Scanner keeps an eye on the reputation of every website on your Plesk server, and helps a site win its good name back after an attack.
+Stingy Reputation Scanner keeps an eye on the reputation of every website on your Plesk server, and helps a site win its good name back after an attack.
 
 **Reputation checks for every site**
 

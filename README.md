@@ -469,7 +469,7 @@ Results are kept in `vt_gsb.json`, calls per day in `vt_gsb_state.json`.
 
 VirusTotal's list does not always show what AVG and Avast think of a site, while many visitors use those products. In **Settings → External reputation checks** the administrator can switch on **AVG Web Shield** (product 147), **Avast Web Shield** (product 146) or both. It asks the URL reputation service those products use themselves (their antivirus Web Shield and browser extensions) how they classify each site, for example `URL:Botnet`. Only that service is asked; the sites themselves are not visited.
 
-> **Unofficial.** There is no public API for this; the format was worked out by hand and may change or stop working at any time. When it does, the result shows *Check failed* and nothing else is affected.
+> **Experimental, undocumented endpoints.** There is no public API for this: the service is not documented or supported by Gen Digital, and the format was worked out by hand. It may change, limit requests or stop working at any time, without notice. Settings says so above the switches. Off by default; when it fails, the result shows *Check failed* and nothing else is affected. VirusTotal, which also includes AVG and Avast, stays the main source.
 
 - **Live, not in the background.** The check runs when you open the details of a site and after every rescan. A result of the last 5 minutes is reused; *check again* asks right away. Each product has its own requests-per-minute limit (default 2), and there is never more than one request per second for the whole server. On HTTP 429 all checks pause for the *Retry-After* time (at least 60 seconds). Settings shows the number of calls made today for each.
 - **What you see.** AVG and/or Avast are rows of the vendor table in the details, marked *(direct)*: the classification with its detection name, *No classification received*, or *Check failed* with the reason. A classified site also gets a red badge such as *AVG: Botnet* under its status. For a false positive there is a link to the official form ([Avast](https://www.avast.com/report-false-positive), [AVG](https://www.avg.com/en-us/report-false-positive)); you submit it yourself and choose **URL** in the form.
@@ -648,6 +648,8 @@ What leaves the server, and only for the services you switched on:
 No site content or files are sent anywhere.
 
 ## Installation statistics ("Talk to mama")
+
+*GitHub edition only.* The edition in the Plesk Extensions Catalog has no installation statistics and no update check of its own (Plesk updates it); it sends nothing to Digizaal.
 
 **Settings → Maintenance → Installation statistics** (server administrator only) has one checkbox, **Talk to mama: Share installation statistics**. It is **off by default** (opt-in): on a new installation nothing is sent, and since version 2.17.0 it is also off after an upgrade on a server where it was never switched on explicitly. Tick it and save to start sharing; untick it and save to stop, nothing more is sent from that moment. Only the server administrator can change it; the server refuses the change from anyone else.
 

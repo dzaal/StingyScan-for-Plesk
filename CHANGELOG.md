@@ -3,7 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
-## Unreleased
+## 2.17.1 — 2026-11-26
+- **Plesk Extensions Catalog edition** published with every release: `stingyscan-catalog-<version>.zip` (see below).
+- **Database backup (Orphan DBs) uses Plesk's own `plesk db dump`:** the root helper no longer reads the Plesk database password (`/etc/psa/.psa.shadow`) or uses `mysql`/`mysqldump` directly. A backup of only the tables with one prefix skips the other tables with `--ignore-table`; a database with unusual table names is refused (back it up in Plesk instead).
+- Settings → External reputation checks (AVG & Avast): a clear note that these checks use **undocumented endpoints** of Gen Digital and are **experimental** (may change, be limited or stop without notice; off by default; a hint, not proof).
+- Privacy policy and README: the update check (GitHub) and the installation statistics ("Talk to mama") are marked **GitHub edition only**; the Plesk catalog edition sends nothing to Digizaal and does not contact GitHub.
+- The extension's name in Plesk and in the catalog is now **Stingy Reputation Scanner** (was *Stingy Scanner by Digizaal*), the same as the header in the extension. The `meta.xml` description mentions Joomla, Drupal and the hourly admin check, and *Pwned Admins*.
 - `meta.xml` declares **Linux only** (`<os>unix</os>`); the catalog description says Plesk for Windows is not supported.
 - **Security (root helper `site-scan`):** root no longer writes anywhere a less trusted user could have put a link. Database backups are written into the private folder by the site user itself (root's database password is not passed on). Scan results are written as new files and renamed into place, the scan lock moved to the root-only `/var/lib/stingyscan`, and the request rate limiter runs as the panel user. WP-CLI and file actions only run as a real site user (uid 1000 or higher), never as a system account such as `psaadm` or `nginx`. A Laravel `.env` that is a link is skipped. The helper's description lists every command and these rules.
 - Vendor table (*Why?*): a short explanation above it: *request a review* opens the vendor's form and copies the site address to the clipboard, and every request is remembered for the site (date, who, history), with *denied* and *undo*.

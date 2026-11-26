@@ -1,21 +1,26 @@
-# Privacy policy: Stingy Scanner for Plesk
+# Privacy policy: Stingy Reputation Scanner for Plesk
 
 *Last updated: 26 November 2026. Online version: <https://www.digizaal.nl/stingy-scanner/privacy/>*
 
 Stingy Scanner is a free Plesk extension made by Dirk Zaal of **Digizaal** (Digizaal webdev VOF), Stuurmankade 224, 1019 WC Amsterdam, the Netherlands (Chamber of Commerce 30153598), <info@digizaal.nl>. This page explains which data the extension handles, where it goes and who is responsible for it.
 
+There are two editions with the same features, and one difference that matters here:
+
+- **Plesk Extensions Catalog edition** (installed from *Extensions* in Plesk): sends **nothing** to Digizaal and does not contact GitHub. Plesk itself offers its updates.
+- **GitHub edition** (installed from a zip on [GitHub](https://github.com/dzaal/StingyScan-for-Plesk/releases)): also has an **update check** (GitHub) and the optional **installation statistics** ("Talk to mama", off by default). Both are marked *GitHub edition only* below.
+
 ## In short
 
 - The extension runs **on your own server**. Its settings, results and logs stay there.
 - It only contacts the outside services **you switch on**, and only sends them what they need for the check.
-- **Nothing is sent to Digizaal unless you switch it on.** Installation statistics ("Talk to mama") are **off by default**.
+- **Nothing is sent to Digizaal**, unless you use the GitHub edition and switch on its installation statistics ("Talk to mama", **off by default**).
 - Digizaal never receives your sites' files, your customers' data, your API keys or your scan results.
 
 ## Who is responsible
 
 For the data on your server and what the extension sends to the services you switch on, **you** (the server administrator or hosting company that installs the extension) decide what is processed and why. Digizaal does not see that data and does not process it on your behalf.
 
-Digizaal is only responsible for the installation statistics described below, and only when you switch them on.
+Digizaal is only responsible for the installation statistics described below (GitHub edition only), and only when you switch them on.
 
 ## Data that stays on your server
 
@@ -31,14 +36,16 @@ Each service is only contacted when it is switched on in Settings (VirusTotal ne
 | [Google Safe Browsing](https://safebrowsing.google.com) | The `https://` and `http://` address of each site. Google may use them to improve its services. | Only when switched on. |
 | AVG / Avast Web Shield | The address of a site whose details are opened or that is rescanned. | Only when switched on. |
 | [XposedOrNot](https://xposedornot.com) or [Have I Been Pwned](https://haveibeenpwned.com) | The e-mail addresses of website administrators (WordPress, Joomla, Drupal and others) and addresses you added in the Pwned Admins tab, each once. | Only when *Breached admin accounts* is not Off. |
-| GitHub | A request for the latest release number (no data about your server). | Update check. |
-| Digizaal (stats.digizaal.nl) | See *Installation statistics* below. | **Only when you switch it on.** |
+| GitHub | A request for the latest release number (no data about your server). | Update check. **GitHub edition only.** |
+| Digizaal (stats.digizaal.nl) | See *Installation statistics* below. | **GitHub edition only**, and only when you switch it on. |
 
 E-mail notifications and the Pwned warning e-mails are sent by your own server's mail system to the addresses you choose.
 
 The administrator e-mail addresses sent to a breach service are personal data of those administrators. If you switch the breach check on, make sure you have a basis for it under the GDPR (usually the legitimate interest of keeping the websites you host secure) and tell your customers in your own privacy statement.
 
 ## Installation statistics ("Talk to mama")
+
+**GitHub edition only.** The Plesk Extensions Catalog edition does not contain this feature and never sends anything to Digizaal.
 
 **Off by default.** Nothing is sent until the server administrator ticks *Settings → Maintenance → Talk to mama: Share installation statistics* and saves.
 

@@ -3,6 +3,13 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## Unreleased
+- `meta.xml` declares **Linux only** (`<os>unix</os>`); the catalog description says Plesk for Windows is not supported.
+- **Security (root helper `site-scan`):** root no longer writes anywhere a less trusted user could have put a link. Database backups are written into the private folder by the site user itself (root's database password is not passed on). Scan results are written as new files and renamed into place, the scan lock moved to the root-only `/var/lib/stingyscan`, and the request rate limiter runs as the panel user. WP-CLI and file actions only run as a real site user (uid 1000 or higher), never as a system account such as `psaadm` or `nginx`. A Laravel `.env` that is a link is skipped. The helper's description lists every command and these rules.
+- Vendor table (*Why?*): a short explanation above it: *request a review* opens the vendor's form and copies the site address to the clipboard, and every request is remembered for the site (date, who, history), with *denied* and *undo*.
+- **Plesk catalog edition:** `bash build.sh catalog` builds `stingyscan-catalog-<version>.zip` from the same code (`VtEdition::CATALOG`): no updater of its own (Plesk updates catalog extensions; no GitHub check, no `sbin/extension-update`), no installation statistics (`VtStats` is not in the package), and it does not uninstall the old VT Site Scanner by itself.
+- The demo-data script for the trend graph is no longer in the extension package: it moved to [`tools/seed_demo_history.php`](tools/seed_demo_history.php) in the repository. Copy it to the server to use it (see the README); it uses the installed extension's library.
+
 ## 2.17.0 — 2026-11-26
 - **Installation statistics are now off by default (opt-in).** Nothing is sent to Digizaal until the server administrator ticks *Settings → Maintenance → Talk to mama: Share installation statistics* and saves. This also applies after an upgrade: a server where the setting was never saved explicitly stops sending. A server where the administrator ticked it keeps sharing.
 - **Privacy policy** for the extension: [PRIVACY.md](PRIVACY.md), also online at <https://www.digizaal.nl/stingy-scanner/privacy/>. It lists what stays on the server, what goes to which service, and what the optional statistics contain, why, where they are stored and for how long.

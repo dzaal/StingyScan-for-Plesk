@@ -1,16 +1,23 @@
 #!/usr/local/psa/admin/bin/php
 <?php
 /**
- * site-scan: scan one website's files with a malware scanner installed on the server.
- * Read-only: the scanners only report, nothing is deleted, moved or quarantined.
+ * site-scan: Stingy Scanner's root helper. Runs as root through pm_ApiCli::callSbin(), because website
+ * files, logs and databases belong to the subscription users and the panel user (psaadm) cannot read them.
  *
- * Runs as root through pm_ApiCli::callSbin(), because website files belong to
- * the subscription users and the panel user cannot read them.
+ *   site-scan list                                   scanners found on this server (read-only)
+ *   site-scan start <scanner> <hostname>             start a file scan in the background (scanners only report)
+ *   site-scan --run <scanner> <hostname>             (internal) the scan itself
+ *   site-scan fileact <op> <hostname> <file>         Imunify clean / restore, quarantine one file (see below)
+ *   site-scan wpconfigs | cmsconfigs                 database name and prefix of every CMS install (read-only, no passwords)
+ *   site-scan adminlog <hostname> <from> <to>        admin requests from the site's access log (read-only)
+ *   site-scan mailcheck <domain>                     how the server sends mail for a domain: relay, DKIM (read-only)
+ *   site-scan wpuser <wp-config> <id> delete|reset [<id>]   one WordPress account, WP-CLI as the site user
+ *   site-scan wpreset <wp-config> <id> <e-mail>      random password for one pwned WordPress admin, WP-CLI as the site user
+ *   site-scan dump <db> [<prefix>] [<hostname>]      database backup into the subscription's private folder, written as the site user
  *
- *   site-scan list                       JSON list of the scanners found on this server
- *   site-scan start <scanner> <hostname> start a scan in the background, print JSON
- *   site-scan --run <scanner> <hostname> (internal) the scan itself
- *   site-scan wpuser <wp-config> <id> delete|reset [<id>]  delete or reset one WordPress account (WP-CLI as the site user)
+ * Rules: every argument is checked against a strict pattern; paths stay inside /var/www/vhosts (realpath, no links);
+ * code of a site (WP-CLI) never runs as root or as a system account; root never writes through a path that a
+ * less trusted user (a site user, or the panel user in the data folder) could have replaced with a link.
  *
  * Each scanner is an adapter below: detect() says whether it is installed,
  * scan() runs it on a folder and returns one common result format:
@@ -26,6 +33,8 @@
 
 const DATA     = '/usr/local/psa/var/modules/stingyscan/data';
 const VHOSTS   = '/var/www/vhosts/';
+const ROOTDIR  = '/var/lib/stingyscan';  // root only (0700): scan lock and quarantine
+const UID_MIN  = 1000;  // site code and site files: only accounts from here up (never root, psaadm, nginx, apache)
 const MAX_LIST = 200;   // files listed in a result
 const TIMEOUT  = 3600;  // seconds before a scan is stopped
 
@@ -255,11 +264,31 @@ function count_files(string $root): int
     return (int)trim((string)shell_exec('find ' . escapeshellarg($root) . ' -type f 2>/dev/null | wc -l'));
 }
 
+/**
+ * Write a result into the data folder. That folder belongs to the panel user, so root never opens an existing
+ * name there: a new file with a random name (mode x = O_EXCL, so never through a link), mode 0644 from the umask
+ * (the folder itself is 0750), then renamed into place (rename replaces a link, it does not follow it). No chown
+ * or chmod, which would follow a link.
+ */
 function save(string $file, array $a): void
 {
-    file_put_contents($file . '.tmp', json_encode($a, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    @chown($file . '.tmp', 'psaadm'); @chgrp($file . '.tmp', 'psaadm'); @chmod($file . '.tmp', 0640);
-    rename($file . '.tmp', $file);
+    $old = umask(022);
+    $tmp = $file . '.' . bin2hex(random_bytes(6)) . '.tmp';
+    $fh  = @fopen($tmp, 'x');
+    umask($old);
+    if (!$fh) return;
+    fwrite($fh, (string)json_encode($a, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    fclose($fh);
+    if (!@rename($tmp, $file)) @unlink($tmp);
+}
+
+/** Root's own folder for the scan lock and the quarantine */
+function root_dir(): string
+{
+    if (!is_dir(ROOTDIR)) @mkdir(ROOTDIR, 0700, true);
+    if (is_link(ROOTDIR) || @fileowner(ROOTDIR) !== 0) out(['error' => ROOTDIR . ' is not a root-owned folder']);
+    @chmod(ROOTDIR, 0700);
+    return ROOTDIR;
 }
 
 /** Document root of the site, from Plesk's database (parent domains for WordPress subsites) */
@@ -444,6 +473,7 @@ if ($mode === 'cmsconfigs') {
     foreach ($find('-maxdepth 5 -name artisan') as $p) {                     // Laravel apps with an admins table
         if (is_link($p)) continue;
         $root = dirname($p);
+        if (is_link($root . '/.env')) continue; // a link could point at another site's .env
         $env  = (string)@file_get_contents($root . '/.env', false, null, 0, 65536);
         if (!preg_match('/^DB_CONNECTION=["\']?mysql/m', $env)) continue;
         $e = fn($k) => preg_match('/^' . $k . '=["\']?([^"\'\r\n]*)/m', $env, $m) ? trim($m[1]) : '';
@@ -462,8 +492,9 @@ function wp_cli_for(string $rel): callable
     if ($rel === '' || strpos($rel, '..') !== false || $rel[0] === '/' || basename($rel) !== 'wp-config.php') out(['error' => 'Invalid parameters']);
     $cfg = realpath(VHOSTS . $rel);
     if (!$cfg || strpos($cfg, VHOSTS) !== 0 || strpos($cfg, VHOSTS . 'system/') === 0 || is_link(VHOSTS . $rel)) out(['error' => 'wp-config.php not found']);
-    $owner = posix_getpwuid(fileowner($cfg))['name'] ?? '';
-    if ($owner === '' || $owner === 'root') out(['error' => 'wp-config.php is owned by root; not running WP-CLI as root']);
+    $pw    = posix_getpwuid((int)fileowner($cfg)) ?: [];
+    $owner = (string)($pw['name'] ?? '');
+    if ($owner === '' || (int)($pw['uid'] ?? 0) < UID_MIN) out(['error' => 'wp-config.php is not owned by a site user; not running WP-CLI as ' . ($owner ?: 'that account')]);
     $wp  = bin_path('wp') ?: (is_file('/usr/local/bin/wp') ? '/usr/local/bin/wp' : '');
     if ($wp === '') out(['error' => 'WP-CLI is not installed on this server (https://wp-cli.org)']);
     $php = '';
@@ -569,6 +600,7 @@ if ($mode === 'dump') {
     $user = preg_split('/\s+/', $q("SELECT s.login, s.home FROM hosting h JOIN sys_users s ON s.id = h.sys_user_id WHERE h.dom_id = " . (int)$webspace . " LIMIT 1"));
     [$login, $home] = array_pad($user, 2, '');
     if (!$login || strpos(rtrim($home, '/') . '/', VHOSTS) !== 0 || !is_dir($home)) out(['error' => 'Could not find the subscription folder']);
+    if ((int)(posix_getpwnam($login)['uid'] ?? 0) < UID_MIN) out(['error' => 'The subscription has no site user']);
 
     putenv('MYSQL_PWD=' . trim((string)@file_get_contents('/etc/psa/.psa.shadow')));
     $tables = [];
@@ -580,19 +612,26 @@ if ($mode === 'dump') {
     }
     $private = rtrim($home, '/') . '/private';
     if (!is_dir($private) || is_link($private)) out(['error' => 'The subscription has no private folder']);
-    $dir = $private . '/vt-db-backups';
-    if (is_link($dir)) out(['error' => 'Unexpected link in the private folder']);
-    if (!is_dir($dir)) mkdir($dir, 0700);
-    chown($dir, $login); chgrp($dir, 'psacln'); chmod($dir, 0700); // never leave anything root-owned in a vhost
+    // The site user owns this folder, so root creates and writes nothing in it: the folder and the file are made
+    // by the site user (runuser, without root's database password in its environment). Root only runs mysqldump
+    // and passes the data through a pipe. A link put there only points the user's own write at their own files.
+    $dir  = $private . '/vt-db-backups';
     $file = $dir . '/' . $db . ($prefix !== '' ? '-' . rtrim($prefix, '_') : '') . '-' . date('Ymd-His') . '.sql.gz';
-    $cmd  = 'mysqldump -uadmin --single-transaction --quick --no-tablespaces ' . escapeshellarg($db) . ' '
-          . implode(' ', array_map('escapeshellarg', $tables)) . ' 2>/dev/null | gzip -9 > ' . escapeshellarg($file)
-          . '; echo ${PIPESTATUS[0]}';
+    $as   = 'env -u MYSQL_PWD runuser -u ' . escapeshellarg($login) . ' -- ';
+    $cmd  = $as . 'sh -c ' . escapeshellarg('umask 077 && mkdir -p "$0"') . ' ' . escapeshellarg($dir) . ' || { echo 9; exit; }; '
+          . 'mysqldump -uadmin --single-transaction --quick --no-tablespaces ' . escapeshellarg($db) . ' '
+          . implode(' ', array_map('escapeshellarg', $tables)) . ' 2>/dev/null | gzip -9 | '
+          . $as . 'sh -c ' . escapeshellarg('umask 077 && cat > "$0"') . ' ' . escapeshellarg($file)
+          . '; echo "${PIPESTATUS[0]}${PIPESTATUS[2]}"';
     $code = trim((string)shell_exec('bash -c ' . escapeshellarg($cmd)));
     putenv('MYSQL_PWD');
-    if (is_file($file)) { chown($file, $login); chgrp($file, 'psacln'); chmod($file, 0600); }
-    if ($code !== '0' || !is_file($file) || filesize($file) < 100) { @unlink($file); out(['error' => 'The backup failed']); }
-    out(['ok' => true, 'file' => substr($file, strlen(VHOSTS)), 'size' => filesize($file), 'tables' => count($tables)]);
+    clearstatcache();
+    $size = is_file($file) && !is_link($file) ? (int)filesize($file) : 0;
+    if ($code !== '00' || $size < 100) {
+        if (is_file($file) && !is_link($file)) shell_exec($as . 'rm -f -- ' . escapeshellarg($file));
+        out(['error' => 'The backup failed']);
+    }
+    out(['ok' => true, 'file' => substr($file, strlen(VHOSTS)), 'size' => $size, 'tables' => count($tables)]);
 }
 // ── Clean (Imunify) and quarantine, one file at a time ─────────
 // site-scan fileact <op> <hostname> <relative path>      op: check | diff | clean | restore | quarantine
@@ -607,7 +646,7 @@ if ($mode === 'dump') {
 //  - Cleaning is done by Imunify itself, which keeps the original (restore-original = Undo).
 //  - Quarantine moves the file to a root-only folder with its original place, mode and time,
 //    so Restore puts it back exactly. Nothing is ever deleted for good.
-const QDIR = '/var/lib/stingyscan/quarantine'; // root only (0700); never under the panel's data folder
+const QDIR = ROOTDIR . '/quarantine'; // root only (0700); never under the panel's data folder
 
 if ($mode === 'fileact') {
     $op = (string)($argv[2] ?? '');
@@ -644,7 +683,7 @@ function fa_site(string $host, string $rel, bool $mustExist = true): array
     $path = $root . '/' . $rel;
     $own  = @fileowner($root);
     $pw   = $own !== false ? posix_getpwuid($own) : null;
-    if (!$pw || $own < 500 || $pw['name'] === 'root') out(['error' => 'Could not find the system user of this site']);
+    if (!$pw || $own < UID_MIN) out(['error' => 'Could not find the system user of this site']);
     if ($mustExist) {
         if (is_link($path) || !is_file($path)) out(['error' => 'The file no longer exists (or is a link)']);
         $real = realpath($path);
@@ -851,7 +890,9 @@ function vh_rel(string $path): string
 
 function q_add(array $site, string $by = ''): array
 {
-    if (!is_dir(QDIR)) { @mkdir(QDIR, 0700, true); @chmod(dirname(QDIR), 0700); }
+    root_dir();
+    if (!is_dir(QDIR)) @mkdir(QDIR, 0700);
+    if (is_link(QDIR) || @fileowner(QDIR) !== 0) return ['error' => 'The quarantine folder is not root-owned'];
     $qid = date('Ymd-His') . '-' . bin2hex(random_bytes(4));
     $dir = QDIR . '/' . $qid;
     if (!@mkdir($dir, 0700)) return ['error' => 'Could not create the quarantine folder'];
@@ -942,7 +983,7 @@ function q_restore(string $qid): array
     return ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel'], 'note' => ''];
 }
 
-if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | wpconfigs | dump <db> [prefix] | start <scanner> <hostname> | fileact <op> <hostname> <file>']);
+if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | start <scanner> <hostname> | fileact <op> <hostname> <file> | wpconfigs | cmsconfigs | adminlog <hostname> <from> <to> | mailcheck <domain> | wpuser | wpreset | dump <db> [prefix] [hostname]']);
 
 $id   = (string)($argv[2] ?? '');
 $host = strtolower(trim((string)($argv[3] ?? '')));
@@ -953,7 +994,7 @@ $scanner = $all[$id] ?? null;
 if (!$scanner) out(['error' => $id . ' is not installed on this server']);
 
 $resultFile = DATA . '/vt_scan_' . $id . '_' . preg_replace('/[^a-z0-9]/', '_', $host) . '.json';
-$lockFile   = DATA . '/vt_scan.lock';
+$lockFile   = root_dir() . '/scan.lock'; // not in the data folder: root would open whatever the panel user put there
 $base       = ['domain' => $host, 'scanner' => $id, 'name' => $scanner['name']];
 
 // One scan engine only: with ClamAV installed, Maldet never runs (ClamAV already uses Maldet's signatures)
@@ -989,16 +1030,25 @@ if (!$lock || !flock($lock, LOCK_EX)) {
 }
 ftruncate($lock, 0); fwrite($lock, "$id $host"); fflush($lock);
 
-// Rate limit actual work, including read-only Imunify result requests, across all users.
-require_once '/usr/local/psa/admin/plib/modules/stingyscan/library/VtCheckRateLimiter.php';
-try {
-    while ($wait = VtCheckRateLimiter::reserve($id)) {
-        save($resultFile, $base + ['status' => 'queued', 'started' => time(), 'message' => 'Waiting for request rate limit']);
-        sleep($wait);
+// Rate limit actual work, including read-only Imunify result requests, across all users. The limiter keeps its
+// state in the data folder, so it runs as the panel user, not as root. Files root made there before go first
+// (unlink removes a link itself, it does not follow it).
+foreach (array_merge(glob(DATA . '/vt_check_rate_*.json') ?: [], [DATA . '/vt_scan.lock']) as $f) {
+    if (!is_link($f) && @fileowner($f) === 0) @unlink($f);
+}
+$reserve = 'runuser -u psaadm -- ' . escapeshellarg(PHP_BINARY) . ' -r '
+         . escapeshellarg('require "/usr/local/psa/admin/plib/modules/stingyscan/library/VtCheckRateLimiter.php"; '
+                        . 'try { echo VtCheckRateLimiter::reserve(' . var_export($id, true) . '); } catch (\Throwable $e) { echo "x"; }')
+         . ' 2>/dev/null';
+while (true) {
+    $wait = trim((string)shell_exec($reserve));
+    if (!preg_match('/^\d+$/', $wait)) {
+        save($resultFile, $base + ['status' => 'error', 'finished' => time(), 'message' => 'Request rate limiter unavailable']);
+        exit(1);
     }
-} catch (\Throwable $e) {
-    save($resultFile, $base + ['status' => 'error', 'finished' => time(), 'message' => 'Request rate limiter unavailable']);
-    exit(1);
+    if ((int)$wait === 0) break;
+    save($resultFile, $base + ['status' => 'queued', 'started' => time(), 'message' => 'Waiting for request rate limit']);
+    sleep((int)$wait);
 }
 
 $started = time();

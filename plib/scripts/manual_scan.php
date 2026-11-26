@@ -27,6 +27,7 @@ require_once $plibDir . '/VtLogRotate.php';
 // this run does, so a slow or unreachable collector never delays or stops a scan (see VtStats)
 register_shutdown_function(function () use ($plibDir) {
     try {
+        if (!is_file($plibDir . '/VtStats.php')) return; // not in the Plesk catalog edition
         require_once $plibDir . '/VtStats.php';
         VtStats::checkIn();
     } catch (\Throwable $e) {}

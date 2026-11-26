@@ -17,4 +17,6 @@ Stingy Scanner keeps an eye on the reputation of every website on your Plesk ser
 - Customers and resellers see their own sites; the administrator sees everything.
 - E-mail notifications, a dashboard widget, statistics and orphan-database cleanup.
 
+**Requirements:** Plesk Obsidian 18.0 or later on **Linux** (Plesk for Windows is not supported). A free VirusTotal API key.
+
 Free to use on any server you manage; the source code is public (see the license). Nothing is sent to Digizaal unless you switch on the optional installation statistics. Built by [Digizaal](https://www.digizaal.nl/stingy-scanner/), an Amsterdam web agency hosting 600+ websites on Plesk.

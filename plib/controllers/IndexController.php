@@ -25,7 +25,8 @@ require_once $_vtLib . '/VtPwned.php';
 require_once $_vtLib . '/VtServerName.php';
 require_once $_vtLib . '/VtMailSender.php';
 require_once $_vtLib . '/VtAdminWatch.php';
-require_once $_vtLib . '/VtStats.php';
+require_once $_vtLib . '/VtEdition.php';
+if (!VtEdition::CATALOG) require_once $_vtLib . '/VtStats.php'; // not in the Plesk catalog edition
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -670,7 +671,9 @@ class IndexController extends pm_Controller_Action
                 ? (($r['infected'] ?? 0) ? $r['infected'] . ' infected file(s)' : 'no infected files') . ' in ' . ($r['files'] ?? 0) . ' files'
                 : ($r['message'] ?? $r['status'] ?? 'error')));
             $r['logged'] = true;
-            @file_put_contents(self::scanFile($scanner, $domain), json_encode($r, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            // The root helper writes this file (owned by root, mode 0644): replace it rather than write into it
+            $f = self::scanFile($scanner, $domain); $tmp = $f . '.' . bin2hex(random_bytes(6)) . '.tmp';
+            if (@file_put_contents($tmp, json_encode($r, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) !== false && !@rename($tmp, $f)) @unlink($tmp);
         }
         $this->respond(['result' => $r]);
     }
@@ -770,6 +773,7 @@ class IndexController extends pm_Controller_Action
 
     public function installUpdateAction(): void
     {
+        if (VtEdition::CATALOG) { $this->respond(['error' => 'Updates come from the Plesk Extensions Catalog']); return; }
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
 
@@ -784,6 +788,7 @@ class IndexController extends pm_Controller_Action
 
     public function updateStatusAction(): void
     {
+        if (VtEdition::CATALOG) { $this->respond(['error' => 'Updates come from the Plesk Extensions Catalog']); return; }
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
         try {
             $res = pm_ApiCli::callSbin('extension-update', ['status'], pm_ApiCli::RESULT_FULL);
@@ -798,6 +803,8 @@ class IndexController extends pm_Controller_Action
     {
         // Current version is always read fresh — never cached — so it updates immediately after an upgrade
         $current = $this->installedVersion();
+        // Plesk catalog edition: Plesk itself offers updates, so GitHub is never asked
+        if (VtEdition::CATALOG) { $this->respond(['current' => $current, 'update_available' => false, 'catalog' => true]); return; }
 
         // Only the GitHub API response is cached (avoid hitting the API on every page load)
         $cacheFile = VtDataDir::path('vt_update_check.json');
@@ -879,7 +886,7 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
-        if ($this->role() === 'admin') $s['stats'] = VtStats::localInfo();   // computed here; the collector is never asked
+        if ($this->role() === 'admin' && !VtEdition::CATALOG) $s['stats'] = VtStats::localInfo(); // computed here; the collector is never asked
         unset($s['stats_share']);
         if ($this->role() === 'admin') {
             $adm = $adm ?? new VtSettings('admin');
@@ -984,7 +991,7 @@ class IndexController extends pm_Controller_Action
 
         // Log rotation and quarantine: server-wide settings of the administrator
         // Installation statistics: only the server administrator may switch sharing on or off
-        if (isset($input['stats_share'])) {
+        if (isset($input['stats_share']) && !VtEdition::CATALOG) {
             if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the server administrator can change installation statistics']); return; }
             $on = filter_var($input['stats_share'], FILTER_VALIDATE_BOOLEAN);
             if ($this->settings->getUserId() === 'admin') $save['stats_share'] = $on; // same file: saved below

@@ -366,10 +366,11 @@ The **Statistics** tab shows how infections develop, per day, over the last **1,
 
 The totals are saved once a day: by the nightly scan (for the server, every reseller and every customer), and whenever someone opens the dashboard. The history is kept for about a year in the data folder (`vt_history.json` for the server, `vt_history_r_<login>.json` per reseller, `vt_history_c_<login>.json` per customer). Demo data is only added when you run the demo script below.
 
-To see what the graph looks like before there is any history, you can fill the last 92 days with made-up example data (clearly marked as *demo*, shaded in the graph, and replaced by real totals day by day):
+To see what the graph looks like before there is any history, you can fill the last 92 days with made-up example data (clearly marked as *demo*, shaded in the graph, and replaced by real totals day by day). The script is not part of the extension package; it is in [`tools/`](tools/seed_demo_history.php) in this repository. Copy it to the server and run it there:
 
 ```bash
-sudo -u psaadm /usr/local/psa/admin/bin/php /usr/local/psa/admin/plib/modules/stingyscan/scripts/seed_demo_history.php
+cd /tmp && curl -sO https://raw.githubusercontent.com/dzaal/StingyScan-for-Plesk/main/tools/seed_demo_history.php
+sudo -u psaadm /usr/local/psa/admin/bin/php seed_demo_history.php
 ```
 
 Options: `--resellers` also fills every reseller's history, `--customers` every customer's. The demo figures are scaled to the number of sites (never more infected sites than there are) and end at today's real totals. `--remove` deletes all demo days again, everywhere. Resellers and customers see the same *Demo data* note and shading, so they can tell it's example data.
@@ -405,7 +406,7 @@ The status in Stingy Scanner comes from **VirusTotal**, not from the files on yo
 Click a flagged site's row, or its **score** (for example *8/92 · Why?*). A second line opens with:
 
 - **The vendors that flag the site** and what they call it (for example *Fortinet: malware*).
-- **A review link per vendor**: a form or e-mail address where you can report that the site is clean. The contacts come from [VirusTotal's list of vendor contacts](https://docs.virustotal.com/docs/false-positive-contacts); where a vendor has its own form for websites, that form is used instead (for example [alphaMountain](https://www.alphamountain.ai/false-positive/) and [Gridinsoft](https://portal.gridinsoft.com/false-positive)). For a vendor that is not in the list, the link goes to VirusTotal's list.
+- **A review link per vendor**: a form or e-mail address where you can report that the site is clean. The contacts come from [VirusTotal's list of vendor contacts](https://docs.virustotal.com/docs/false-positive-contacts); where a vendor has its own form for websites, that form is used instead (for example [alphaMountain](https://www.alphamountain.ai/false-positive/) and [Gridinsoft](https://portal.gridinsoft.com/false-positive)). For a vendor that is not in the list, the link goes to VirusTotal's list. Opening a review link **copies the site address to your clipboard**, so you can paste it straight into the vendor's form; a note above the table explains this.
 - **Which vendors you already asked.** A click on a review link is remembered per site and per vendor, with the date and time and who clicked (*✓ Requested 21-11-2026 (22:58) by admin · denied · undo*). When a vendor turns the request down (for example because the site was added to its list less than a day ago), click **denied** and optionally give the reason: the note disappears so you can ask again later, and the history keeps *Review denied* with the reason. *Undo* is for a click made by mistake. It is saved on the server (`vt_reviews.json`), so everyone who manages the site sees it. The header shows at how many of the flagging vendors a review was requested.
 - **The history of the site**, newest first: when it was first detected (score and vendors), when each vendor started or stopped flagging it, its status changes, and every review request: which vendor, via website form or by e-mail (and to which address), and by whom. Clean sites that have a history get a **History** button on their score. Saved in `vt_sitelog.json`; the first detection of each site is filled in once from the scan logs.
 - **The steps to get delisted:**

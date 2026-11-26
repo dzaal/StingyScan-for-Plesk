@@ -9,10 +9,16 @@
  *   php seed_demo_history.php --customers     also every customer's history
  *   php seed_demo_history.php --remove        remove all demo days again (server, resellers, customers)
  *
- * Run as psaadm with Plesk's PHP:
- *   sudo -u psaadm /usr/local/psa/admin/bin/php .../scripts/seed_demo_history.php [options]
+ * Not part of the extension package (the Plesk catalog asks for no unused files): copy it to the
+ * server and run it as psaadm with Plesk's PHP. It uses the installed extension's library:
+ *   sudo -u psaadm /usr/local/psa/admin/bin/php seed_demo_history.php [options]
  */
-$plibDir = dirname(__DIR__) . '/library';
+$plibDir = getenv('STINGYSCAN_PLIB') ?: '/usr/local/psa/admin/plib/modules/stingyscan/library';
+if (!is_file($plibDir . '/VtDataDir.php')) {
+    fwrite(STDERR, "Stingy Scanner is not installed here (no $plibDir). Set STINGYSCAN_PLIB to its library folder.
+");
+    exit(1);
+}
 require_once $plibDir . '/VtDataDir.php';
 require_once $plibDir . '/VtSettings.php';
 require_once $plibDir . '/VtCache.php';

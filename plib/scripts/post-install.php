@@ -34,8 +34,10 @@ if ($oldData !== $newData && is_dir($oldData) && !file_exists($marker)) {
     echo "Stingy Scanner: copied $n data files from VT Site Scanner.\n";
 }
 
-// Auto-remove VT Site Scanner (virustotal-extension) if still installed
-$installed = shell_exec('plesk bin extension --list 2>/dev/null') ?? '';
+// Auto-remove VT Site Scanner (virustotal-extension) if still installed. Not in the Plesk catalog edition:
+// an extension from the catalog never removes another extension; the administrator does that.
+require_once dirname(__DIR__) . '/library/VtEdition.php';
+$installed = VtEdition::CATALOG ? '' : (shell_exec('plesk bin extension --list 2>/dev/null') ?? '');
 if (str_contains($installed, 'virustotal-extension')) {
     exec('plesk bin extension --uninstall virustotal-extension 2>&1', $out, $rc);
     if ($rc === 0) {

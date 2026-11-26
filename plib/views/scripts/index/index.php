@@ -332,6 +332,7 @@ tr.vt-fs-row>td{background:var(--gray-bg);border-top:0;padding:10px 13px 12px}
 .vt-why-tbl{table-layout:fixed}
 .vt-why-tbl th:nth-child(1){width:22%}.vt-why-tbl th:nth-child(2){width:38%}
 .vt-why-tbl td:last-child{white-space:normal;color:inherit}
+.vt-why-tbl .vt-why-tip{white-space:normal;overflow-wrap:anywhere}
 .vt-why-tbl code{word-break:break-all}
 .vt-tbl-wrap tbody tr[data-domain]:has(.vt-why-btn):not(.vt-fs-row){cursor:pointer}
 .vt-fs-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -414,6 +415,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-why-btn{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:3px 6px;margin:-3px -6px;border-radius:6px}
 .vt-why-btn:hover,.vt-why-btn.open{background:var(--gray-bg)}
 .vt-why-lbl{font-size:10.5px;color:#2563eb;font-weight:600}
+.vt-why-howto{font-size:12.5px;line-height:1.55;color:#374151;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 11px;margin:8px 0}
+.vt-why-howto code{font-size:12px}
 .vt-why-note{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:6px;padding:8px 11px;font-size:12.5px;line-height:1.5;margin:8px 0}
 .vt-why-steps{margin:10px 0 4px 18px;padding:0;font-size:12.5px;line-height:1.55}
 .vt-why-steps li{margin-bottom:5px}
@@ -3485,6 +3488,10 @@ function vtWhyRowHTML(domain,st){
   if(list.length||avast.products?.length||gsb.enabled){
     // First the vendors of VirusTotal, below them the extra services switched on in Settings
     const extra=vtGsbRow(domain)+vtAvastRow(domain), tot=d.total?' of '+d.total:'';
+    h+='<div class="vt-why-howto"><strong>How asking for a review works:</strong> click <em>request a review ↗</em>. The vendor\'s form opens in a new tab '
+      +'and the site address (<code>https://'+vtEsc(domain)+'/</code>) is <strong>copied to your clipboard</strong>: paste it into the form. '
+      +'Stingy Scanner <strong>remembers every request</strong>: the vendor gets <em>✓ Requested</em> with the date and who asked, the count at the top goes up, '
+      +'and it is added to the site\'s history, for everyone who manages this site. Turned down? Click <em>denied</em> (with the reason). Clicked by mistake? <em>undo</em>.</div>';
     h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th>Vendor</th><th>Verdict</th><th>Ask for a review</th></tr></thead><tbody>'
       +'<tr class="vt-why-grp"><td colspan="3">VirusTotal vendors <span>'+(list.length?list.length+tot+' flag this site':'none'+tot+' flags this site')+'</span></td></tr>'
       +(list.length?list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')

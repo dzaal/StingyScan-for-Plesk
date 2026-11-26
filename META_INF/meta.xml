@@ -12,6 +12,7 @@
     <support_url>https://www.digizaal.nl/stingy-scanner/#support</support_url>
     <privacy_policy_url>https://www.digizaal.nl/stingy-scanner/privacy/</privacy_policy_url>
     <plesk_min_version>18.0</plesk_min_version>
+    <os>unix</os>
     <entry_points>
         <entry_point id="main" place="tools" text="Stingy Scanner" icon="htdocs/images/icon.png"/>
         <entry_point id="nav"  place="navigation" text="Stingy Scanner" icon="htdocs/images/icon.png"/>

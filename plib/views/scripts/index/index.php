@@ -169,7 +169,8 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-src label{display:flex;gap:5px;align-items:center;cursor:pointer}
 .vt-pw-src input[type=password]{padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:monospace;width:280px}
 .vt-fs-tbl.vt-pw-tbl td,.vt-fs-tbl.vt-pw-tbl td:last-child{white-space:normal;color:var(--text);word-break:normal;font-family:inherit}.vt-fs-tbl.vt-pw-tbl td:first-child{word-break:break-word}.vt-fs-tbl.vt-pw-tbl td.vt-fa-cell{white-space:nowrap}
-.vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:22%}
+.vt-pw-tbl td.site{font-weight:600;vertical-align:top;width:28%}
+.vt-pw-tbl th:first-child{width:32%;min-width:260px}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
 .vt-pw-fixlink{font-weight:600}
 .vt-fs-tbl.vt-ms-tbl td,.vt-fs-tbl.vt-ms-tbl td:last-child{white-space:normal;color:var(--text);font-family:inherit;word-break:normal}.vt-ms-tbl td:first-child{width:90px}
@@ -418,6 +419,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-rev-done{display:inline-flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:20px;padding:1px 8px}
 .vt-rev-done a{color:var(--muted);font-weight:400;cursor:pointer}
 .vt-why-tbl tr.vt-av-row td{background:var(--gray-bg)}
+.vt-why-tbl tr.vt-why-grp td{background:var(--gray-bg);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--heading);padding-top:8px;padding-bottom:6px;white-space:normal}
+.vt-why-tbl tr.vt-why-grp td span{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);margin-left:8px}
 .vt-why-tbl tr.asked td:first-child::after{content:' \2713';color:var(--green)}
 .vt-why-tip{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
 #vt-n-opts{margin-left:0}
@@ -3390,8 +3393,14 @@ function vtWhyRowHTML(domain,st){
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
   if(list.length||avast.products?.length||gsb.enabled){
-    h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th>Vendor</th><th>Verdict</th><th>Ask for a review</th></tr></thead><tbody>'+vtGsbRow(domain)+vtAvastRow(domain)
-      +list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')+'</tbody></table>';
+    // First the vendors of VirusTotal, below them the extra services switched on in Settings
+    const extra=vtGsbRow(domain)+vtAvastRow(domain), tot=d.total?' of '+d.total:'';
+    h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th>Vendor</th><th>Verdict</th><th>Ask for a review</th></tr></thead><tbody>'
+      +'<tr class="vt-why-grp"><td colspan="3">VirusTotal vendors <span>'+(list.length?list.length+tot+' flag this site':'none'+tot+' flags this site')+'</span></td></tr>'
+      +(list.length?list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')
+        :'<tr><td colspan="3" class="hint">No VirusTotal vendor flags this site'+(d.last_scan?' (report of '+vtEsc(d.last_scan)+')':'')+'.</td></tr>')
+      +(extra?'<tr class="vt-why-grp"><td colspan="3">Extra services <span>switched on in Settings</span></td></tr>'+extra:'')
+      +'</tbody></table>';
   }
   h+=fsScanCollHTML(domain);
   if(list.length){

@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.15.0 — 2026-11-26
+- Site details: the vendor table first lists the **VirusTotal vendors** that flag the site (with how many of all VirusTotal vendors), then the **extra services** switched on in Settings (Google Safe Browsing, AVG, Avast), each group under its own heading.
+- Pwned Admins: the first column (e-mail address, or site in the Group view) is wider.
+
 ## 2.14.1 — 2026-11-26
 - Site details: the note *Already cleaned the site, and it is still red or orange?* is only shown for an infected (red) or suspicious (orange) site, or when a vendor flags it; no longer for clean sites.
 

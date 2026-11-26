@@ -1,5 +1,5 @@
 <?php
-// php tests/StatsTest.php — installation statistics (VtStats): off by default, exactly four fields when on,
+// php tests/StatsTest.php — installation statistics (VtStats): on by default, off when switched off, exactly four fields,
 // once a week, stable ID, opt-out stops at once, failures and inventory errors. No network: send is replaced.
 require __DIR__ . '/../plib/library/VtStats.php';
 
@@ -22,19 +22,20 @@ $deps = function () use (&$sent, &$now, &$host, &$sites, &$ver, &$up) {
     ];
 };
 
-// Off by default: fresh install, and an existing install with settings saved before this version
-check(VtStats::checkIn($deps()) === 'off' && !$sent, 'fresh install: off, no request');
-check(!is_file(VtDataDir::path(VtStats::ID_FILE)), 'fresh install: no installation ID made');
-(new VtSettings('admin'))->setAll(['notify_enabled' => true]); // an older settings file without stats_share
-check(VtStats::checkIn($deps()) === 'off' && !$sent, 'existing install without the setting: off, no request');
-(new VtSettings('admin'))->set('stats_share', 'true');
-check(VtStats::checkIn($deps()) === 'off', 'only a real true switches it on (saved value is a boolean)');
+// Switched off by the administrator: nothing is sent, no ID is made
+(new VtSettings('admin'))->set('stats_share', false);
+check(VtStats::checkIn($deps()) === 'off' && !$sent, 'switched off: no request');
+check(!is_file(VtDataDir::path(VtStats::ID_FILE)), 'switched off: no installation ID made');
 
-// Opt in: exactly the four fields, to the HTTPS endpoint
-(new VtSettings('admin'))->set('stats_share', true);
-check(VtStats::checkIn($deps()) === 'sent' && count($sent) === 1, 'opted in: one check-in sent');
+// On by default: an existing install whose settings file has no stats_share yet (saved before this version)
+file_put_contents(VtDataDir::path('vt_settings_admin.json'), json_encode(['notify_enabled' => true]));
+check(VtStats::enabled(), 'never saved: on by default');
+check(VtStats::checkIn($deps()) === 'sent' && count($sent) === 1, 'on by default: one check-in sent');
 [$url, $json] = $sent[0]; $body = json_decode($json, true);
 check($url === 'https://stats.digizaal.nl/check-in', 'sent to https://stats.digizaal.nl/check-in');
+$fresh = sys_get_temp_dir() . '/vtstats-fresh-' . bin2hex(random_bytes(4)); VtDataDir::useBase($fresh);
+check(VtStats::enabled(), 'fresh install (no settings file at all): on by default');
+VtDataDir::useBase($dir); @rmdir($fresh);
 $k = array_keys($body); sort($k);
 check($k === ['hosted_sites', 'hostname', 'installation_id', 'version'], 'exactly installation_id, hostname, version, hosted_sites');
 check(preg_match('/^[a-f0-9]{32}$/', $body['installation_id']) === 1 && $body['hostname'] === $host && $body['version'] === $ver && $body['hosted_sites'] === 12, 'field values and types (site count is a number)');

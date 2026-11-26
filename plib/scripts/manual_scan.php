@@ -23,7 +23,7 @@ require_once $plibDir . '/VtManualQueue.php';
 require_once $plibDir . '/VtNotifier.php';
 require_once $plibDir . '/VtLogRotate.php';
 
-// Installation statistics (Settings, opt-in, off by default): at most once a week, after everything else
+// Installation statistics ("Talk to mama", Settings, on by default): at most once a week, after everything else
 // this run does, so a slow or unreachable collector never delays or stops a scan (see VtStats)
 register_shutdown_function(function () use ($plibDir) {
     try {

@@ -40,7 +40,7 @@ class VtSettings
         'api_key'            => '',
         'wordpress_only'     => false, // false = every hosted website, true = WordPress sites only
         'notify_enabled'     => false,
-        'stats_share'        => false,  // installation statistics to Digizaal (VtStats); off unless the administrator switches it on
+        'stats_share'        => true,   // installation statistics to Digizaal (VtStats, "Talk to mama"); on unless the administrator switches it off
         'notify_events'      => ['infected', 'suspicious'],
         'notify_email'       => '',
         'login'              => '',

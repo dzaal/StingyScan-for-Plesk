@@ -5,8 +5,9 @@ Install or update: see the [latest release](https://github.com/dzaal/StingyScan-
 
 ## Unreleased
 - README: new screenshots of **Pwned Admins**, **Admin changes** (with Explain) and a site's **WordPress admin accounts** with red signals and grey hints, and a new Settings screenshot with the index; the intro, features and Settings section describe the current functionality (placeholder names in all screenshots).
-- Settings: every section and group heading has an **↑ Index** link back to the index at the top. The statistics section is listed in the index as *Share statistics with Digizaal*.
-- **Installation statistics (opt-in, off by default):** Settings → Maintenance → *Share installation statistics with Digizaal*. When the server administrator switches it on, the 5-minute task sends once a week the server's host name, the version, the number of hosted websites and a random installation ID to stats.digizaal.nl. Nothing else; never domain names, customers, API keys or scan results. Settings shows what would be sent, from the server itself. See the README.
+- Settings: every section and group heading has an **↑ Index** link back to the index at the top. The statistics section is listed in the index as *Talk to mama (statistics)*.
+- **Installation statistics ("Talk to mama"), on by default:** Settings → Maintenance → *Talk to mama: Share installation statistics*. Once a week the 5-minute task sends the server's host name, the version, the number of hosted websites and a random installation ID to stats.digizaal.nl. Nothing else; never domain names, customers, API keys or scan results. Untick it and save to stop. Settings shows what is sent, from the server itself. See the README.
+- Settings: the checkbox next to a long text is no longer squeezed (all checkboxes in Settings).
 - **Collector** for those statistics in `collector/` (separate from the extension package), for stats.digizaal.nl: PHP and MariaDB, validation of exactly the documented fields, rate limits, one row per installation, a retention period (90 days) and a private dashboard with an overview, a trend chart of active installations, versions and hosted websites. Ready for more open-source programs: each is a project with its own fields in the config.
 
 ## 2.16.1 — 2026-11-26

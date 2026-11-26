@@ -603,7 +603,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
 /* Radio options */
 .vt-radio{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer;font-size:13px}
-.vt-radio input{margin-top:3px}
+.vt-radio input{margin-top:3px;flex-shrink:0} /* a long text next to it must not squeeze the box */
 .vt-radio .hint{font-size:12px;color:var(--muted)}
 
 /* Toasts */
@@ -1146,13 +1146,13 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-set-group" id="vt-grp-maint" data-toc-group="Maintenance"><h2>Maintenance</h2><span>Housekeeping</span></div>
-    <div class="vt-card" id="vt-stats-card" style="display:none" data-toc="Share statistics with Digizaal">
+    <div class="vt-card" id="vt-stats-card" style="display:none" data-toc="Talk to mama (statistics)">
       <h3>Installation statistics</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-stats-share">
-        <span><strong>Share installation statistics with Digizaal</strong><br>
-        <span class="hint">Off by default. If you enable this, StingyScan sends your server’s hostname, StingyScan version, number of hosted websites, and a random installation ID
+        <span><strong>Talk to mama: Share installation statistics</strong><br>
+        <span class="hint">On by default. StingyScan sends your server’s hostname, StingyScan version, number of hosted websites, and a random installation ID
           to stats.digizaal.nl once a week. Digizaal uses this information to count active installations and understand which versions and hosting sizes it supports.
-          Individual server details are visible to Digizaal. You can turn sharing off at any time. StingyScan does not send hosted domain names, customer information, API keys, or scan results.</span></span></label>
+          Individual server details are visible to Digizaal. You can turn sharing off at any time: untick this and save. StingyScan does not send hosted domain names, customer information, API keys, or scan results.</span></span></label>
       <div class="vt-stats-info" id="vt-stats-info"></div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>

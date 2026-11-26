@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.14.0 — 2026-11-26
+- Settings: the section *Breach data* is now called **Breached admin accounts**.
+- When it is switched **Off**, the **Pwned Admins** tab is hidden for every user (right away after saving, and on every page load). Choosing XposedOrNot or Have I Been Pwned brings it back.
+
 ## 2.13.1 — 2026-11-26
 - Settings: the section *External sites* is now called **Add custom not hosted domains**. In the site list these sites are still marked *External*.
 

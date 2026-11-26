@@ -92,6 +92,7 @@ class IndexController extends pm_Controller_Action
         // The server name the administrator uses (for e-mails and links; the machine's own name can differ)
         if ($this->role() === 'admin') VtServerName::remember((string)($_SERVER['HTTP_HOST'] ?? ''));
         $this->view->baseUrl   = pm_Context::getBaseUrl();
+        $this->view->pwnedOn   = VtPwned::source() !== ''; // Settings → Breached admin accounts off: no Pwned Admins tab
         $version = $this->installedVersion();
         $this->view->version   = $version;
         // The old extension (VT Site Scanner 1.x) still installed next to Stingy Scanner: both would scan

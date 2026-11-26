@@ -645,7 +645,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <div class="vt-tabs">
     <div class="vt-tab active" id="vtab-dashboard" onclick="vtShowTab('dashboard')">Dashboard</div>
-    <div class="vt-tab" id="vtab-pwned" onclick="vtShowTab('pwned');vtLoadPwned()">Pwned Admins</div>
+    <div class="vt-tab" id="vtab-pwned" onclick="vtShowTab('pwned');vtLoadPwned()"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>Pwned Admins</div>
     <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()" style="display:none">Statistics</div>
     <div class="vt-tab" id="vtab-settings" onclick="vtShowTab('settings')">Settings</div>
     <div class="vt-tab" id="vtab-log" onclick="vtShowTab('log');vtLoadLog()">Log</div>
@@ -976,12 +976,12 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card" id="vt-pwcfg-card" style="display:none" data-toc="Breach data (Pwned Admins)">
-      <div class="vt-settings-title"><h3>Breach data</h3><span class="hint">Used by the Pwned Admins tab &middot; optional</span></div>
+    <div class="vt-card" id="vt-pwcfg-card" style="display:none" data-toc="Breached admin accounts">
+      <div class="vt-settings-title"><h3>Breached admin accounts</h3><span class="hint">The Pwned Admins tab &middot; optional</span></div>
       <div class="hint">Which service tests whether the e-mail addresses of the site administrators appear in a known data breach. Only the e-mail address is sent.
         Each address is tested once; addresses that were never tested are also tested in the background and each night.</div>
       <div class="vt-pwcfg-opts">
-        <label class="vt-radio"><input type="radio" name="vt-pw-src" value=""><span><strong>Off</strong><br><span class="hint">Nothing is sent; the Pwned Admins tab only lists the accounts</span></span></label>
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value=""><span><strong>Off</strong><br><span class="hint">Nothing is sent, and the Pwned Admins tab is hidden</span></span></label>
         <label class="vt-radio"><input type="radio" name="vt-pw-src" value="xon"><span><strong>XposedOrNot</strong> <span class="vt-pwcfg-tag">free</span><br><span class="hint">No key needed. About 25 addresses an hour and 90 a day; the rest is tested in the background.</span></span></label>
         <label class="vt-radio"><input type="radio" name="vt-pw-src" value="hibp"><span><strong>Have I Been Pwned</strong> <span class="vt-pwcfg-tag paid">own API key</span><br><span class="hint">Paid subscription; faster, with the full breach details. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key &#8599;</a>.</span></span></label>
       </div>
@@ -989,7 +989,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <div class="vt-field wide"><label for="vt-pw-key">Have I Been Pwned API key</label><input type="password" id="vt-pw-key" placeholder="Paste a key to replace the stored one" autocomplete="off" spellcheck="false" style="width:100%"><div class="hint" id="vt-pw-keyinfo">no key stored</div></div>
       </div>
       <div class="vt-save-row">
-        <button class="vt-btn primary" onclick="vtPwSaveSrc()">Save breach data</button>
+        <button class="vt-btn primary" onclick="vtPwSaveSrc()">Save</button>
         <span class="hint" id="vt-pw-srcmsg"></span>
       </div>
     </div>
@@ -1027,7 +1027,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </ul>
         A flag is a reason to investigate, not proof. Always verify before deleting an account.
       </div>
-      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen under <a href="#vt-pwcfg-card" onclick="vtTocGo(event,'vt-pwcfg-card')">Breach data</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned Admins tab lists every site's administrators at once.</div>
+      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen under <a href="#vt-pwcfg-card" onclick="vtTocGo(event,'vt-pwcfg-card')">Breached admin accounts</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned Admins tab lists every site's administrators at once.</div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
       </div>
@@ -1151,7 +1151,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           And one hacked site can drag down the server's IP address and every other site on it.</p>
           <p><strong>What this tool does about it.</strong> Stingy Scanner shows the damage to a site's reputation as soon as it happens, and helps you get delisted again
           after cleaning: which vendors flag the site, a review request per vendor, and the history until every one of them has removed it.
-          It also watches the cause: whether an administrator's e-mail address appears in a known data breach (<a onclick="vtShowTab('pwned');vtLoadPwned()" style="cursor:pointer">Pwned?</a>),
+          It also watches the cause: whether an administrator's e-mail address appears in a known data breach (<a onclick="vtOpenPwned(event)" style="cursor:pointer">Pwned?</a>),
           and whether a site has a rogue administrator account that an attacker added.</p>
           <p><strong>Free to run.</strong> Stingy Scanner is built for the free APIs of external services (VirusTotal, Google Safe Browsing, XposedOrNot),
           and spends their limited quota carefully, so it works completely free of charge. If they are installed on the server, it can also use
@@ -2607,6 +2607,12 @@ window.vtTocGo=function(ev,id){
   el.scrollIntoView({behavior:'smooth',block:'start'});
   el.classList.remove('vt-toc-hit'); void el.offsetWidth; el.classList.add('vt-toc-hit');
 };
+// The Pwned Admins tab, or (when switched off and hidden) its setting
+window.vtOpenPwned=function(ev){
+  if(ev) ev.preventDefault();
+  if(document.getElementById('vtab-pwned').style.display==='none') return vtGoSetting(null,'vt-pwcfg-card');
+  vtShowTab('pwned'); vtLoadPwned();
+};
 // From another tab: open Settings, then go to the section
 window.vtGoSetting=function(ev,id){ if(ev) ev.preventDefault(); vtShowTab('settings'); setTimeout(()=>vtTocGo(null,id),60); };
 
@@ -2897,7 +2903,7 @@ function vtRenderPwned(){
   // Source
   let src='';
   if(c.admin){
-    const go='<a href="#vt-pwcfg-card" onclick="vtGoSetting(event,\'vt-pwcfg-card\')">Settings → Breach data</a>';
+    const go='<a href="#vt-pwcfg-card" onclick="vtGoSetting(event,\'vt-pwcfg-card\')">Settings → Breached admin accounts</a>';
     src=c.source
       ?'<div class="vt-pw-src"><span>Breach data from <strong>'+vtEsc(c.source_name||c.source)+'</strong>'+(c.calls?' · '+c.calls+' request'+(c.calls===1?'':'s')+' today':'')+'</span><span class="hint">change in '+go+'</span></div>'
       :'<div class="vt-alert warn" style="display:block">Breach data is switched off, so the addresses are not tested. Choose a service in '+go+'.</div>';
@@ -3055,7 +3061,7 @@ window.vtPwFixGo=async function(){
   vtRenderPwned(); vtPwFixRender();
 };
 window.vtRenderPwned=vtRenderPwned; // the search box redraws the list on every key
-// Settings → Breach data (administrator): which service tests the addresses of the Pwned Admins tab
+// Settings → Breached admin accounts (administrator): which service tests the addresses of the Pwned Admins tab
 function vtRenderPwCfg(c){
   const card=document.getElementById('vt-pwcfg-card'); card.style.display=c?'':'none'; if(!c) return;
   document.querySelectorAll('input[name=vt-pw-src]').forEach(r=>r.checked=r.value===(c.setting||''));
@@ -3071,7 +3077,8 @@ window.vtPwSaveSrc=async function(){
   vtRenderPwCfg(r.config);
   if(r.message) m.textContent+=' · '+r.message;
   if(pw){pw.config=r.config; vtRenderPwned();}
-  vtToast(src?'Breach data from '+(r.config.source_name||src):'Breach data check switched off','info');
+  document.getElementById('vtab-pwned').style.display=r.config.source?'':'none'; // off: no Pwned Admins tab
+  vtToast(src?'Breach data from '+(r.config.source_name||src):'Breached admin accounts switched off: the Pwned Admins tab is hidden','info');
 };
 /**
  * Check one address, shown in the Scan Monitor. Short waits for the service's request limit are

@@ -219,7 +219,7 @@ Both e-mails come from the server administrator's Plesk address and name the ser
 
 The panel shows the sites with that activity and a **preview** of the e-mail. **Send test** sends it to an address of your choice, marked as a test, and changes nothing. Sending for real asks for confirmation; the address is then marked *✓ warned* or *✓ reset* with the date, and the Log tab lists it.
 
-**Settings → Breach data** (administrator) chooses the service; the Pwned Admins tab shows which one is in use, with a link to it:
+**Settings → Breached admin accounts** (administrator) chooses the service; the Pwned Admins tab shows which one is in use, with a link to it. **Off** sends nothing and hides the Pwned Admins tab for everyone:
 
 | Choice | Notes |
 |---|---|
@@ -249,7 +249,7 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
   - How long clean and infected results are cached.
 - **Google Safe Browsing** (administrator): on/off, API key with green check, calls today, requests per minute, and how to get a key with direct links to the Google Cloud Console. See [Google Safe Browsing](#google-safe-browsing-optional).
 - **AVG & Avast – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
-- **Breach data** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. See [Pwned Admins](#pwned-admins-data-breaches).
+- **Breached admin accounts** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins tab. See [Pwned Admins](#pwned-admins-data-breaches).
 
 **Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
@@ -587,7 +587,7 @@ What leaves the server, and only for the services you switched on:
 | VirusTotal | The domain names of the sites being checked. |
 | Google Safe Browsing | The `https://` and `http://` address of each site. Google may use them to improve its services. |
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
-| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when **Settings → Breach data** is set to Off. |
+| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when **Settings → Breached admin accounts** is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
 
 No site content or files are sent anywhere.

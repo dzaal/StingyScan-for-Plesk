@@ -317,6 +317,34 @@ class VtPwned
         if (!$fresh && is_array($c) && time() - (int)($c['t'] ?? 0) < self::ACCOUNTS_TTL && (int)($c['v'] ?? 1) >= 5) return $c['sites'] ?? [];
         $pdo = PleskDomains::pdo();
         if (!$pdo) return is_array($c) ? ($c['sites'] ?? []) : [];
+        $hosted = array_flip(PleskDomains::hostedAll());
+        $sites  = [];
+        foreach (self::wpInstalls() as $host => $use) {
+            foreach ($use as $s) {
+                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $s['path'], 'cms' => 'WordPress', 'type' => 'wordpress', 'db' => $s['db'], 'prefix' => $s['prefix'], 'base' => ''];
+            }
+            if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
+        }
+        // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel sites on the same server. When their installs
+        // cannot be read right now (the root helper is not reachable), the previous list is kept.
+        if (self::cmsConfigs() === null && is_array($c)) {
+            foreach ($c['sites'] ?? [] as $host => $list) foreach ($list as $a) if (($a['type'] ?? 'wordpress') !== 'wordpress') $sites[$host][] = $a;
+        } else {
+            foreach (self::otherAdmins($pdo, $hosted) as $host => $list) {
+                foreach ($list as $a) $sites[$host][] = $a;
+            }
+        }
+        ksort($sites);
+        @file_put_contents($file, json_encode(['t' => time(), 'v' => 5, 'sites' => $sites]));
+        return $sites;
+    }
+
+    /**
+     * The WordPress install of each hosted site: [host => [{db, prefix, path}]]. The install wp-config.php
+     * points to; old copies of the site in other databases are skipped.
+     */
+    public static function wpInstalls(): array
+    {
         $hosted  = array_flip(PleskDomains::hostedAll());
         $configs = self::wpConfigs();
         $live    = [];
@@ -325,27 +353,16 @@ class VtPwned
         foreach (PleskDomains::wordPressSources() ?? [] as $s) {
             if (isset($hosted[$s['host']])) $byHost[$s['host']][] = $s;
         }
-        $sites = [];
+        $out = [];
         foreach ($byHost as $host => $list) {
-            // The install wp-config.php points to; old copies of the site are skipped
             $use = array_values(array_filter($list, fn($s) => isset($live[$s['db'] . "\0" . $s['prefix']])));
             if (!$use) {
                 if ($configs !== null && count($list) > 1) usort($list, fn($a, $b) => $b['tables'] <=> $a['tables']);
                 $use = [$list[0]];
             }
-            foreach ($use as $s) {
-                $path = $live[$s['db'] . "\0" . $s['prefix']] ?? '';
-                foreach (self::admins($pdo, $s['db'], $s['prefix']) as $a) $sites[$host][$a['email'] . '|' . $a['login']] = $a + ['path' => $path, 'cms' => 'WordPress', 'type' => 'wordpress', 'db' => $s['db'], 'prefix' => $s['prefix'], 'base' => ''];
-            }
-            if (isset($sites[$host])) $sites[$host] = array_values($sites[$host]);
+            foreach ($use as $s) $out[$host][] = ['db' => $s['db'], 'prefix' => $s['prefix'], 'path' => $live[$s['db'] . "\0" . $s['prefix']] ?? ''];
         }
-        // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel sites on the same server
-        foreach (self::otherAdmins($pdo, $hosted) as $host => $list) {
-            foreach ($list as $a) $sites[$host][] = $a;
-        }
-        ksort($sites);
-        @file_put_contents($file, json_encode(['t' => time(), 'v' => 5, 'sites' => $sites]));
-        return $sites;
+        return $out;
     }
 
     const CMS = ['joomla' => 'Joomla', 'drupal' => 'Drupal', 'wotan' => 'Wotan', 'nextcloud' => 'Nextcloud', 'whmcs' => 'WHMCS', 'laravel' => 'Laravel'];

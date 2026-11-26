@@ -33,6 +33,12 @@ try {
     if (VtPwned::source() !== '') VtPwned::checkPending(60);
 } catch (\Throwable $e) {}
 
+// Admin rights on the WordPress sites: compared with the last scan once an hour (VtAdminWatch)
+try {
+    require_once $plibDir . '/VtAdminWatch.php';
+    VtAdminWatch::scan();
+} catch (\Throwable $e) {}
+
 // One run at a time: a run can take longer than the 5 minutes between runs
 $runLock = @fopen(VtDataDir::path('vt_manual_scan.lock'), 'c');
 if (!$runLock || !flock($runLock, LOCK_EX | LOCK_NB)) exit(0);

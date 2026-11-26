@@ -3,6 +3,14 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.16.0 — 2026-11-26
+- **Admin changes:** every hour Stingy Scanner compares who has admin rights on each WordPress site with the scan before, and reports what changed: a **new admin**, an **existing account made admin** (with its previous role), **admin rights without the administrator role** (capabilities given to an account or a custom role), a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** and a **new application password**. Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. The first scan is the baseline.
+- **Dashboard → Admin changes** lists the changes to review, with **Approve** and **Explain**: the requests to the admin screens in the site's access logs around that time (with IP address), the Stream plugin's audit log, and the account's logins. Each change is e-mailed once (Settings → WordPress admin accounts → *E-mail me when admin rights change*). **Scan now** compares right away.
+- **Trusted admin addresses** (Settings): your own and your agencies' addresses or `@domains`; their changes are approved automatically. An untrusted address with admin rights on sites of **different customers** is shown as a hint.
+- Site details, WordPress admin accounts: **red** badges are strong signals (a change, a breach, a new account), **grey** badges only hints (generic name, free or unrelated e-mail domain); only red ones count as *to review*. Each account shows since when it has admin rights and how. Accounts with admin rights but without the administrator role are listed too.
+- **🛠 Fix** for a pwned admin, in a site's admin accounts (instead of *Reset pwd*) and in Pwned Admins (now a clear red button): opens the Fix panel to warn the administrator or reset the password in an emergency.
+- README: a new section *What makes an account suspected*.
+
 ## 2.15.0 — 2026-11-26
 - Site details: the vendor table first lists the **VirusTotal vendors** that flag the site (with how many of all VirusTotal vendors), then the **extra services** switched on in Settings (Google Safe Browsing, AVG, Avast), each group under its own heading.
 - Pwned Admins: the first column (e-mail address, or site in the Group view) is wider.

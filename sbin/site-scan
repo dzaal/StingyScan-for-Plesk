@@ -359,6 +359,37 @@ if ($mode === 'mailcheck') {
     out(['relay' => $relay, 'ips' => $ips, 'hosted' => $hosted, 'dkim_sign' => $sign, 'dkim_key' => $local !== '',
          'dkim_dns' => $dns !== '', 'dkim_match' => $local !== '' && $local === $dns]);
 }
+if ($mode === 'adminlog') {
+    // Requests that can change WordPress accounts, from the site's access logs, between two times (read-only):
+    // admin user screens, the REST users route, application passwords, XML-RPC, plugin and theme changes, successful logins
+    $host = strtolower((string)($argv[2] ?? ''));
+    $from = (int)($argv[3] ?? 0); $to = (int)($argv[4] ?? 0);
+    if (!preg_match('/^[a-z0-9][a-z0-9.\-]*\.[a-z][a-z0-9\-]+$/', $host) || $from <= 0 || $to < $from) out(['error' => 'Invalid arguments']);
+    $dir = VHOSTS . 'system/' . $host . '/logs/';
+    if (!is_dir($dir)) out(['error' => 'No logs for ' . $host]);
+    $files = [];
+    foreach (['access_ssl_log', 'access_log'] as $f) foreach (['', '.processed'] as $x) if (is_file($dir . $f . $x)) $files[] = $dir . $f . $x;
+    if (!$files) foreach (['proxy_access_ssl_log', 'proxy_access_log'] as $f) if (is_file($dir . $f)) $files[] = $dir . $f;
+    $pat = '#"POST [^"]*(?:/wp-admin/(?:user-new|user-edit|users|profile|authorize-application|options|options-general|plugin-install|plugins|plugin-editor|theme-editor|theme-install|update)\.php'
+         . '|/wp-json/wp/v2/users|rest_route=(?:/|%2F)wp(?:/|%2F)v2(?:/|%2F)users|/xmlrpc\.php|/wp-login\.php[^"]*" 302'
+         . '|/administrator/index\.php|/admin/people|/user/\d+/edit|/user/register|/admin/modules|/user/login[^"]*" 30\d)#i'; // Joomla and Drupal too
+    $mon = ['Jan'=>1,'Feb'=>2,'Mar'=>3,'Apr'=>4,'May'=>5,'Jun'=>6,'Jul'=>7,'Aug'=>8,'Sep'=>9,'Oct'=>10,'Nov'=>11,'Dec'=>12];
+    $hits = []; $lo = $from - 300; $hi = $to + 60;
+    foreach ($files as $file) {
+        $fh = @fopen($file, 'r'); if (!$fh) continue;
+        while (($line = fgets($fh)) !== false) {
+            if (!preg_match($pat, $line)) continue;
+            if (!preg_match('#^(\S+) \S+ \S+ \[(\d{2})/(\w{3})/(\d{4}):(\d{2}):(\d{2}):(\d{2}) ([+-]\d{4})\] "([^"]*)" (\d{3}) \S+ "[^"]*" "([^"]*)"#', $line, $m)) continue;
+            $ts = gmmktime((int)$m[5], (int)$m[6], (int)$m[7], $mon[$m[3]] ?? 1, (int)$m[2], (int)$m[4]);
+            $off = (int)substr($m[8], 1, 2) * 3600 + (int)substr($m[8], 3, 2) * 60; $ts -= $m[8][0] === '-' ? -$off : $off;
+            if ($ts < $lo || $ts > $hi || (int)$m[10] >= 400) continue; // refused or failed requests changed nothing
+            $hits[$ts . '|' . md5($line)] = ['t' => $ts, 'ip' => $m[1], 'req' => mb_substr($m[9], 0, 200), 'status' => (int)$m[10], 'ua' => mb_substr($m[11], 0, 120)];
+        }
+        fclose($fh);
+    }
+    krsort($hits);
+    out(['hits' => array_values(array_slice($hits, 0, 80)), 'files' => array_map('basename', $files)]);
+}
 if ($mode === 'cmsconfigs') {
     // Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel installs: their folder and database (read-only; passwords are never returned)
     $list = [];

@@ -173,6 +173,27 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-pw-tbl th:first-child{width:32%;min-width:260px}
 .vt-pw-em.bad{color:#dc2626;font-weight:600}
 .vt-pw-fixlink{font-weight:600}
+.vt-pw-fixbtn{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:5px;border:1px solid #dc2626;background:#dc2626;color:#fff!important;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none!important;vertical-align:1px}
+.vt-pw-fixbtn:hover{background:#b91c1c;border-color:#b91c1c}
+.vt-aw{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);margin:0 0 14px;padding:10px 14px}
+.vt-aw.alert{border-color:#fca5a5;background:#fef2f2}
+.vt-aw-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer}
+.vt-aw-title{font-weight:700;font-size:14px;color:var(--heading)}
+.vt-aw.alert .vt-aw-title{color:#b91c1c}
+.vt-aw-arrow{color:var(--muted);font-size:11px}
+.vt-aw-ev{border:1px solid var(--border);border-radius:6px;background:var(--surface);padding:8px 10px;margin-top:8px;font-size:13px}
+.vt-aw-ev.open{border-left:4px solid #dc2626}
+.vt-aw-ev.info{opacity:.8}
+.vt-aw-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.vt-aw-when{margin-left:auto;font-size:12px;color:var(--muted)}
+.vt-aw-body{margin:4px 0 6px}
+.vt-aw-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.vt-aw-ok{color:var(--green,#16a34a);font-size:12px;font-weight:600}
+.vt-aw-explain{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.vt-aw-sub{font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--heading)}
+.vt-aw-more{margin-top:8px;font-size:12px}
+.vt-fs-tbl.vt-aw-tbl td,.vt-fs-tbl.vt-aw-tbl td:last-child{white-space:normal;word-break:break-word;font-family:inherit;color:var(--text)}
+.vt-wu-pill.hintpill{background:var(--gray-bg);color:var(--muted);border:1px solid var(--border)}
 .vt-fs-tbl.vt-ms-tbl td,.vt-fs-tbl.vt-ms-tbl td:last-child{white-space:normal;color:var(--text);font-family:inherit;word-break:normal}.vt-ms-tbl td:first-child{width:90px}
 .vt-pw-cms{display:inline-block;font-size:10px;font-weight:600;padding:0 5px;border-radius:4px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;margin-left:4px;vertical-align:middle}
 .vt-pw-fixed{color:var(--green,#16a34a);font-weight:600;cursor:help}
@@ -665,6 +686,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <code>plesk bin extension --uninstall virustotal-extension</code>
     </div>
 <?php endif; ?>
+    <div id="vt-aw-box" style="display:none"></div>
     <div class="vt-alert warn" id="vt-api-warning" style="display:none">
       No valid API key configured or key is invalid (HTTP 401) &mdash; scans will not work.
       <a onclick="vtShowTab('settings')" style="cursor:pointer">Configure in Settings &rarr;</a>
@@ -1015,21 +1037,27 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-card" id="vt-set-wp" data-toc="WordPress admin accounts">
-      <h3>WordPress admin user detection</h3>
+      <h3>WordPress admin accounts</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-s-rogue-scan">
         <span><strong>Scan for rogue WordPress admin accounts</strong><br>
-        <span class="hint">Shows all WordPress administrator accounts in a site's Details panel and flags suspicious ones. Only visible to the server administrator.</span></span></label>
+        <span class="hint">Shows every account with admin rights in a site's details and flags suspicious ones. Only visible to the server administrator.</span></span></label>
       <div class="hint" style="margin-top:10px;font-size:12px;line-height:1.6">
-        <strong>How detection works:</strong> Four heuristics are checked for every admin account:
+        <strong>What makes an account suspected.</strong> Only a <strong>strong signal</strong> (red) marks an account <em>to review</em>:
         <ul style="margin:4px 0 0;padding-left:18px">
-          <li><strong>Recently created</strong> — account younger than 30 days. Attackers add an admin user right after gaining access.</li>
-          <li><strong>Generic username</strong> — names like <code>admin2</code>, <code>wpuser</code>, <code>backup</code>, <code>support</code>, etc. that bots commonly use.</li>
-          <li><strong>Free email provider</strong> — Gmail, Yahoo, Hotmail etc. Attackers use throwaway accounts that cannot be traced.</li>
-          <li><strong>Foreign email domain</strong> — email domain unrelated to the site domain. Combined with other flags this is suspicious.</li>
-          <li><strong>Data breach</strong> — email address found in one or more known data breaches. If the same password is reused, the attacker can log straight in.</li>
+          <li><strong>A change in admin rights</strong> since the scan before (checked every hour; the first scan is the baseline): a new admin, an existing account made admin, admin rights through capabilities or a custom role instead of the administrator role, a new Multisite super admin, an admin's e-mail address changed, or a new application password. These show on <em>Dashboard → Admin changes</em> with <em>Approve</em> and <em>Explain</em>. Joomla, Drupal and the other systems in Pwned Admins are compared too.</li>
+          <li><strong>A breached address</strong>: the e-mail address is in a known data breach, so a reused password may let an attacker in.</li>
+          <li><strong>A new account</strong> (yellow): younger than 30 days.</li>
         </ul>
-        A flag is a reason to investigate, not proof. Always verify before deleting an account.
+        <strong>Hints</strong> (grey) are not suspicious on their own, because many real admins have them: a generic username (<code>admin2</code>, <code>support</code>…), a free e-mail provider, an e-mail domain unrelated to the site, or admin rights on sites of other customers.
+        A badge is a reason to investigate, not proof. Always check before deleting an account.
       </div>
+      <div class="vt-settings-numbers" style="margin-top:12px">
+        <div class="vt-field wide"><label for="vt-aw-trusted">Trusted admin addresses</label>
+          <textarea id="vt-aw-trusted" rows="4" style="width:100%;font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:5px" placeholder="you@your-agency.com&#10;@your-agency.com"></textarea>
+          <div class="hint">One per line: an address, or <code>@domain</code> for everyone at that domain. Your own and your agencies' addresses: their admin changes are approved automatically, and they are not flagged for being admin on sites of different customers.</div></div>
+      </div>
+      <label class="vt-radio" style="margin-top:6px"><input type="checkbox" id="vt-aw-mail">
+        <span><strong>E-mail me when admin rights change</strong><br><span class="hint">Once per change, to the notification address (or your Plesk address). Checked every hour.</span></span></label>
       <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen under <a href="#vt-pwcfg-card" onclick="vtTocGo(event,'vt-pwcfg-card')">Breached admin accounts</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned Admins tab lists every site's administrators at once.</div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -1298,6 +1326,7 @@ async function init(){
   const cfg=await vtFetch('?action=get-settings').catch(()=>({}));
   if(!cfg.has_key||cfg.api_key_invalid) document.getElementById('vt-api-warning').style.display='flex';
   loadSettingsForm(cfg);
+  if(cfg.role==='admin') vtAwLoad();
   document.getElementById('vtab-trend').style.display=''; // admin: the server; reseller and customer: their own sites
   if(!cfg.has_key||cfg.api_key_invalid){
     // Without a working key every lookup fails: show the sites as waiting for a key, not as errors
@@ -2574,6 +2603,7 @@ function loadSettingsForm(cfg){
   }
   vtRenderQuarantine(cfg.quarantine||null);
   vtRenderPwCfg(cfg.pwned||null);
+  if(cfg.admin_watch){document.getElementById('vt-aw-trusted').value=cfg.admin_watch.trusted||''; document.getElementById('vt-aw-mail').checked=!!cfg.admin_watch.mail;}
   const ms=cfg.mail_sender;
   document.getElementById('vt-ms-card').style.display=ms?'':'none';
   if(ms){
@@ -2749,6 +2779,10 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
+  if(scIsAdmin){
+    payload.admin_trusted=document.getElementById('vt-aw-trusted').value;
+    payload.admin_watch_mail=document.getElementById('vt-aw-mail').checked?'true':'false';
+  }
   if(document.getElementById('vt-ms-card').style.display!=='none'){
     payload.mail_from=document.getElementById('vt-ms-from').value.trim();
     payload.mail_from_name=document.getElementById('vt-ms-name').value.trim();
@@ -2884,7 +2918,7 @@ function pwStatusHTML(email){
   const n=r.breaches.length, fx=pw.fixed?.[email];
   const fix=!pw.config.admin||!pwIsAdminAddr(email)?''
     :fx?' · <span class="vt-pw-fixed" title="'+vtEsc((fx.kind==='reset'?'Password reset on ':'Warned about ')+fx.sites.join(', ')+(fx.failed?.length?'; failed on '+fx.failed.join(', '):'')+(fx.by?' · by '+fx.by:''))+'">✓ '+(fx.kind==='reset'?'reset':'warned')+' '+new Date(fx.at*1000).toLocaleDateString()+'</span> · <a onclick="vtPwFixOpen(\''+e+'\')">again…</a>'
-    :' · <a class="vt-pw-fixlink" onclick="vtPwFixOpen(\''+e+'\')">Fix…</a>';
+    :' <a class="vt-pw-fixbtn" onclick="vtPwFixOpen(\''+e+'\')" title="Warn this administrator by e-mail, or reset the password in an emergency">🛠 Fix</a>';
   return '<span class="vt-pw-bad">Pwned: '+n+' breach'+(n===1?'':'es')+'</span>'+fix+'<div class="vt-pw-br">'
     +r.breaches.slice(0,8).map(b=>'<span title="'+vtEsc((b.data||[]).join(', '))+'">'+vtEsc(b.title||b.name)+(b.date?' ('+vtEsc(b.date.slice(0,4))+')':'')+'</span>').join(', ')
     +(n>8?' and '+(n-8)+' more':'')+'</div>';
@@ -4002,6 +4036,15 @@ function vtWpUserActHTML(domain,userId){
   return h;
 }
 
+// Strong signals (a change in admin rights, a breach, a new account) make an account "to review"; the rest are hints
+const WU_HINTS=new Set(['suspicious_name','free_email','foreign_email','aw_cross']);
+function wuStrong(f){return f.code.startsWith('aw_')?(f.strong!==false&&f.code!=='aw_cross'):!WU_HINTS.has(f.code);}
+function wuSuspect(u){return (u.flags||[]).some(wuStrong);}
+function wuPillCls(f){
+  if(f.code==='hibp_breach') return 'bad';
+  if(f.code.startsWith('aw_')) return f.strong===false?(f.approved?'info':'hintpill'):'bad';
+  return f.code==='new_account'?'warn':'hintpill';
+}
 function vtWpUsersHTML(domain){
   if(!scIsAdmin||extSet.has(domain)) return '';
   const data=wpUsersData[domain];
@@ -4013,8 +4056,8 @@ function vtWpUsersHTML(domain){
   if(data==='loading') tail=' <span class="vt-spin" style="margin-left:4px"></span>';
   else if(data&&!data.error){
     const users=data.users||[];
-    const nSus=users.filter(u=>u.flags?.length).length;
-    if(nSus) tail=' · <span style="color:var(--red);font-weight:700">'+nSus+' suspicious</span>';
+    const nSus=users.filter(wuSuspect).length;
+    if(nSus) tail=' · <span style="color:var(--red);font-weight:700">'+nSus+' to review</span>';
     else if(users.length) tail=' <span class="hint">· '+users.length+' admin'+(users.length===1?'':'s')+', no flags</span>';
     else tail=' <span class="hint">· no WP install</span>';
   }else if(data&&data.error) tail=' <span style="color:var(--red);font-size:11px">· error</span>';
@@ -4031,25 +4074,32 @@ function vtWpUsersHTML(domain){
     if(!users.length){
       inner+='<div class="vt-fs-note">No WordPress admin accounts found.</div>';
     }else{
-      const nSus=users.filter(u=>u.flags?.length).length;
-      if(nSus) inner+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' suspicious account'+(nSus===1?'':'s')+' — hover a badge for the reason.</div>';
+      const nSus=users.filter(wuSuspect).length;
+      if(nSus) inner+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' account'+(nSus===1?'':'s')+' to review — hover a badge for the reason. Red = a change or a breach; grey = only a hint.</div>';
       inner+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
       const shieldSVG='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-6px;margin-right:4px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
       for(const u of users){
         const flags=u.flags||[];
-        const isSus=flags.length>0;
+        const isSus=wuSuspect(u);
         const hasBreach=flags.some(f=>f.code==='hibp_breach');
         const pwd=wpUsersPwd[domain+'|'+u.id];
-        const flagsHTML=flags.length
-          ? flags.map(f=>'<span class="vt-wu-pill '+(f.code==='hibp_breach'?'bad':f.code==='new_account'?'warn':'info')+'" title="'+vtEsc(f.detail)+'">'+(f.code==='hibp_breach'?shieldSVG:'')+vtEsc(f.label)+'</span>').join('')
-          : '<span style="color:var(--green);font-size:11px">✓ clean</span>';
+        const w=u.watch||{};
+        const sinceTxt=w.since?'admin since '+new Date(w.since*1000).toLocaleDateString():w.baseline?'admin since before '+new Date(w.baseline*1000).toLocaleDateString()+' (first scan)':'';
+        const flagsHTML=(flags.length
+          ? flags.map(f=>'<span class="vt-wu-pill '+wuPillCls(f)+'" title="'+vtEsc(f.detail)+'">'+(f.code==='hibp_breach'?shieldSVG:'')+vtEsc(f.label)+'</span>'
+              +(f.event&&f.strong?' <a class="vt-wu-approve" onclick="vtAwApprove(\''+vtEsca(f.event)+'\')" title="You or the site owner made this change">Approve</a>':'')).join('')
+          : '<span style="color:var(--green);font-size:11px">✓ clean</span>')
+          +(w.trusted?' <span class="vt-wu-pill hintpill" title="This address is on the Trusted admin addresses list in Settings">trusted</span>':'')
+          +(sinceTxt?'<div class="hint" style="font-size:11px;margin-top:2px">'+vtEsc(sinceTxt)+(w.via&&w.via!=='role administrator'?' · '+vtEsc(w.via):'')+'</div>':'');
         const otherAdmin=users.find(x=>x.id!==u.id);
         const delTitle=otherAdmin?'Posts and pages are reassigned to '+otherAdmin.login:'No other admin — posts will be unassigned. Consider resetting the password instead.';
         const actKey=domain+'|'+u.id, actIsOpen=!!wpUserActOpen[actKey];
         const actHTML='<div class="vt-wu-actions">'
           +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Show login and content activity for this user" onclick="vtWpUserActToggle(\''+e+'\','+u.id+')">'+(actIsOpen?'▼':'▶')+' Log</button>'
           +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="'+vtEsc(delTitle)+'" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
-          +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Generates a strong random password — copy it immediately" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>'
+          +(hasBreach&&u.email
+            ?'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="Pwned address: warn this administrator by e-mail, or reset the password in an emergency (opens the Fix panel)" onclick="vtWpFix(\''+vtEsca(u.email)+'\')">🛠 Fix</button>'
+            :'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Generates a strong random password — copy it immediately" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>')
           +'</div>';
         const login=vtEsc(u.login)+(u.display&&u.display!==u.login?' <span class="hint">'+vtEsc(u.display)+'</span>':'');
         const regDate=u.registered?u.registered.substring(0,10):'—';
@@ -4064,7 +4114,9 @@ function vtWpUsersHTML(domain){
         if(pwd) inner+='<tr><td colspan="5"><div class="vt-wu-new-pass">New password: <strong>'+vtEsc(pwd)+'</strong> — copy now, shown only once.</div></td></tr>';
       }
       inner+='</tbody></table>';
-      inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. Hover <strong>Delete</strong> to see where posts are reassigned. <strong>Reset pwd</strong> generates a strong random password — copy it immediately. Breach check by <a href="https://xposedornot.com" target="_blank" rel="noopener">XposedOrNot</a> (free, no key needed).</div>';
+      inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. <strong>Red</strong> badges are strong signals: admin rights that appeared or changed since the scan before, or a breached address. '
+        +'<strong>Grey</strong> badges are only hints (a generic name, a free or unrelated e-mail domain): many real admins have them. Hover <strong>Delete</strong> to see where posts are reassigned. '
+        +'<strong>🛠 Fix</strong> (pwned address) warns the administrator or resets the password in an emergency; <strong>Reset pwd</strong> generates a strong random password — copy it immediately.</div>';
     }
   }
   return '<details class="vt-wu-collapsible"'+(isOpen?' open':'')+' ontoggle="vtWpUsersToggle(this,\''+e+'\')">'
@@ -4072,6 +4124,110 @@ function vtWpUsersHTML(domain){
     +inner
     +'</details>';
 }
+
+
+// ── Admin changes (administrator): admin rights compared with the last scan, see VtAdminWatch ──
+let aw=null, awOpen=false, awExplain={};
+async function vtAwLoad(){
+  const r=await vtFetch('?action=admin-watch').catch(()=>null);
+  if(!r||r.error) return;
+  aw=r; vtAwRender();
+}
+function awTime(ts){return ts?new Date(ts*1000).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
+function awEventHTML(ev){
+  const id=vtEsca(ev.id), open=ev.approved?'':' open';
+  const ex=awExplain[ev.id];
+  let h='<div class="vt-aw-ev'+open+(ev.type==='removed'?' info':'')+'">'
+    +'<div class="vt-aw-head"><strong>'+vtEsc(ev.label)+'</strong> on <a onclick="vtAwSite(\''+vtEsca(ev.host)+'\')">'+vtEsc(ev.host)+'</a>'
+    +(ev.cms&&ev.cms!=='WordPress'?' <span class="vt-pw-cms">'+vtEsc(ev.cms)+'</span>':'')
+    +'<span class="vt-aw-when">between '+awTime(ev.from)+' and '+awTime(ev.to)+'</span></div>'
+    +'<div class="vt-aw-body">'
+    +(ev.login?'Account <strong>'+vtEsc(ev.login)+'</strong> &lt;'+vtEsc(ev.email)+'&gt;':'')
+    +(ev.detail?(ev.login?' · ':'')+vtEsc(ev.detail):'')
+    +(ev.prev?' · <span class="hint">before: '+vtEsc(ev.prev)+'</span>':'')
+    +(ev.registered&&ev.type==='promoted'?' · <span class="hint">account created '+awTime(ev.registered)+'</span>':'')
+    +'</div><div class="vt-aw-act">'
+    +(ev.approved?'<span class="vt-aw-ok">✓ approved'+(ev.approved.by==='trusted list'?' (trusted address)':' by '+vtEsc(ev.approved.by))+' '+awTime(ev.approved.at)+'</span>'
+      :(ev.type!=='removed'?'<button type="button" class="vt-btn" onclick="vtAwApprove(\''+id+'\')" title="You or the site owner made this change">Approve</button>':''))
+    +' <button type="button" class="vt-btn ghost" onclick="vtAwExplain(\''+id+'\')">'+(ex?'Hide explanation':'Explain')+'</button>'
+    +'</div>';
+  if(ex) h+='<div class="vt-aw-explain">'+awExplainHTML(ex,ev)+'</div>';
+  return h+'</div>';
+}
+function awExplainHTML(x,ev){
+  if(x==='loading') return '<span class="vt-spin"></span> Reading the access logs and the audit log…';
+  if(x.error) return '<span style="color:var(--red)">'+vtEsc(x.error)+'</span>';
+  const t=ts=>new Date(ts*1000).toLocaleString();
+  let h='<div class="hint">Everything between '+t(x.from-300)+' and '+t(x.to+60)+' (the change happened in this period).</div>';
+  h+='<div class="vt-aw-sub">Requests that can change accounts <span class="hint">(access logs of '+vtEsc(ev.host)+')</span></div>';
+  if(x.log_error) h+='<div class="hint">'+vtEsc(x.log_error)+'</div>';
+  else if(!x.log.length) h+='<div class="hint">None found. The change may have been made directly in the database, through FTP/SSH (a script), or the logs of that period are already rotated.</div>';
+  else h+='<table class="vt-fs-tbl vt-aw-tbl"><thead><tr><th>Time</th><th>IP address</th><th>Request</th><th>Status</th></tr></thead><tbody>'
+    +x.log.map(l=>'<tr><td>'+vtEsc(t(l.t))+'</td><td>'+vtEsc(l.ip)+'</td><td title="'+vtEsc(l.ua)+'">'+vtEsc(l.req)+'</td><td>'+l.status+'</td></tr>').join('')+'</tbody></table>';
+  if(!String(ev.key||'').startsWith('cms:')){
+    h+='<div class="vt-aw-sub">WordPress audit log <span class="hint">(Stream plugin)</span></div>';
+    h+=x.stream_missing?'<div class="hint">The Stream plugin is not installed on this site. With it, WordPress itself records who changed which account.</div>'
+      :!x.stream.length?'<div class="hint">No user changes recorded in this period.</div>'
+      :x.stream.map(s=>'<div class="vt-sh-row"><div class="vt-sh-time">'+vtEsc(t(s.t))+'</div><div class="vt-sh-text">'+vtEsc(s.summary||s.action)+(s.ip?' <span class="hint">from '+vtEsc(s.ip)+'</span>':'')+'</div></div>').join('');
+    if(ev.uid){
+      h+='<div class="vt-aw-sub">Logins of this account <span class="hint">(sessions that are still stored)</span></div>';
+      h+=!x.logins.length?'<div class="hint">No stored sessions.</div>'
+        :x.logins.slice(0,8).map(s=>'<div class="vt-sh-row"><div class="vt-sh-time">'+vtEsc(t(s.t))+'</div><div class="vt-sh-text">🔑 Login'+(s.ip?' from '+vtEsc(s.ip):'')+(s.ua?' <span class="hint">'+vtEsc(s.ua)+'</span>':'')+'</div></div>').join('');
+    }
+  }
+  return h;
+}
+function vtAwRender(){
+  const box=document.getElementById('vt-aw-box'); if(!aw){box.style.display='none'; return;}
+  const evs=aw.events||[], open=evs.filter(e=>!e.approved&&e.type!=='removed'), cross=Object.entries(aw.cross||{});
+  if(!evs.length&&!cross.length){box.style.display='none'; return;}
+  box.style.display='';
+  let h='<div class="vt-aw'+(open.length?' alert':'')+'"><div class="vt-aw-top" onclick="vtAwToggle()"><span class="vt-aw-title">'
+    +(open.length?'⚠ '+open.length+' admin change'+(open.length===1?'':'s')+' to review':'Admin changes')+'</span>'
+    +'<span class="hint">'+(open.length?'Admin rights appeared or changed on '+[...new Set(open.map(e=>e.host))].length+' site'+([...new Set(open.map(e=>e.host))].length===1?'':'s')+' since the scan before. Approve what you or the site owner did.':evs.length?'all changes approved':'no changes since the first scan')
+    +(cross.length?' · '+cross.length+' address'+(cross.length===1?'':'es')+' with admin rights on sites of different customers':'')
+    +' · last scan '+awTime(aw.last)+'</span><span style="flex:1"></span>'
+    +'<button type="button" class="vt-btn ghost" onclick="event.stopPropagation();vtAwScan(this)">Scan now</button>'
+    +'<span class="vt-aw-arrow">'+(awOpen||open.length?'▲':'▼')+'</span></div>';
+  if(awOpen||open.length){
+    h+=open.map(awEventHTML).join('');
+    if(awOpen){
+      const rest=evs.filter(e=>!open.includes(e));
+      if(rest.length) h+='<div class="vt-aw-sub">Earlier changes</div>'+rest.slice(0,40).map(awEventHTML).join('');
+      if(cross.length) h+='<div class="vt-aw-sub">Admin on sites of different customers <span class="hint">(normal for a web agency or maintainer: add those addresses to Trusted admin addresses in Settings)</span></div>'
+        +'<table class="vt-fs-tbl vt-aw-tbl"><tbody>'+cross.map(([em,l])=>'<tr><td><strong>'+vtEsc(em)+'</strong></td><td>'+l.map(x=>vtEsc(x.host)+(x.owner?' <span class="hint">('+vtEsc(x.owner)+')</span>':'')).join(', ')+'</td></tr>').join('')+'</tbody></table>';
+    }else if(evs.length>open.length||cross.length) h+='<div class="vt-aw-more"><a onclick="vtAwToggle()">Show earlier changes'+(cross.length?' and shared admin addresses':'')+'</a></div>';
+  }
+  box.innerHTML=h+'</div>';
+}
+window.vtAwToggle=function(){awOpen=!awOpen; vtAwRender();};
+window.vtAwSite=function(host){
+  const s=document.getElementById('vt-search'); if(s){s.value=host; s.dispatchEvent(new Event('input'));}
+  vtShowTab('dashboard'); document.getElementById('vt-tbody')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.vtAwApprove=async function(id){
+  const r=await vtPostAct('admin-watch-approve',{id});
+  if(!r.ok){vtToast(r.error||'Failed','error'); return;}
+  vtToast('Change approved','ok'); await vtAwLoad();
+  for(const d in wpUsersData) if(wpUsersData[d]&&wpUsersData[d]!=='loading') vtWpUsersLoad(d,true);
+};
+window.vtAwExplain=async function(id){
+  if(awExplain[id]){delete awExplain[id]; vtAwRender(); return;}
+  awExplain[id]='loading'; vtAwRender();
+  const r=await vtFetch('?action=admin-watch-explain&id='+encodeURIComponent(id)).catch(()=>({error:'Request failed'}));
+  awExplain[id]=r; vtAwRender();
+};
+window.vtAwScan=async function(btn){
+  btn.disabled=true; btn.textContent='Scanning…';
+  const r=await vtPostAct('admin-watch-scan',{});
+  vtToast(r.ok?(r.new?r.new+' change'+(r.new===1?'':'s')+' found':'No changes since the last scan'):(r.error||'Failed'),r.ok?'info':'error');
+  await vtAwLoad();
+};
+// Fix a pwned admin address from a site's admin list: the same panel as in Pwned Admins
+window.vtWpFix=async function(email){
+  vtShowTab('pwned'); if(!pw) await vtLoadPwned();
+  vtPwFixOpen(email);
+};
 
 init().then(()=>vtCheckUpdate());
 })();

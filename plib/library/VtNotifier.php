@@ -237,6 +237,13 @@ class VtNotifier
         return [$subject, implode("\n", $L) . "\n"];
     }
 
+    /** A plain text e-mail from the sender in Settings (used by other parts, e.g. admin changes) */
+    public static function sendRaw(string $to, string $subject, string $body): bool
+    {
+        $body .= "\n-- \nStingy Scanner on " . VtServerName::label() . ': ' . self::panelUrl() . "\n";
+        return self::send($to, $subject, $body);
+    }
+
     private static function send(string $to, string $subject, string $body): bool
     {
         $headers = implode("\r\n", [

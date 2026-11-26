@@ -91,7 +91,7 @@ Stingy Scanner was built to fix that:
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
-- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned Admins tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned Admins tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#rogue-admin-detection-administrator).
 - **Pwned Admins tab:** every WordPress administrator on the server and whether their e-mail address is in a known data breach, with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. Add any other address by hand (see [Pwned?](#pwned-admins-data-breaches)).
 - **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
@@ -157,35 +157,69 @@ Every optional online service and every internal scanner has its own **1–5 req
 
 The switches save right away and apply to the whole server; only the administrator can change them. The extension checks what is installed once an hour, and again each time the administrator opens Settings. After you install or remove a scanner, **Re-detect engines** updates it immediately.
 
-## WordPress rogue admin detection (administrator)
+## Rogue admin detection (administrator)
 
-A compromised or attacker-added WordPress administrator account is one of the most common ways a cleaned site gets re-infected: the attacker logs back in and re-uploads the malware. Stingy Scanner surfaces these accounts before that happens.
+A compromised or attacker-added administrator account is one of the most common ways a cleaned site gets re-infected: the attacker logs back in and uploads the malware again. Stingy Scanner looks for these accounts in two ways: it **watches for changes in admin rights** (the strong signal), and it **marks accounts that look unusual** (hints, for sorting).
 
-Open any site's details panel (click anywhere on the row) and scroll to **WordPress admin accounts** at the bottom. The section loads all WordPress administrator accounts for that site and flags suspicious ones with coloured badges:
+### What makes an account suspected
 
-| Badge | Meaning |
-|-------|---------|
-| New account | Registered less than 30 days ago |
-| Suspicious name | Generic or bot-pattern username (`admin`, `wp-admin`, random strings, …) |
-| Free email | Gmail, Yahoo, Hotmail, Outlook, … — disposable, hard to trace |
-| Foreign email | Email domain unrelated to the site domain |
-| Found in N breaches | Email address in a known data breach (source: XposedOrNot) |
+An account is marked **to review** (red) only for a strong signal. Grey badges are hints: many real admins have them, so on their own they don't make an account suspected.
 
-Every admin email is checked once against the breach service chosen in the **Pwned Admins** tab (see below). When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …).
+**Strong signals (red): something changed, or the address is known to attackers**
 
-A flag is a reason to investigate, not proof. Always verify before taking action.
+| Signal | What it means |
+|---|---|
+| **New admin account** | An account with admin rights appeared that was not there at the scan before. Attackers add one right after they get in. |
+| **Existing account got admin rights** | An older account (a subscriber, customer, editor…) was promoted. Shows the previous role and when the account was created: an account from years ago can get admin rights today. |
+| **Admin rights without the administrator role** | The account can take over the site through capabilities such as `manage_options`, `promote_users`, `create_users`, `edit_users` or `install_plugins`, given directly to the account or to a custom role. A role name alone does not show this, which is why attackers use it. |
+| **A role got admin rights** | A role other than administrator (for example *editor* or a plugin's role) gained one of those capabilities. Everyone with that role now counts as an admin. |
+| **New Multisite super admin** | A new super admin of a WordPress network. |
+| **Admin e-mail address changed** | The address of an existing admin changed: the usual first step of an account takeover (the password reset mail then goes to the attacker). The admin list stays the same, so only a comparison catches it. |
+| **New application password** | A new application password for an admin: a login for the REST API and XML-RPC that skips the normal login screen and two-factor login. |
+| **Found in N breaches** | The address is in a known data breach (see [Pwned Admins](#pwned-admins-data-breaches)): if the password was reused, an attacker can simply log in. |
+| **Created N days ago** (yellow) | The account is less than 30 days old. |
 
-### Actions
+**Hints (grey): worth a look, not suspicious on their own**
 
-- **▶ Log** — expands an inline activity row for that user showing: recent logins with timestamps and IP addresses (from WordPress session tokens), recent posts and pages created or edited, and — if the [Stream plugin](https://wordpress.org/plugins/stream/) is installed — a full audit trail with logins, password resets and content changes.
-- **Delete** — removes the user via WP-CLI; posts and pages are automatically reassigned to another administrator. Hover the button to see who gets the content. Requires WP-CLI on the server.
-- **Reset pwd** — generates a strong random password and applies it via WP-CLI. The new password is shown once; copy it immediately.
+| Hint | Why it is only a hint |
+|---|---|
+| Generic or bot-added username (`admin2`, `support`, `wpuser`, a random string…) | Bots use these names, but so do some site builders. |
+| Free e-mail provider (Gmail, Hotmail…) | Many site owners use one. |
+| E-mail from an unrelated domain | Normal for a web agency or maintainer. |
+| Admin on N sites of other customers | The same address has admin rights on sites of different customers. Normal for an agency; otherwise one attacker may have added the same account to several sites. |
+
+A badge is a reason to investigate, not proof. Always check before deleting an account.
+
+### How the changes are found
+
+- Every hour, Stingy Scanner reads who has admin rights on every WordPress site on the server: the administrator role, every role and capability that gives control over the site, Multisite super admins, the admins' e-mail addresses and their application passwords. Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins (the ones listed in [Pwned Admins](#pwned-admins-data-breaches)) are compared too: new admin, existing account made admin, e-mail address changed, admin removed.
+- The **first scan is the baseline**: the admins that are there already are not reported (their badge says *admin since before* that date). From then on, each scan is compared with the one before, and every difference becomes a change.
+- **Dashboard → Admin changes** lists the changes that nobody approved yet, with the site, the account, what it was before and between which two scans it happened. A change appears there, and is e-mailed once, on the first scan that sees it.
+- **Approve** a change that you or the site owner made. Changes of a **trusted address** (Settings) are approved automatically.
+- **Explain** shows what happened in that period:
+  - the requests that can change accounts, from the site's own access logs (WordPress user screens, the REST users route, application passwords, XML-RPC, plugin and theme changes, successful logins; for Joomla and Drupal their admin and user screens), with time and IP address;
+  - the WordPress audit log of user changes, when the [Stream plugin](https://wordpress.org/plugins/stream/) is installed;
+  - the logins of the account that WordPress still has stored, with IP address.
+
+  No requests found usually means the change was made directly in the database or by a script uploaded to the site, which is itself a strong sign of a hack.
+- **Scan now** compares right away instead of waiting for the next hour.
+
+### In a site's details
+
+Open any site's details (click anywhere on the row) and scroll to **WordPress admin accounts**. It lists every account with admin rights (also the ones without the administrator role), with the badges above, since when the account has admin rights, and how (role or capabilities). A red change badge has its own **Approve** link.
+
+- **▶ Log**: recent logins with time and IP address (from WordPress session tokens), recent posts and pages, and the Stream audit trail when that plugin is installed.
+- **Delete**: removes the user via WP-CLI; posts and pages go to another administrator (hover the button to see who). Requires WP-CLI.
+- **🛠 Fix** (for a pwned address): opens the same Fix panel as in Pwned Admins, to warn the administrator by e-mail or reset the password in an emergency.
+- **Reset pwd** (other accounts): generates a strong random password via WP-CLI, shown once; copy it immediately.
 
 ### Settings
 
-**Settings → WordPress admin user detection** (administrator only):
+**Settings → WordPress admin accounts** (administrator only):
 
-- **Enable / disable** the scan for all users on the server.
+- **Scan for rogue WordPress admin accounts**: on or off for the whole server.
+- **Trusted admin addresses**: one per line, an address or `@domain` (your own and your agencies'). Their changes are approved automatically and they are not flagged for being admin on sites of different customers.
+- **E-mail me when admin rights change**: once per change, to the notification address (or the Plesk administrator's address), from the sender in Settings → E-mail sender.
 
 WP-CLI must be installed on the server for Delete and Reset pwd. Without it, those buttons show an error with a link to [wp-cli.org](https://wp-cli.org).
 
@@ -254,7 +288,7 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
 **Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
 - **Add custom not hosted domains**: sites hosted elsewhere, see [External sites](#external-sites).
-- **WordPress admin user detection** (administrator): enable or disable the rogue admin scan for all users on the server. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **WordPress admin accounts** (administrator): enable or disable the rogue admin scan for all users on the server, the trusted admin addresses and the e-mail when admin rights change. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#rogue-admin-detection-administrator).
 
 **On this server**
 - **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).

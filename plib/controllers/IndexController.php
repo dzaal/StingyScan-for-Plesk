@@ -24,6 +24,7 @@ require_once $_vtLib . '/VtExternal.php';
 require_once $_vtLib . '/VtPwned.php';
 require_once $_vtLib . '/VtServerName.php';
 require_once $_vtLib . '/VtMailSender.php';
+require_once $_vtLib . '/VtAdminWatch.php';
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -878,6 +879,10 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
         if ($this->role() === 'admin') {
+            $adm = $adm ?? new VtSettings('admin');
+            $s['admin_watch'] = ['trusted' => implode("\n", VtAdminWatch::trusted()), 'mail' => (bool)$adm->get('admin_watch_mail', true), 'last' => VtAdminWatch::lastScan()];
+        }
+        if ($this->role() === 'admin') {
             $adm = new VtSettings('admin');
             $s['mail_sender'] = ['from' => (string)$adm->get('mail_from', ''), 'name' => (string)$adm->get('mail_from_name', ''),
                                  'default' => VtNotifier::emailOfLogin('admin') ?: ''];
@@ -975,6 +980,22 @@ class IndexController extends pm_Controller_Action
         }
 
         // Log rotation and quarantine: server-wide settings of the administrator
+        if ($this->role() === 'admin' && (isset($input['admin_trusted']) || isset($input['admin_watch_mail']))) {
+            $aw = [];
+            if (isset($input['admin_watch_mail'])) $aw['admin_watch_mail'] = filter_var($input['admin_watch_mail'], FILTER_VALIDATE_BOOLEAN);
+            if (isset($input['admin_trusted'])) {
+                $list = [];
+                foreach (preg_split('/[\s,;]+/', strtolower((string)$input['admin_trusted'])) as $t) {
+                    if ($t === '') continue;
+                    $ok = $t[0] === '@' ? (bool)preg_match('/^@[a-z0-9][a-z0-9.\-]*\.[a-z]{2,}$/', $t) : (bool)filter_var($t, FILTER_VALIDATE_EMAIL);
+                    if (!$ok) { $this->respond(['error' => 'Trusted admin addresses: "' . $t . '" is not an e-mail address or @domain']); return; }
+                    $list[$t] = true;
+                }
+                $aw['admin_trusted'] = array_slice(array_keys($list), 0, 200);
+            }
+            if ($this->settings->getUserId() === 'admin') $save += $aw; // same file: saved below
+            else (new VtSettings('admin'))->setAll($aw);
+        }
         if ($this->role() === 'admin') {
             $logCfg = [];
             if (isset($input['quarantine_days'])) $logCfg['quarantine_days'] = max(0, min(3650, (int)$input['quarantine_days']));
@@ -1044,6 +1065,80 @@ class IndexController extends pm_Controller_Action
         } catch (\Throwable $e) {
             return 'admin';
         }
+    }
+
+    // ── Admin changes (VtAdminWatch), administrator only ───────
+
+    /** Changes in admin rights on the WordPress sites, and addresses that are admin on sites of different customers */
+    public function adminWatchAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $this->respond(['events' => array_slice(VtAdminWatch::events(), 0, 150), 'open' => count(VtAdminWatch::events(true)),
+                        'cross' => VtAdminWatch::crossSite(), 'last' => VtAdminWatch::lastScan()]);
+    }
+
+    /** Compare the admins of all WordPress sites with the last scan now */
+    public function adminWatchScanAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $new = VtAdminWatch::scan(true);
+        $this->respond(['ok' => true, 'new' => count($new), 'last' => VtAdminWatch::lastScan()]);
+    }
+
+    /** Approve one change: the administrator or the site owner made it */
+    public function adminWatchApproveAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $ev = VtAdminWatch::approve((string)$this->_getParam('id', ''), 'admin');
+        if (!$ev) { $this->respond(['error' => 'Change not found']); return; }
+        $this->appendLog('[admins] approved on ' . $ev['host'] . ': ' . ($ev['label'] ?? $ev['type']) . ' ' . $ev['login'] . ' ' . $ev['detail']);
+        $this->respond(['ok' => true]);
+    }
+
+    /**
+     * What explains one change: requests to the WordPress admin around that time (access logs, read by the root
+     * helper), the Stream plugin's audit log of user changes, and the logins of the account in that period.
+     */
+    public function adminWatchExplainAction(): void
+    {
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        $id = (string)$this->_getParam('id', '');
+        $ev = null;
+        foreach (VtAdminWatch::events() as $e) if (($e['id'] ?? '') === $id) { $ev = $e; break; }
+        if (!$ev) { $this->respond(['error' => 'Change not found']); return; }
+        $from = max(1, (int)$ev['from']); $to = (int)$ev['to'];
+        $out  = ['from' => $from, 'to' => $to, 'log' => [], 'stream' => [], 'logins' => []];
+        try {
+            $res = pm_ApiCli::callSbin('site-scan', ['adminlog', $ev['host'], (string)$from, (string)$to], pm_ApiCli::RESULT_FULL);
+            $j   = json_decode(trim((string)($res['stdout'] ?? '')), true) ?: [];
+            $out['log'] = $j['hits'] ?? []; if (!empty($j['error'])) $out['log_error'] = $j['error'];
+        } catch (\Throwable $e) { $out['log_error'] = 'Could not read the access logs'; }
+        [$db, $prefix] = explode('|', $ev['key'], 2) + ['', ''];
+        $pdo = str_starts_with($ev['key'], 'cms:') ? null : PleskDomains::pdo(); // WordPress only: Stream log and sessions
+        if ($pdo && preg_match('/^[A-Za-z0-9_\-\$]{1,64}$/', $db) && preg_match('/^[A-Za-z0-9_]{0,64}$/', $prefix)) {
+            try {
+                if ($pdo->query("SHOW TABLES FROM `$db` LIKE '{$prefix}stream'")->fetchColumn()) {
+                    $st = $pdo->prepare("SELECT s.created, s.user_id, s.action, s.summary, s.ip FROM `$db`.`{$prefix}stream` s
+                                         WHERE s.created BETWEEN ? AND ? AND (s.connector = 'users' OR s.context IN ('users','profiles','sessions'))
+                                         ORDER BY s.created DESC LIMIT 40");
+                    $st->execute([gmdate('Y-m-d H:i:s', $from - 300), gmdate('Y-m-d H:i:s', $to + 60)]);
+                    foreach ($st->fetchAll(\PDO::FETCH_NUM) as [$c, $uid, $act, $sum, $ip]) $out['stream'][] = ['t' => (int)strtotime($c . ' UTC'), 'uid' => (int)$uid, 'action' => (string)$act, 'summary' => (string)$sum, 'ip' => (string)$ip];
+                } else $out['stream_missing'] = true;
+            } catch (\PDOException $e) { $out['stream_missing'] = true; }
+            if (!empty($ev['uid'])) {
+                try {
+                    $st = $pdo->prepare("SELECT meta_value FROM `$db`.`{$prefix}usermeta` WHERE user_id = ? AND meta_key = 'session_tokens' LIMIT 1");
+                    $st->execute([(int)$ev['uid']]);
+                    foreach ((array)@unserialize((string)$st->fetchColumn(), ['allowed_classes' => false]) as $s) {
+                        if (is_array($s) && isset($s['login'])) $out['logins'][] = ['t' => (int)$s['login'], 'ip' => (string)($s['ip'] ?? ''), 'ua' => mb_substr((string)($s['ua'] ?? ''), 0, 120)];
+                    }
+                    usort($out['logins'], fn($a, $b) => $b['t'] <=> $a['t']);
+                } catch (\PDOException $e) {}
+            }
+        }
+        $this->respond($out);
     }
 
     // ── E-mail sender (Settings, administrator) ────────────────
@@ -1598,6 +1693,45 @@ class IndexController extends pm_Controller_Action
                 'registered' => (string)$row['user_registered'],
                 'flags'      => self::rogueFlags($row, $domain),
             ];
+        }
+
+        // Admin rights compared with the last scans (VtAdminWatch)
+        $inst = VtAdminWatch::install($db, $prefix);
+        if ($inst) {
+            $listed = array_column($users, 'id');
+            foreach ($inst['users'] ?? [] as $id => $u) {
+                if (in_array((int)$id, $listed, true)) continue; // admin rights without the administrator role
+                $users[] = ['id' => (int)$id, 'login' => $u['login'], 'email' => $u['email'], 'display' => '', 'registered' => $u['registered'] ? gmdate('Y-m-d H:i:s', $u['registered']) : '', 'flags' => []];
+            }
+            $events = array_filter(VtAdminWatch::events(), fn($e) => $e['key'] === $db . '|' . $prefix);
+            $cross  = VtAdminWatch::crossSite();
+            foreach ($users as &$user) {
+                $w = $inst['users'][$user['id']] ?? null;
+                $user['watch'] = ['since' => (int)($w['since'] ?? 0), 'baseline' => (int)($inst['first'] ?? 0), 'via' => $w ? VtAdminWatch::via($w) : '',
+                                  'trusted' => VtAdminWatch::isTrusted($user['email'])];
+                foreach ($events as $e) {
+                    if ((int)$e['uid'] !== (int)$user['id'] || !in_array($e['type'], VtAdminWatch::REVIEW, true)) continue;
+                    $user['flags'][] = ['code' => 'aw_' . $e['type'], 'strong' => empty($e['approved']), 'event' => $e['id'], 'approved' => $e['approved'] ?? null,
+                        'label' => $e['label'] . (empty($e['approved']) ? '' : ' · approved'),
+                        'detail' => $e['label'] . ' between ' . gmdate('Y-m-d H:i', $e['from']) . ' and ' . gmdate('Y-m-d H:i', $e['to']) . ' UTC'
+                            . ($e['detail'] !== '' ? ': ' . $e['detail'] : '') . (($e['prev'] ?? '') !== '' ? '. Before: ' . $e['prev'] : '') . '. '
+                            . (empty($e['approved']) ? 'Nobody approved this yet. If you or the site owner did not do this, the site is probably hacked.'
+                                                     : 'Approved by ' . $e['approved']['by'] . ' on ' . gmdate('Y-m-d', $e['approved']['at']) . '.')];
+                }
+                if ($w && !in_array('administrator', $w['roles'] ?? [], true)) {
+                    $user['flags'][] = ['code' => 'aw_caps_now', 'strong' => !$user['watch']['trusted'], 'label' => 'Admin rights without the administrator role',
+                        'detail' => 'This account does not have the administrator role, but it can take over the site through ' . VtAdminWatch::via($w)
+                            . '. Plugins rarely need this; attackers use it because a role name alone does not show it.'];
+                }
+                if (isset($cross[$user['email']])) {
+                    $others = array_values(array_filter($cross[$user['email']], fn($x) => $x['host'] !== $domain && $x['host'] !== 'www.' . $domain));
+                    $user['flags'][] = ['code' => 'aw_cross', 'strong' => false, 'label' => 'Admin on ' . count($others) . ' site' . (count($others) === 1 ? '' : 's') . ' of other customers',
+                        'detail' => 'This address also has admin rights on ' . implode(', ', array_map(fn($x) => $x['host'] . ($x['owner'] ? ' (' . $x['owner'] . ')' : ''), array_slice($others, 0, 8)))
+                            . (count($others) > 8 ? ' and ' . (count($others) - 8) . ' more' : '') . '. Normal for a web agency or maintainer: add the address to Trusted admin addresses in Settings. '
+                            . 'Otherwise one attacker may have added the same account to several sites.'];
+                }
+            }
+            unset($user);
         }
 
         // XposedOrNot: check each admin email for data breaches (free, no key required)

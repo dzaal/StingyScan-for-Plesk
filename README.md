@@ -231,9 +231,9 @@ Only the e-mail address is sent, once per address. No passwords or password hash
 
 ## External sites
 
-Watch the reputation of sites that are **not hosted on this server**: **Settings → External sites → Add site** (type `example.com`, or paste an address). They are checked like the hosted sites by VirusTotal (lookups, nightly refresh, Rescan), Google Safe Browsing and AVG / Avast, and they count under Infected, Suspicious and Clean, marked **External** in the list and grouped under *External sites*. ClamAV, Maldet, Imunify and Pwned? do not apply: the site's files and accounts are not here.
+Watch the reputation of sites that are **not hosted on this server**: **Settings → Add custom not hosted domains → Add site** (type `example.com`, or paste an address). They are checked like the hosted sites by VirusTotal (lookups, nightly refresh, Rescan), Google Safe Browsing and AVG / Avast, and they count under Infected, Suspicious and Clean, marked **External** in the list and grouped under *External sites*. ClamAV, Maldet, Imunify and Pwned? do not apply: the site's files and accounts are not here.
 
-Remove a site in Settings → External sites, or with **Remove from the list** in its details. Each user has their own external sites (and gets them in their notification e-mails); the administrator sees and can remove all of them. A hostname that is hosted on this server cannot be added: it is already in the list.
+Remove a site in Settings → Add custom not hosted domains, or with **Remove from the list** in its details. Each user has their own external sites (and gets them in their notification e-mails); the administrator sees and can remove all of them. A hostname that is hosted on this server cannot be added: it is already in the list.
 
 ## Settings
 
@@ -253,7 +253,7 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
 
 **Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
-- **External sites**: sites hosted elsewhere, see [External sites](#external-sites).
+- **Add custom not hosted domains**: sites hosted elsewhere, see [External sites](#external-sites).
 - **WordPress admin user detection** (administrator): enable or disable the rogue admin scan for all users on the server. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
 
 **On this server**

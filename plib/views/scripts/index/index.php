@@ -1003,8 +1003,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <span><strong>WordPress sites only</strong><br><span class="hint">Only sites with a WordPress database on this server</span></span></label>
     </div>
 
-    <div class="vt-card" id="vt-ext-card" data-toc="External sites">
-      <div class="vt-settings-title"><h3>External sites</h3><span class="hint">Sites that are not hosted on this server</span></div>
+    <div class="vt-card" id="vt-ext-card" data-toc="Add custom not hosted domains">
+      <div class="vt-settings-title"><h3>Add custom not hosted domains</h3><span class="hint">Sites hosted elsewhere, watched like the others</span></div>
       <div class="hint">Watch the reputation of a site hosted somewhere else. It is checked like the other sites by VirusTotal, Google Safe Browsing and Avast / AVG,
         and listed under Infected, Suspicious or Clean, marked <span class="vt-ext">External</span>. ClamAV, Maldet, Imunify and Pwned? do not apply: its files and accounts are not on this server.</div>
       <div class="vt-pw-add"><input type="text" id="vt-ext-new" placeholder="example.com" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')vtExtAdd()"><button type="button" class="vt-btn primary" onclick="vtExtAdd()">Add site</button><span id="vt-ext-msg" class="hint"></span></div>

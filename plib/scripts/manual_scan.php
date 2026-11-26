@@ -23,6 +23,15 @@ require_once $plibDir . '/VtManualQueue.php';
 require_once $plibDir . '/VtNotifier.php';
 require_once $plibDir . '/VtLogRotate.php';
 
+// Installation statistics (Settings, opt-in, off by default): at most once a week, after everything else
+// this run does, so a slow or unreachable collector never delays or stops a scan (see VtStats)
+register_shutdown_function(function () use ($plibDir) {
+    try {
+        require_once $plibDir . '/VtStats.php';
+        VtStats::checkIn();
+    } catch (\Throwable $e) {}
+});
+
 // Keep the scan logs small (log rotation settings in Settings)
 try { VtLogRotate::run(); } catch (\Throwable $e) {}
 

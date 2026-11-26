@@ -25,6 +25,7 @@ require_once $_vtLib . '/VtPwned.php';
 require_once $_vtLib . '/VtServerName.php';
 require_once $_vtLib . '/VtMailSender.php';
 require_once $_vtLib . '/VtAdminWatch.php';
+require_once $_vtLib . '/VtStats.php';
 
 /**
  * IndexController — Plesk extension controller (extends pm_Controller_Action for layout).
@@ -878,6 +879,8 @@ class IndexController extends pm_Controller_Action
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
+        if ($this->role() === 'admin') $s['stats'] = VtStats::localInfo();   // computed here; the collector is never asked
+        unset($s['stats_share']);
         if ($this->role() === 'admin') {
             $adm = $adm ?? new VtSettings('admin');
             $s['admin_watch'] = ['trusted' => implode("\n", VtAdminWatch::trusted()), 'mail' => (bool)$adm->get('admin_watch_mail', true), 'last' => VtAdminWatch::lastScan()];
@@ -980,6 +983,14 @@ class IndexController extends pm_Controller_Action
         }
 
         // Log rotation and quarantine: server-wide settings of the administrator
+        // Installation statistics: only the server administrator may switch sharing on or off
+        if (isset($input['stats_share'])) {
+            if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the server administrator can change installation statistics']); return; }
+            $on = filter_var($input['stats_share'], FILTER_VALIDATE_BOOLEAN);
+            if ($this->settings->getUserId() === 'admin') $save['stats_share'] = $on; // same file: saved below
+            else (new VtSettings('admin'))->set('stats_share', $on);
+            if ($on !== VtStats::enabled()) $this->appendLog('[stats] installation statistics ' . ($on ? 'switched on' : 'switched off'));
+        }
         if ($this->role() === 'admin' && (isset($input['admin_trusted']) || isset($input['admin_watch_mail']))) {
             $aw = [];
             if (isset($input['admin_watch_mail'])) $aw['admin_watch_mail'] = filter_var($input['admin_watch_mail'], FILTER_VALIDATE_BOOLEAN);

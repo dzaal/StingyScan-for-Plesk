@@ -462,8 +462,14 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-set-group{display:flex;align-items:baseline;gap:12px;margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--heading)}
 .vt-set-group h2{margin:0;font-size:22px;font-weight:700;color:var(--heading)}
 .vt-set-group span{font-size:13px;color:var(--muted)}
+.vt-set-group .vt-totop{margin-left:auto}
+.vt-totop{font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;cursor:pointer;white-space:nowrap}
+.vt-totop:hover{text-decoration:underline}
+#vtpanel-settings .vt-card>.vt-totop-row{display:flex;justify-content:flex-end;margin-top:12px}
 @keyframes vtTocHit{0%{box-shadow:0 0 0 3px #2563eb}100%{box-shadow:0 0 0 3px transparent}}
 .vt-toc-hit{animation:vtTocHit 1.6s ease-out}
+.vt-stats-info{margin-top:10px}
+.vt-fs-tbl.vt-stats-tbl td,.vt-fs-tbl.vt-stats-tbl td:last-child{white-space:normal;font-family:inherit;color:var(--text)}.vt-stats-tbl td:first-child{width:160px;font-weight:600}
 .vt-pwcfg-opts{display:flex;flex-direction:column;gap:2px;margin-top:10px}
 .vt-pwcfg-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;vertical-align:1px}
 .vt-pwcfg-tag.paid{background:#e0e7ff;color:#3730a3}
@@ -1140,6 +1146,19 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-set-group" id="vt-grp-maint" data-toc-group="Maintenance"><h2>Maintenance</h2><span>Housekeeping</span></div>
+    <div class="vt-card" id="vt-stats-card" style="display:none" data-toc="Share statistics with Digizaal">
+      <h3>Installation statistics</h3>
+      <label class="vt-radio"><input type="checkbox" id="vt-stats-share">
+        <span><strong>Share installation statistics with Digizaal</strong><br>
+        <span class="hint">Off by default. If you enable this, StingyScan sends your server’s hostname, StingyScan version, number of hosted websites, and a random installation ID
+          to stats.digizaal.nl once a week. Digizaal uses this information to count active installations and understand which versions and hosting sizes it supports.
+          Individual server details are visible to Digizaal. You can turn sharing off at any time. StingyScan does not send hosted domain names, customer information, API keys, or scan results.</span></span></label>
+      <div class="vt-stats-info" id="vt-stats-info"></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
     <div class="vt-card" id="vt-lr-card" style="display:none" data-toc="Log rotation">
       <h3>Log rotation</h3>
       <div class="hint">Keeps the scan logs small. A log larger than the limit is compressed to an old copy and a new log is started. Server-wide; checked every 5 minutes.</div>
@@ -2603,6 +2622,7 @@ function loadSettingsForm(cfg){
   }
   vtRenderQuarantine(cfg.quarantine||null);
   vtRenderPwCfg(cfg.pwned||null);
+  vtRenderStats(cfg.stats||null);
   if(cfg.admin_watch){document.getElementById('vt-aw-trusted').value=cfg.admin_watch.trusted||''; document.getElementById('vt-aw-mail').checked=!!cfg.admin_watch.mail;}
   const ms=cfg.mail_sender;
   document.getElementById('vt-ms-card').style.display=ms?'':'none';
@@ -2630,6 +2650,12 @@ function vtBuildToc(){
     if(el.style.display!=='none') col.items.push(el);
   }
   cols.forEach(c=>c.el.style.display=c.items.length?'':'none');
+  // A way back to this index from every group heading and at the end of every section
+  const back='<a class="vt-totop" href="#vt-toc" onclick="vtTocGo(event,\'vt-toc\')" title="Back to the index at the top of Settings">↑ Index</a>';
+  for(const c of cols){
+    if(!c.el.querySelector('.vt-totop')) c.el.insertAdjacentHTML('beforeend',back);
+    for(const it of c.items) if(!it.querySelector(':scope>.vt-totop-row')) it.insertAdjacentHTML('beforeend','<div class="vt-totop-row">'+back+'</div>');
+  }
   document.getElementById('vt-toc-cols').innerHTML=cols.filter(c=>c.items.length).map(c=>
     '<div class="vt-toc-col"><a class="vt-toc-grp" href="#'+c.el.id+'" onclick="vtTocGo(event,\''+c.el.id+'\')">'+vtEsc(c.label)+'</a>'
     +c.items.map(it=>'<a href="#'+it.id+'" onclick="vtTocGo(event,\''+it.id+'\')">'+it.dataset.toc+'</a>').join('')+'</div>').join('');
@@ -2648,6 +2674,23 @@ window.vtOpenPwned=function(ev){
 };
 // From another tab: open Settings, then go to the section
 window.vtGoSetting=function(ev,id){ if(ev) ev.preventDefault(); vtShowTab('settings'); setTimeout(()=>vtTocGo(null,id),60); };
+
+// ── Installation statistics (Settings, administrator): what would be sent, shown from this server only ──
+function vtRenderStats(st){
+  const card=document.getElementById('vt-stats-card'); card.style.display=st?'':'none'; if(!st) return;
+  document.getElementById('vt-stats-share').checked=!!st.enabled;
+  const d=ts=>ts?new Date(ts*1000).toLocaleString():'—';
+  const row=(k,v)=>'<tr><td>'+k+'</td><td>'+v+'</td></tr>';
+  let last=st.enabled?(st.last_ok?'last sent '+d(st.last_ok):'not sent yet')
+    +(st.last_status==='failed'?' · last try failed ('+vtEsc(st.last_error||'no answer')+'), next try '+d(st.next_try)
+     :st.last_status==='inventory'?' · waiting: the site count could not be read':st.next_try?' · next '+d(st.next_try):''):'sharing is off: nothing is sent';
+  document.getElementById('vt-stats-info').innerHTML='<table class="vt-fs-tbl vt-stats-tbl"><tbody>'
+    +row('Hostname',st.hostname?vtEsc(st.hostname):'<span class="hint">unknown (nothing would be sent)</span>')
+    +row('Hosted websites',st.hosted_sites===null?'<span class="hint">could not be counted (nothing would be sent)</span>':st.hosted_sites)
+    +row('Version',vtEsc(st.version||'—'))
+    +row('Installation ID',st.has_id?'<span class="hint">random, stored on this server</span>':'<span class="hint">made when you switch sharing on</span>')
+    +row('Status',vtEsc(last))+'</tbody></table>';
+}
 
 // ── E-mail sender (Settings, administrator) ───────────────────
 window.vtMsCheck=async function(){
@@ -2779,6 +2822,7 @@ window.vtSaveSettings=async function(){
     checkRates=rates;
   }
   if(key) payload.api_key=key;
+  if(document.getElementById('vt-stats-card').style.display!=='none') payload.stats_share=document.getElementById('vt-stats-share').checked?'true':'false';
   if(scIsAdmin){
     payload.admin_trusted=document.getElementById('vt-aw-trusted').value;
     payload.admin_watch_mail=document.getElementById('vt-aw-mail').checked?'true':'false';

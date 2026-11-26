@@ -56,6 +56,17 @@ class PleskDomains
         return self::allHostedDomains();
     }
 
+    /**
+     * Number of active hosted domains and subdomains in Plesk, server-wide: no aliases (another table),
+     * no WordPress hostnames without their own domain, no external sites. 0 is a valid answer;
+     * null when the inventory cannot be read (installation statistics then skip the check-in).
+     */
+    public static function countHostedSites(): ?int
+    {
+        $list = self::queryDomains(null, false);
+        return $list === null ? null : count($list);
+    }
+
     private static function withExternal(array $hosted, array $external): array
     {
         if (!$external) return $hosted;

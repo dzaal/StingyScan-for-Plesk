@@ -1,0 +1,8 @@
+# Every request goes to index.php (Apache). For nginx-only setups see collector/README.md.
+Options -Indexes
+DirectoryIndex index.php
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/index\.php$
+RewriteRule ^ index.php [L]
+# The whole request body arrives at PHP; anything larger than 4 KB is refused before it does
+LimitRequestBody 4096

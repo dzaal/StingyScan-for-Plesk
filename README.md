@@ -7,8 +7,8 @@
 When a site is hacked, the damage does not stop when the malware is gone. Browsers warn visitors away, security vendors keep the address on their blocklists, mail from the domain lands in spam, and one bad site can drag down the reputation of the server's IP address and every other site on it. Stingy Scanner watches that reputation and walks you through the recovery:
 
 1. **Notice it early.** Every hosted site (and any [external site](#external-sites) you add) is checked against [VirusTotal](https://www.virustotal.com)¹, and optionally Google Safe Browsing¹ and AVG / Avast¹, for malware, phishing and spam, within the limits of VirusTotal's free API.
-2. **Find the cause.** Scan the site's files with ClamAV, Maldet or Imunify, clean or quarantine what was found, and look at the WordPress administrator accounts: unknown or recently added admins, and admins whose e-mail address is **[pwned](#pwned-admins-data-breaches)** in a known data breach, the usual way back in for an attacker.
-3. **Close the door.** Delete rogue admins, reset passwords, and use the Pwned Admins overview to see every administrator address on the server that appears in a breach.
+2. **Find the cause.** Scan the site's files with ClamAV, Maldet or Imunify, clean or quarantine what was found, and look at the administrator accounts: admin rights that **appeared or changed** since the scan before (a new admin, an account promoted, an admin's e-mail address changed), and admins whose e-mail address is **[pwned](#pwned-admins-data-breaches)** in a known data breach, the usual way back in for an attacker. See [Rogue admin detection](#rogue-admin-detection-administrator).
+3. **Close the door.** Delete rogue admins, warn pwned administrators by e-mail or reset their password with **🛠 Fix**, and use the Pwned Admins overview to see every administrator address on the server that appears in a breach.
 4. **Get delisted.** See exactly which vendors still flag the site, ask each of them for a review with one click, and follow the [history of the site](#cleaned-but-still-red) until every vendor has removed it.
 
 <sub>¹ Stingy Scanner is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
@@ -48,6 +48,14 @@ Stingy Scanner makes that quota go a long way:
 Below that, the **history of the site**: detections, review requests, and classifications appearing or going away.
 
 ![History of a site](docs/screenshots/site-history.png)
+
+**Pwned Admins:** every administrator account on the server (WordPress, Joomla, Drupal and more), with the data breaches its e-mail address appears in and a **🛠 Fix** button to warn the administrator.
+
+![Pwned Admins: administrator addresses with the breaches they appear in, sorted by number of breaches (placeholder names)](docs/screenshots/pwned-admins.png)
+
+**Admin changes:** admin rights that appeared or changed since the scan before, with **Approve** and **Explain** (the requests in the site's access log around that time).
+
+![Admin changes on the Dashboard: a new admin account explained with the requests from the access log, a promoted account and a changed e-mail address (placeholder names)](docs/screenshots/admin-changes.png)
 
 **Card on the Plesk Home page:** counts per status and the sites flagged by the most engines.
 
@@ -91,8 +99,9 @@ Stingy Scanner was built to fix that:
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
-- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned Admins tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#rogue-admin-detection-administrator).
-- **Pwned Admins tab:** every WordPress administrator on the server and whether their e-mail address is in a known data breach, with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. Add any other address by hand (see [Pwned?](#pwned-admins-data-breaches)).
+- **Rogue admin detection** (administrator): every hour Stingy Scanner compares who has admin rights on each site with the scan before. A **new admin**, an **existing account made admin**, **admin rights without the administrator role**, a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** or a **new application password** appears on **Dashboard → Admin changes** and is e-mailed once, with **Approve** and **Explain** (requests from the site's access log, the Stream audit log, the account's logins). Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. **Trusted admin addresses** (your own and your agencies') are approved automatically. In a site's details every admin account gets badges: **red** for strong signals (a change, a breached address), **grey** for hints (generic name, free or unrelated e-mail domain). **Delete** the user (posts go to another admin), **🛠 Fix** a pwned address, or **Reset pwd** via WP-CLI; **▶ Log** shows recent logins and content activity. See [Rogue admin detection](#rogue-admin-detection-administrator).
+- **Pwned Admins tab:** every administrator of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site on the server and whether their e-mail address is in a known data breach (with the year of each breach), with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. **🛠 Fix** e-mails the administrator a warning with the breaches and links to check or change the password, or (WordPress, emergency) resets the password. Add any other address by hand (see [Pwned Admins](#pwned-admins-data-breaches)).
+- **Installation statistics (opt-in, off by default):** share the host name, version and number of hosted websites with Digizaal once a week (see [Installation statistics](#installation-statistics-opt-in)).
 - **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
@@ -204,7 +213,11 @@ A badge is a reason to investigate, not proof. Always check before deleting an a
   No requests found usually means the change was made directly in the database or by a script uploaded to the site, which is itself a strong sign of a hack.
 - **Scan now** compares right away instead of waiting for the next hour.
 
+![Admin changes on the Dashboard, with Approve and Explain (placeholder names)](docs/screenshots/admin-changes.png)
+
 ### In a site's details
+
+![WordPress admin accounts of a site: red badges for a new admin, admin rights through roles and a breached address; grey hints; Fix for the pwned admin (placeholder names)](docs/screenshots/admin-accounts.png)
 
 Open any site's details (click anywhere on the row) and scroll to **WordPress admin accounts**. It lists every account with admin rights (also the ones without the administrator role), with the badges above, since when the account has admin rights, and how (role or capabilities). A red change badge has its own **Approve** link.
 
@@ -226,6 +239,8 @@ WP-CLI must be installed on the server for Delete and Reset pwd. Without it, tho
 ## Pwned Admins (data breaches)
 
 **Why it matters.** Most hacked WordPress sites are not broken into through a clever exploit, but simply logged into. Billions of e-mail addresses and passwords from old data breaches (LinkedIn, Adobe, Canva, …) are traded, and bots try them on every WordPress login page they find. An administrator who once used the same password for a breached service and for WordPress hands the attacker the keys: they log in, upload malware, add an admin of their own, and the site is flagged again days after you cleaned it. On a server with many sites, one address that is administrator of dozens of sites can put all of them at risk.
+
+![Pwned Admins: every administrator address with its data breaches and a Fix button (placeholder names)](docs/screenshots/pwned-admins.png)
 
 The **Pwned Admins** tab (second, right after Dashboard) shows where that risk is:
 
@@ -271,9 +286,9 @@ Remove a site in Settings → Add custom not hosted domains, or with **Remove fr
 
 ## Settings
 
-![Settings: VirusTotal with its daily budget, Google Safe Browsing, the experimental AVG / Avast checks, and the scan engine](docs/screenshots/settings.png)
+![Settings: the index of all sections at the top, then the Reputation services group with VirusTotal and its daily budget (keys hidden)](docs/screenshots/settings.png)
 
-The **Settings** tab starts with a **table of contents**: one column per group, with a link to each section (only the sections you can use are listed). The sections, grouped (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
+The **Settings** tab starts with an **index**: one column per group, with a link to each section (only the sections you can use are listed). Every group heading and every section has an **↑ Index** link back to it. The sections, grouped (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
 
 **Reputation services**
 - **VirusTotal**: the API key, with a green check *API key active* when VirusTotal accepts it (a red cross when it doesn't).
@@ -291,7 +306,7 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
 - **Breached admin accounts** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins tab. See [Pwned Admins](#pwned-admins-data-breaches).
 
 **On this server**
-- **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
+- **File scanners** (*Internal serverside file scanners*): ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
 - **Quarantine** (administrator): how long quarantined files are kept, and delete them all.
 
 **E-mail**
@@ -299,6 +314,7 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
 - **E-mail sender** (administrator): see [E-mail sender](#e-mail-sender).
 
 **Maintenance**
+- **Installation statistics** (server administrator): *Share installation statistics with Digizaal*, off by default. See [Installation statistics](#installation-statistics-opt-in).
 - **Log rotation** (administrator, whole server): a scan log larger than the limit (default **5 MB**) is compressed to an old copy (`cron_<user>.log.1.gz`, `.2.gz`, …) and a new log is started; at most **5** old copies are kept, none older than **90 days**. The limits apply to each log file (every Plesk user has their own). Checked every 5 minutes and before the nightly scan.
 
 Each online service has its own coloured block with its logo, so you see at a glance which service a setting belongs to.
@@ -623,8 +639,36 @@ What leaves the server, and only for the services you switched on:
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
 | XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when **Settings → Breached admin accounts** is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
+| Digizaal (stats.digizaal.nl) | Only when the administrator switched on **Settings → Installation statistics** (off by default): once a week the server's host name, the Stingy Scanner version, the number of hosted websites and a random installation ID. See [Installation statistics](#installation-statistics-opt-in). |
 
 No site content or files are sent anywhere.
+
+## Installation statistics (opt-in)
+
+**Settings → Maintenance → Installation statistics** (server administrator only) has one checkbox, **Share installation statistics with Digizaal**. It is **off by default**, also on servers that ran an older version: nothing is sent until the administrator switches it on and saves. Only the server administrator can change it; the server refuses the change from anyone else.
+
+**What is sent**, as a JSON `POST` over HTTPS to `https://stats.digizaal.nl/check-in`, and nothing else:
+
+```json
+{"installation_id": "3f9c0d6e8a7b41c2a5d0e9f1b2c3d4e5", "hostname": "server22.example.com", "version": "2.17.0", "hosted_sites": 128}
+```
+
+| Field | Where it comes from |
+|---|---|
+| `installation_id` | 32 random hex characters (`random_bytes`), made the first time sharing is switched on and kept in the data folder (`vt_installation_id`). It stays the same across upgrades, host name changes and switching sharing off and on; an installation upgraded from VT Site Scanner 1.x keeps the ID its data folder already had. Uninstalling deletes the data folder, so a new installation gets a new ID. |
+| `hostname` | The host name configured in Plesk (*Tools & Settings → Server Settings*), or the machine's own host name. Never the address in the browser. |
+| `version` | The installed Stingy Scanner version. |
+| `hosted_sites` | Active hosted domains and subdomains in Plesk, server-wide. Aliases and external sites are not counted; 0 is a valid number. When the list of sites cannot be read, **nothing is sent** (rather than a wrong 0) and it is tried again an hour later. |
+
+No domain names, customer information, API keys or scan results are ever sent.
+
+**When:** the 5-minute background task checks whether a check-in is due, **at most once every 7 days**, after the task's own work and with short timeouts (4 s to connect, 8 s in total), so a slow or unreachable collector never delays or stops a scan. A failed request is tried again about 6 hours later. A lock makes sure two runs at the same moment cannot both send. The setting is checked again right before sending, so **switching sharing off stops the check-ins immediately**. Opening Settings or the dashboard never contacts the collector.
+
+**In Settings** you see what would be sent, computed on your own server: the host name, the number of hosted websites, the version, whether an installation ID exists, and when the last check-in went out (or why the last try failed).
+
+**When you switch it off:** nothing more is sent. Digizaal keeps the last check-in of your installation until it is older than the collector's retention period (90 days by default), then deletes it; after 30 days without a check-in it no longer counts as active. To have it deleted sooner, ask Digizaal with your host name.
+
+The collector itself (the service at stats.digizaal.nl) is in [`collector/`](collector/README.md) in this repository. It is not part of the extension package.
 
 ---
 

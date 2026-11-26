@@ -22,7 +22,7 @@ Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web developm
 >
 > **[Sign up as a beta tester](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-signup.yml)** · install with [one command](#installation) · **[send feedback](https://github.com/dzaal/StingyScan-for-Plesk/issues/new?template=beta-feedback.yml)**
 
-![Stingy Scanner dashboard in Plesk: every hosted site with its status, score, file scanners and Rescan (placeholder names)](docs/screenshots/scanner-dashboard.png)
+![Stingy Scanner 2.17 dashboard in Plesk: the daily budget, every hosted site grouped by customer with its status, score and Rescan (placeholder names)](docs/screenshots/scanner-dashboard.png)
 
 ## Who it's for
 

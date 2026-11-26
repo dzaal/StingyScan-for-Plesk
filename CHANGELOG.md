@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.13.0 — 2026-11-26
+- **Settings has a table of contents** at the top, with a link to every section, and the sections are grouped: *Reputation services* (VirusTotal, Google Safe Browsing, AVG & Avast, Breach data), *Sites* (Sites to scan, External sites, WordPress admin accounts), *On this server* (File scanners, Quarantine), *E-mail* (Notifications, E-mail sender) and *Maintenance* (Log rotation). Only the sections you can use are listed.
+- **Settings → Breach data** (new section): the choice of breach service (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key moved here from the Pwned Admins tab. That tab now shows which service is in use, with a link to the setting.
+
 ## 2.12.1 — 2026-11-26
 - The Pwned? tab is now called **Pwned Admins** and is the second tab, right after Dashboard.
 

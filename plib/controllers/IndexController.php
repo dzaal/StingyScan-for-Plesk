@@ -875,6 +875,7 @@ class IndexController extends pm_Controller_Action
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
+        if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
         if ($this->role() === 'admin') {
             $adm = new VtSettings('admin');
             $s['mail_sender'] = ['from' => (string)$adm->get('mail_from', ''), 'name' => (string)$adm->get('mail_from_name', ''),

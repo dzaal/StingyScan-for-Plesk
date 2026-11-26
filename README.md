@@ -147,7 +147,7 @@ Every optional online service and every internal scanner has its own **1–5 req
 
 ### Scan engine settings
 
-**Settings → Internal serverside file scanners** shows:
+**Settings → File scanners** (the *Internal serverside file scanners* section) shows:
 
 - **Scan engine:** ClamAV installed or not, with its version and whether the `clamd` daemon is running; Maldet installed or not, with its version.
 - **Maldet enabled** (default off): use Maldet when ClamAV is **not** installed. With ClamAV installed the switch is ignored, and the page says so.
@@ -219,7 +219,7 @@ Both e-mails come from the server administrator's Plesk address and name the ser
 
 The panel shows the sites with that activity and a **preview** of the e-mail. **Send test** sends it to an address of your choice, marked as a test, and changes nothing. Sending for real asks for confirmation; the address is then marked *✓ warned* or *✓ reset* with the date, and the Log tab lists it.
 
-**Breach data from** (administrator, in the tab):
+**Settings → Breach data** (administrator) chooses the service; the Pwned Admins tab shows which one is in use, with a link to it:
 
 | Choice | Notes |
 |---|---|
@@ -239,19 +239,32 @@ Remove a site in Settings → External sites, or with **Remove from the list** i
 
 ![Settings: VirusTotal with its daily budget, Google Safe Browsing, the experimental AVG / Avast checks, and the scan engine](docs/screenshots/settings.png)
 
-The **Settings** tab, from top to bottom (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
+The **Settings** tab starts with a **table of contents**: one column per group, with a link to each section (only the sections you can use are listed). The sections, grouped (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
 
+**Reputation services**
 - **VirusTotal**: the API key, with a green check *API key active* when VirusTotal accepts it (a red cross when it doesn't).
   - **Daily API budget**: the number of VirusTotal calls made today, large, split into background scan and manual rescans.
   - **Max calls / day** (default 500, the free tier).
   - A slider with a thin black line: left of it is the **background scan**, right of it is **reserved for manual scans (%)**. Each part is coloured and shows in orange how much of it was used today.
   - How long clean and infected results are cached.
 - **Google Safe Browsing** (administrator): on/off, API key with green check, calls today, requests per minute, and how to get a key with direct links to the Google Cloud Console. See [Google Safe Browsing](#google-safe-browsing-optional).
-- **External reputation checks – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
-- **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
-- **WordPress admin user detection** (administrator): enable or disable the rogue admin scan for all users on the server. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **AVG & Avast – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
+- **Breach data** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. See [Pwned Admins](#pwned-admins-data-breaches).
+
+**Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
+- **External sites**: sites hosted elsewhere, see [External sites](#external-sites).
+- **WordPress admin user detection** (administrator): enable or disable the rogue admin scan for all users on the server. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+
+**On this server**
+- **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
+- **Quarantine** (administrator): how long quarantined files are kept, and delete them all.
+
+**E-mail**
 - **Notifications**: see [Notifications](#notifications).
+- **E-mail sender** (administrator): see [E-mail sender](#e-mail-sender).
+
+**Maintenance**
 - **Log rotation** (administrator, whole server): a scan log larger than the limit (default **5 MB**) is compressed to an old copy (`cron_<user>.log.1.gz`, `.2.gz`, …) and a new log is started; at most **5** old copies are kept, none older than **90 days**. The limits apply to each log file (every Plesk user has their own). Checked every 5 minutes and before the nightly scan.
 
 Each online service has its own coloured block with its logo, so you see at a glance which service a setting belongs to.
@@ -574,7 +587,7 @@ What leaves the server, and only for the services you switched on:
 | VirusTotal | The domain names of the sites being checked. |
 | Google Safe Browsing | The `https://` and `http://` address of each site. Google may use them to improve its services. |
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
-| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when *Breach data from* is set to Off. |
+| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when **Settings → Breach data** is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
 
 No site content or files are sent anywhere.

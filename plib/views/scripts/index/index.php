@@ -426,6 +426,23 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
 /* Settings: primary service, experimental providers, then server scanners. */
 #vtpanel-settings{max-width:1080px}
+#vtpanel-settings>.vt-card,#vtpanel-settings>.vt-set-group{scroll-margin-top:16px}
+#vtpanel-settings>.vt-card.vt-toc{padding:16px 24px}
+#vtpanel-settings .vt-card.vt-toc>*{margin-left:0!important}
+.vt-toc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
+.vt-toc-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px 24px}
+.vt-toc-col{display:flex;flex-direction:column;gap:5px;border-left:3px solid var(--border);padding-left:12px}
+.vt-toc-col a{font-size:13px;color:var(--blue);text-decoration:none;cursor:pointer}
+.vt-toc-col a:hover{text-decoration:underline}
+.vt-toc-col a.vt-toc-grp{font-weight:700;color:var(--heading);font-size:14px;margin-bottom:2px}
+.vt-set-group{display:flex;align-items:baseline;gap:12px;margin:30px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--heading)}
+.vt-set-group h2{margin:0;font-size:22px;font-weight:700;color:var(--heading)}
+.vt-set-group span{font-size:13px;color:var(--muted)}
+@keyframes vtTocHit{0%{box-shadow:0 0 0 3px #2563eb}100%{box-shadow:0 0 0 3px transparent}}
+.vt-toc-hit{animation:vtTocHit 1.6s ease-out}
+.vt-pwcfg-opts{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.vt-pwcfg-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#166534;vertical-align:1px}
+.vt-pwcfg-tag.paid{background:#e0e7ff;color:#3730a3}
 #vtpanel-settings>.vt-card{max-width:none;padding:24px}
 #vtpanel-settings .vt-field label{font-size:12px;text-transform:none;letter-spacing:0;color:var(--text)}
 #vtpanel-settings .vt-field input{font-family:inherit}
@@ -804,7 +821,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <div class="vt-panel" id="vtpanel-pwned">
     <div class="vt-card" style="max-width:100%">
-      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned? <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
+      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned Admins <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
         <span style="flex:1"></span><span id="vt-pw-actions"></span></h3>
       <div class="hint">The administrator accounts of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site, and whether their e-mail address appears in a known data breach.
         A breached address means a password used with it may be known: change the WordPress password (and any other place it was used) and turn on two-factor login.
@@ -846,7 +863,12 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <!-- Settings -->
   <div class="vt-panel" id="vtpanel-settings">
-    <div class="vt-card vt-settings-main">
+    <nav class="vt-card vt-toc" id="vt-toc" aria-label="Settings sections">
+      <div class="vt-toc-title">Settings</div>
+      <div class="vt-toc-cols" id="vt-toc-cols"></div>
+    </nav>
+    <div class="vt-set-group" id="vt-grp-rep" data-toc-group="Reputation services"><h2>Reputation services</h2><span>Who checks the sites and the administrator addresses</span></div>
+    <div class="vt-card vt-settings-main" id="vt-set-vt" data-toc="VirusTotal">
       <div class="vt-settings-title vt-svc-head"><h3><img class="vt-brand-ico lg" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/brands/virustotal.png') ?>" alt="" width="32" height="32">VirusTotal</h3><span class="vt-key-state" id="vt-vt-keystate"></span><span class="hint">Primary website reputation service</span></div>
       <div class="vt-field">
         <label for="vt-s-apikey">API Key</label>
@@ -904,15 +926,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card" id="vt-ext-card">
-      <div class="vt-settings-title"><h3>External sites</h3><span class="hint">Sites that are not hosted on this server</span></div>
-      <div class="hint">Watch the reputation of a site hosted somewhere else. It is checked like the other sites by VirusTotal, Google Safe Browsing and Avast / AVG,
-        and listed under Infected, Suspicious or Clean, marked <span class="vt-ext">External</span>. ClamAV, Maldet, Imunify and Pwned? do not apply: its files and accounts are not on this server.</div>
-      <div class="vt-pw-add"><input type="text" id="vt-ext-new" placeholder="example.com" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')vtExtAdd()"><button type="button" class="vt-btn primary" onclick="vtExtAdd()">Add site</button><span id="vt-ext-msg" class="hint"></span></div>
-      <div id="vt-ext-list"></div>
-    </div>
-
-    <div class="vt-card" id="vt-gsb-card" style="display:none">
+    <div class="vt-card" id="vt-gsb-card" style="display:none" data-toc="Google Safe Browsing">
       <div class="vt-settings-title"><h3>Google Safe Browsing</h3><span class="hint">Official Google API &middot; optional</span></div>
       <div class="vt-provider-list" style="margin-top:0">
         <div class="vt-provider vt-svc google" style="margin-top:0">
@@ -940,7 +954,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card vt-settings-experimental" id="vt-av-card" style="display:none">
+    <div class="vt-card vt-settings-experimental" id="vt-av-card" style="display:none" data-toc="AVG &amp; Avast">
       <div class="vt-settings-title"><h3>External reputation checks</h3><span class="vt-experimental-tag">Experimental</span></div>
       <p class="hint">Optional direct checks with AVG and Avast. These unofficial services may change or become unavailable. Checks run when opening site details and after a rescan.</p>
       <div class="vt-provider-list">
@@ -962,17 +976,26 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card">
-      <h3 style="display:flex;align-items:center;gap:10px">Internal serverside file scanners
-        <div style="flex:1"></div>
-        <button class="vt-btn ghost" type="button" onclick="vtDetectScanners()" id="vt-sc-detect">Re-detect engines</button></h3>
-      <div class="hint" style="margin-bottom:10px">A file scan uses one engine, chosen automatically: ClamAV when it is installed (with Maldet installed too, ClamAV already uses the Maldet signatures), otherwise Maldet if you enable it. File scans run one at a time and only when you click the button in a site's details. The rate limits how often a scan can start. Imunify only reads existing results.</div>
-      <div id="vt-sc-list"><span class="hint">Loading…</span></div>
-      <span class="vt-smsg" id="vt-sc-msg"></span>
-      <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button><span class="hint">Scanner switches save immediately. Save settings to apply request limits.</span></div>
+    <div class="vt-card" id="vt-pwcfg-card" style="display:none" data-toc="Breach data (Pwned Admins)">
+      <div class="vt-settings-title"><h3>Breach data</h3><span class="hint">Used by the Pwned Admins tab &middot; optional</span></div>
+      <div class="hint">Which service tests whether the e-mail addresses of the site administrators appear in a known data breach. Only the e-mail address is sent.
+        Each address is tested once; addresses that were never tested are also tested in the background and each night.</div>
+      <div class="vt-pwcfg-opts">
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value=""><span><strong>Off</strong><br><span class="hint">Nothing is sent; the Pwned Admins tab only lists the accounts</span></span></label>
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="xon"><span><strong>XposedOrNot</strong> <span class="vt-pwcfg-tag">free</span><br><span class="hint">No key needed. About 25 addresses an hour and 90 a day; the rest is tested in the background.</span></span></label>
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="hibp"><span><strong>Have I Been Pwned</strong> <span class="vt-pwcfg-tag paid">own API key</span><br><span class="hint">Paid subscription; faster, with the full breach details. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key &#8599;</a>.</span></span></label>
+      </div>
+      <div class="vt-settings-numbers" style="margin-top:6px">
+        <div class="vt-field wide"><label for="vt-pw-key">Have I Been Pwned API key</label><input type="password" id="vt-pw-key" placeholder="Paste a key to replace the stored one" autocomplete="off" spellcheck="false" style="width:100%"><div class="hint" id="vt-pw-keyinfo">no key stored</div></div>
+      </div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtPwSaveSrc()">Save breach data</button>
+        <span class="hint" id="vt-pw-srcmsg"></span>
+      </div>
     </div>
 
-    <div class="vt-card">
+    <div class="vt-set-group" id="vt-grp-sites" data-toc-group="Sites"><h2>Sites</h2><span>Which sites are watched</span></div>
+    <div class="vt-card" id="vt-set-scope" data-toc="Sites to scan">
       <h3>Sites to scan</h3>
       <label class="vt-radio"><input type="radio" name="vt-s-scope" id="vt-s-scope-all" value="all" checked>
         <span><strong>All hosted websites</strong><br><span class="hint">Every active domain and subdomain with web hosting, whatever it runs</span></span></label>
@@ -980,7 +1003,15 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <span><strong>WordPress sites only</strong><br><span class="hint">Only sites with a WordPress database on this server</span></span></label>
     </div>
 
-    <div class="vt-card">
+    <div class="vt-card" id="vt-ext-card" data-toc="External sites">
+      <div class="vt-settings-title"><h3>External sites</h3><span class="hint">Sites that are not hosted on this server</span></div>
+      <div class="hint">Watch the reputation of a site hosted somewhere else. It is checked like the other sites by VirusTotal, Google Safe Browsing and Avast / AVG,
+        and listed under Infected, Suspicious or Clean, marked <span class="vt-ext">External</span>. ClamAV, Maldet, Imunify and Pwned? do not apply: its files and accounts are not on this server.</div>
+      <div class="vt-pw-add"><input type="text" id="vt-ext-new" placeholder="example.com" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')vtExtAdd()"><button type="button" class="vt-btn primary" onclick="vtExtAdd()">Add site</button><span id="vt-ext-msg" class="hint"></span></div>
+      <div id="vt-ext-list"></div>
+    </div>
+
+    <div class="vt-card" id="vt-set-wp" data-toc="WordPress admin accounts">
       <h3>WordPress admin user detection</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-s-rogue-scan">
         <span><strong>Scan for rogue WordPress admin accounts</strong><br>
@@ -996,13 +1027,42 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </ul>
         A flag is a reason to investigate, not proof. Always verify before deleting an account.
       </div>
-      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen in the <a onclick="vtShowTab('pwned');vtLoadPwned()" style="cursor:pointer">Pwned? tab</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned? tab lists every site's administrators at once.</div>
+      <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen under <a href="#vt-pwcfg-card" onclick="vtTocGo(event,'vt-pwcfg-card')">Breach data</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned Admins tab lists every site's administrators at once.</div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
       </div>
     </div>
 
-    <div class="vt-card">
+    <div class="vt-set-group" id="vt-grp-server" data-toc-group="On this server"><h2>On this server</h2><span>File scanners and what they found</span></div>
+    <div class="vt-card" id="vt-set-scanners" data-toc="File scanners">
+      <h3 style="display:flex;align-items:center;gap:10px">Internal serverside file scanners
+        <div style="flex:1"></div>
+        <button class="vt-btn ghost" type="button" onclick="vtDetectScanners()" id="vt-sc-detect">Re-detect engines</button></h3>
+      <div class="hint" style="margin-bottom:10px">A file scan uses one engine, chosen automatically: ClamAV when it is installed (with Maldet installed too, ClamAV already uses the Maldet signatures), otherwise Maldet if you enable it. File scans run one at a time and only when you click the button in a site's details. The rate limits how often a scan can start. Imunify only reads existing results.</div>
+      <div id="vt-sc-list"><span class="hint">Loading…</span></div>
+      <span class="vt-smsg" id="vt-sc-msg"></span>
+      <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button><span class="hint">Scanner switches save immediately. Save settings to apply request limits.</span></div>
+    </div>
+
+    <div class="vt-card" id="vt-q-card" style="display:none" data-toc="Quarantine">
+      <h3>Quarantine</h3>
+      <div class="hint">Files you move to quarantine from a site's file scan are kept in <code>/var/lib/stingyscan/quarantine</code>, a folder only root can open. <strong>Restore</strong> in the site's details puts a file back; deleted files are gone for good.</div>
+      <div id="vt-q-info" style="margin:12px 0;font-size:13px"></div>
+      <div class="vt-settings-numbers">
+        <div class="vt-field">
+          <label for="vt-s-q-days">Delete quarantined files after (days)</label>
+          <input type="number" id="vt-s-q-days" min="0" max="3650" value="30">
+        </div>
+      </div>
+      <div class="hint">0 = keep them until you delete them. Checked every night.</div>
+      <div id="vt-q-del" style="margin-top:14px"></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
+    <div class="vt-set-group" id="vt-grp-mail" data-toc-group="E-mail"><h2>E-mail</h2><span>What is sent, and from which address</span></div>
+    <div class="vt-card" id="vt-set-notify" data-toc="Notifications">
       <h3>Notifications</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-n-enabled" onchange="vtNotifyUi()">
         <span><strong>E-mail me when a site's status changes</strong><br><span class="hint">One summary with the changes and all infected sites</span></span></label>
@@ -1031,7 +1091,25 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card" id="vt-lr-card" style="display:none">
+    <div class="vt-card" id="vt-ms-card" style="display:none" data-toc="E-mail sender">
+      <h3>E-mail sender</h3>
+      <div class="hint">The address every e-mail of Stingy Scanner is sent from: the Pwned? warnings to site administrators and the status notifications.
+        It is also used as the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against this address. Empty = your Plesk administrator address<span id="vt-ms-default"></span>.</div>
+      <div class="vt-settings-numbers" style="margin-top:10px">
+        <div class="vt-field wide"><label for="vt-ms-from">Sender address</label><input type="email" id="vt-ms-from" placeholder="webmaster@example.com" autocomplete="off" spellcheck="false" style="width:100%"></div>
+        <div class="vt-field" style="grid-column:span 4"><label for="vt-ms-name">Sender name</label><input type="text" id="vt-ms-name" placeholder="Company name in Plesk" maxlength="100" style="width:100%"></div>
+      </div>
+      <div class="vt-pw-add"><button type="button" class="vt-btn" onclick="vtMsCheck()">Check SPF, DKIM and DMARC</button>
+        <input type="email" id="vt-ms-testto" placeholder="send a test to…" autocomplete="off"><button type="button" class="vt-btn ghost" onclick="vtMsTest()">Send test</button>
+        <span class="hint">check and test use the saved address; save first</span></div>
+      <div id="vt-ms-result"></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
+    <div class="vt-set-group" id="vt-grp-maint" data-toc-group="Maintenance"><h2>Maintenance</h2><span>Housekeeping</span></div>
+    <div class="vt-card" id="vt-lr-card" style="display:none" data-toc="Log rotation">
       <h3>Log rotation</h3>
       <div class="hint">Keeps the scan logs small. A log larger than the limit is compressed to an old copy and a new log is started. Server-wide; checked every 5 minutes.</div>
       <div class="vt-settings-numbers">
@@ -1049,40 +1127,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </div>
       </div>
       <div class="hint" id="vt-lr-info" style="margin-top:10px"></div>
-      <div class="vt-save-row">
-        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
-      </div>
-    </div>
-
-    <div class="vt-card" id="vt-ms-card" style="display:none">
-      <h3>E-mail sender</h3>
-      <div class="hint">The address every e-mail of Stingy Scanner is sent from: the Pwned? warnings to site administrators and the status notifications.
-        It is also used as the envelope sender, so receiving mail servers check SPF, DKIM and DMARC against this address. Empty = your Plesk administrator address<span id="vt-ms-default"></span>.</div>
-      <div class="vt-settings-numbers" style="margin-top:10px">
-        <div class="vt-field wide"><label for="vt-ms-from">Sender address</label><input type="email" id="vt-ms-from" placeholder="webmaster@example.com" autocomplete="off" spellcheck="false" style="width:100%"></div>
-        <div class="vt-field" style="grid-column:span 4"><label for="vt-ms-name">Sender name</label><input type="text" id="vt-ms-name" placeholder="Company name in Plesk" maxlength="100" style="width:100%"></div>
-      </div>
-      <div class="vt-pw-add"><button type="button" class="vt-btn" onclick="vtMsCheck()">Check SPF, DKIM and DMARC</button>
-        <input type="email" id="vt-ms-testto" placeholder="send a test to…" autocomplete="off"><button type="button" class="vt-btn ghost" onclick="vtMsTest()">Send test</button>
-        <span class="hint">check and test use the saved address; save first</span></div>
-      <div id="vt-ms-result"></div>
-      <div class="vt-save-row">
-        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
-      </div>
-    </div>
-
-    <div class="vt-card" id="vt-q-card" style="display:none">
-      <h3>Quarantine</h3>
-      <div class="hint">Files you move to quarantine from a site's file scan are kept in <code>/var/lib/stingyscan/quarantine</code>, a folder only root can open. <strong>Restore</strong> in the site's details puts a file back; deleted files are gone for good.</div>
-      <div id="vt-q-info" style="margin:12px 0;font-size:13px"></div>
-      <div class="vt-settings-numbers">
-        <div class="vt-field">
-          <label for="vt-s-q-days">Delete quarantined files after (days)</label>
-          <input type="number" id="vt-s-q-days" min="0" max="3650" value="30">
-        </div>
-      </div>
-      <div class="hint">0 = keep them until you delete them. Checked every night.</div>
-      <div id="vt-q-del" style="margin-top:14px"></div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
       </div>
@@ -2526,6 +2570,7 @@ function loadSettingsForm(cfg){
     document.getElementById('vt-gsb-key').value='';
   }
   vtRenderQuarantine(cfg.quarantine||null);
+  vtRenderPwCfg(cfg.pwned||null);
   const ms=cfg.mail_sender;
   document.getElementById('vt-ms-card').style.display=ms?'':'none';
   if(ms){
@@ -2540,7 +2585,30 @@ function loadSettingsForm(cfg){
     vtSet('vt-lr-info','Now: '+lr.logs+' log'+(lr.logs===1?'':'s')+' ('+mb(lr.logs_bytes)+'), '+lr.old+' old cop'+(lr.old===1?'y':'ies')+' ('+mb(lr.old_bytes)+').');
   }
   document.querySelectorAll('[data-check-rate]').forEach(input=>{input.value=cfg.check_rates?.[input.dataset.checkRate]||2;input.disabled=cfg.role!=='admin';});
+  vtBuildToc();
 }
+
+// ── Contents at the top of Settings: one column per group, a link per visible section ──
+function vtBuildToc(){
+  const panel=document.getElementById('vtpanel-settings'), cols=[]; let col=null;
+  for(const el of panel.children){
+    if(el.dataset.tocGroup){ col={el,label:el.dataset.tocGroup,items:[]}; cols.push(col); continue; }
+    if(!el.dataset.toc||!col) continue;
+    if(el.style.display!=='none') col.items.push(el);
+  }
+  cols.forEach(c=>c.el.style.display=c.items.length?'':'none');
+  document.getElementById('vt-toc-cols').innerHTML=cols.filter(c=>c.items.length).map(c=>
+    '<div class="vt-toc-col"><a class="vt-toc-grp" href="#'+c.el.id+'" onclick="vtTocGo(event,\''+c.el.id+'\')">'+vtEsc(c.label)+'</a>'
+    +c.items.map(it=>'<a href="#'+it.id+'" onclick="vtTocGo(event,\''+it.id+'\')">'+it.dataset.toc+'</a>').join('')+'</div>').join('');
+}
+window.vtTocGo=function(ev,id){
+  if(ev) ev.preventDefault();
+  const el=document.getElementById(id); if(!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  el.classList.remove('vt-toc-hit'); void el.offsetWidth; el.classList.add('vt-toc-hit');
+};
+// From another tab: open Settings, then go to the section
+window.vtGoSetting=function(ev,id){ if(ev) ev.preventDefault(); vtShowTab('settings'); setTimeout(()=>vtTocGo(null,id),60); };
 
 // ── E-mail sender (Settings, administrator) ───────────────────
 window.vtMsCheck=async function(){
@@ -2829,13 +2897,10 @@ function vtRenderPwned(){
   // Source
   let src='';
   if(c.admin){
-    const opt=(v,label,hint)=>'<label><input type="radio" name="vt-pw-src" value="'+v+'"'+((c.setting||'')===v?' checked':'')+'> '+label+(hint?' <span class="hint">'+hint+'</span>':'')+'</label>';
-    src='<div class="vt-pw-src"><strong>Breach data from:</strong>'+opt('','Off','nothing is sent')
-      +opt('xon','XposedOrNot','free, no key, about 25 an hour and 90 a day, tested in the background')
-      +opt('hibp','Have I Been Pwned','own API key (paid subscription)')
-      +'<input type="password" id="vt-pw-key" placeholder="'+(c.key?'stored key '+vtEsc(c.key)+' (paste to replace)':'Have I Been Pwned API key')+'" autocomplete="off">'
-      +'<button type="button" class="vt-btn" onclick="vtPwSaveSrc()">Save</button><span id="vt-pw-srcmsg" class="hint">'+(c.calls?c.calls+' requests today':'')+'</span></div>'
-      +'<div class="hint" style="margin-bottom:10px">Only the e-mail address is sent to the chosen service. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key ↗</a>. Addresses that were never checked are also checked each night.</div>';
+    const go='<a href="#vt-pwcfg-card" onclick="vtGoSetting(event,\'vt-pwcfg-card\')">Settings → Breach data</a>';
+    src=c.source
+      ?'<div class="vt-pw-src"><span>Breach data from <strong>'+vtEsc(c.source_name||c.source)+'</strong>'+(c.calls?' · '+c.calls+' request'+(c.calls===1?'':'s')+' today':'')+'</span><span class="hint">change in '+go+'</span></div>'
+      :'<div class="vt-alert warn" style="display:block">Breach data is switched off, so the addresses are not tested. Choose a service in '+go+'.</div>';
   }else if(!c.source){
     src='<div class="vt-alert warn" style="display:block">The administrator has not chosen a breach data service yet, so the addresses are not tested.</div>';
   }
@@ -2990,13 +3055,23 @@ window.vtPwFixGo=async function(){
   vtRenderPwned(); vtPwFixRender();
 };
 window.vtRenderPwned=vtRenderPwned; // the search box redraws the list on every key
+// Settings → Breach data (administrator): which service tests the addresses of the Pwned Admins tab
+function vtRenderPwCfg(c){
+  const card=document.getElementById('vt-pwcfg-card'); card.style.display=c?'':'none'; if(!c) return;
+  document.querySelectorAll('input[name=vt-pw-src]').forEach(r=>r.checked=r.value===(c.setting||''));
+  document.getElementById('vt-pw-key').value='';
+  vtSet('vt-pw-keyinfo',c.key?'Stored key '+c.key+'. Paste a new one to replace it; it is tested before it is saved.':'No key stored. It is tested before it is saved.');
+  vtSet('vt-pw-srcmsg',c.source?'In use: '+(c.source_name||c.source)+(c.calls?' · '+c.calls+' request'+(c.calls===1?'':'s')+' today':''):'Switched off');
+}
 window.vtPwSaveSrc=async function(){
   const src=document.querySelector('input[name=vt-pw-src]:checked')?.value||'', key=document.getElementById('vt-pw-key').value.trim();
   const m=document.getElementById('vt-pw-srcmsg'); m.textContent=key?'Testing the key…':'Saving…';
   const r=await vtPostAct('pwned-settings',{source:src,key});
   if(!r.ok){m.innerHTML='<span style="color:var(--red)">'+vtEsc(r.error||'Failed')+'</span>'; return;}
-  pw.config=r.config; pwNote=r.message?vtEsc(r.message):''; vtRenderPwned();
-  vtToast(src?'Breach data from '+(r.config.source_name||src):'Pwned check switched off','info');
+  vtRenderPwCfg(r.config);
+  if(r.message) m.textContent+=' · '+r.message;
+  if(pw){pw.config=r.config; vtRenderPwned();}
+  vtToast(src?'Breach data from '+(r.config.source_name||src):'Breach data check switched off','info');
 };
 /**
  * Check one address, shown in the Scan Monitor. Short waits for the service's request limit are

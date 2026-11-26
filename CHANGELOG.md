@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.16.1 — 2026-11-26
+- Settings: **Breached admin accounts** moved to the *Sites* group, right below *WordPress admin accounts*.
+
 ## 2.16.0 — 2026-11-26
 - **Admin changes:** every hour Stingy Scanner compares who has admin rights on each WordPress site with the scan before, and reports what changed: a **new admin**, an **existing account made admin** (with its previous role), **admin rights without the administrator role** (capabilities given to an account or a custom role), a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** and a **new application password**. Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. The first scan is the baseline.
 - **Dashboard → Admin changes** lists the changes to review, with **Approve** and **Explain**: the requests to the admin screens in the site's access logs around that time (with IP address), the Stream plugin's audit log, and the account's logins. Each change is e-mailed once (Settings → WordPress admin accounts → *E-mail me when admin rights change*). **Scan now** compares right away.

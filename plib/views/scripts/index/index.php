@@ -892,7 +892,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <div class="vt-toc-title">Settings</div>
       <div class="vt-toc-cols" id="vt-toc-cols"></div>
     </nav>
-    <div class="vt-set-group" id="vt-grp-rep" data-toc-group="Reputation services"><h2>Reputation services</h2><span>Who checks the sites and the administrator addresses</span></div>
+    <div class="vt-set-group" id="vt-grp-rep" data-toc-group="Reputation services"><h2>Reputation services</h2><span>Who checks the reputation of the sites</span></div>
     <div class="vt-card vt-settings-main" id="vt-set-vt" data-toc="VirusTotal">
       <div class="vt-settings-title vt-svc-head"><h3><img class="vt-brand-ico lg" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/brands/virustotal.png') ?>" alt="" width="32" height="32">VirusTotal</h3><span class="vt-key-state" id="vt-vt-keystate"></span><span class="hint">Primary website reputation service</span></div>
       <div class="vt-field">
@@ -1001,25 +1001,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-card" id="vt-pwcfg-card" style="display:none" data-toc="Breached admin accounts">
-      <div class="vt-settings-title"><h3>Breached admin accounts</h3><span class="hint">The Pwned Admins tab &middot; optional</span></div>
-      <div class="hint">Which service tests whether the e-mail addresses of the site administrators appear in a known data breach. Only the e-mail address is sent.
-        Each address is tested once; addresses that were never tested are also tested in the background and each night.</div>
-      <div class="vt-pwcfg-opts">
-        <label class="vt-radio"><input type="radio" name="vt-pw-src" value=""><span><strong>Off</strong><br><span class="hint">Nothing is sent, and the Pwned Admins tab is hidden</span></span></label>
-        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="xon"><span><strong>XposedOrNot</strong> <span class="vt-pwcfg-tag">free</span><br><span class="hint">No key needed. About 25 addresses an hour and 90 a day; the rest is tested in the background.</span></span></label>
-        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="hibp"><span><strong>Have I Been Pwned</strong> <span class="vt-pwcfg-tag paid">own API key</span><br><span class="hint">Paid subscription; faster, with the full breach details. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key &#8599;</a>.</span></span></label>
-      </div>
-      <div class="vt-settings-numbers" style="margin-top:6px">
-        <div class="vt-field wide"><label for="vt-pw-key">Have I Been Pwned API key</label><input type="password" id="vt-pw-key" placeholder="Paste a key to replace the stored one" autocomplete="off" spellcheck="false" style="width:100%"><div class="hint" id="vt-pw-keyinfo">no key stored</div></div>
-      </div>
-      <div class="vt-save-row">
-        <button class="vt-btn primary" onclick="vtPwSaveSrc()">Save</button>
-        <span class="hint" id="vt-pw-srcmsg"></span>
-      </div>
-    </div>
-
-    <div class="vt-set-group" id="vt-grp-sites" data-toc-group="Sites"><h2>Sites</h2><span>Which sites are watched</span></div>
+    <div class="vt-set-group" id="vt-grp-sites" data-toc-group="Sites"><h2>Sites</h2><span>Which sites are watched, and their admin accounts</span></div>
     <div class="vt-card" id="vt-set-scope" data-toc="Sites to scan">
       <h3>Sites to scan</h3>
       <label class="vt-radio"><input type="radio" name="vt-s-scope" id="vt-s-scope-all" value="all" checked>
@@ -1061,6 +1043,24 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <div class="hint" style="margin-top:8px;font-size:12px"><strong>Data breach check:</strong> each admin e-mail address is checked once against the breach service chosen under <a href="#vt-pwcfg-card" onclick="vtTocGo(event,'vt-pwcfg-card')">Breached admin accounts</a> (XposedOrNot, free, by default; or Have I Been Pwned with your own key). A red badge appears when an address was found in known breach data, with the breach names in the tooltip. The Pwned Admins tab lists every site's administrators at once.</div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+      </div>
+    </div>
+
+    <div class="vt-card" id="vt-pwcfg-card" style="display:none" data-toc="Breached admin accounts">
+      <div class="vt-settings-title"><h3>Breached admin accounts</h3><span class="hint">The Pwned Admins tab &middot; optional</span></div>
+      <div class="hint">Which service tests whether the e-mail addresses of the site administrators appear in a known data breach. Only the e-mail address is sent.
+        Each address is tested once; addresses that were never tested are also tested in the background and each night.</div>
+      <div class="vt-pwcfg-opts">
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value=""><span><strong>Off</strong><br><span class="hint">Nothing is sent, and the Pwned Admins tab is hidden</span></span></label>
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="xon"><span><strong>XposedOrNot</strong> <span class="vt-pwcfg-tag">free</span><br><span class="hint">No key needed. About 25 addresses an hour and 90 a day; the rest is tested in the background.</span></span></label>
+        <label class="vt-radio"><input type="radio" name="vt-pw-src" value="hibp"><span><strong>Have I Been Pwned</strong> <span class="vt-pwcfg-tag paid">own API key</span><br><span class="hint">Paid subscription; faster, with the full breach details. Get a key at <a href="https://haveibeenpwned.com/API/Key" target="_blank" rel="noopener">haveibeenpwned.com/API/Key &#8599;</a>.</span></span></label>
+      </div>
+      <div class="vt-settings-numbers" style="margin-top:6px">
+        <div class="vt-field wide"><label for="vt-pw-key">Have I Been Pwned API key</label><input type="password" id="vt-pw-key" placeholder="Paste a key to replace the stored one" autocomplete="off" spellcheck="false" style="width:100%"><div class="hint" id="vt-pw-keyinfo">no key stored</div></div>
+      </div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtPwSaveSrc()">Save</button>
+        <span class="hint" id="vt-pw-srcmsg"></span>
       </div>
     </div>
 

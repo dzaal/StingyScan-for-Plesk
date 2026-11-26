@@ -283,12 +283,12 @@ The **Settings** tab starts with a **table of contents**: one column per group, 
   - How long clean and infected results are cached.
 - **Google Safe Browsing** (administrator): on/off, API key with green check, calls today, requests per minute, and how to get a key with direct links to the Google Cloud Console. See [Google Safe Browsing](#google-safe-browsing-optional).
 - **AVG & Avast – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
-- **Breached admin accounts** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins tab. See [Pwned Admins](#pwned-admins-data-breaches).
 
 **Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
 - **Add custom not hosted domains**: sites hosted elsewhere, see [External sites](#external-sites).
 - **WordPress admin accounts** (administrator): enable or disable the rogue admin scan for all users on the server, the trusted admin addresses and the e-mail when admin rights change. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#rogue-admin-detection-administrator).
+- **Breached admin accounts** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins tab. See [Pwned Admins](#pwned-admins-data-breaches).
 
 **On this server**
 - **Internal serverside file scanners**: ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).

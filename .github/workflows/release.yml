@@ -7,6 +7,8 @@
 #                               always points to the newest version)
 #   virustotal-extension.zip   (the same Stingy Scanner built with the old extension id, see build.sh legacy:
 #                               installations of VT Site Scanner 1.x update to it in place)
+# plus the edition for the Plesk Extensions Catalog (build.sh catalog: no updater of its own, no statistics):
+#   stingyscan-catalog-<version>.zip
 name: Release
 
 on:
@@ -42,6 +44,7 @@ jobs:
         run: |
           bash build.sh
           bash build.sh legacy
+          bash build.sh catalog
           cp "dist/stingyscan-${{ steps.v.outputs.version }}.zip" dist/stingyscan.zip
           cp "dist/virustotal-extension-${{ steps.v.outputs.version }}.zip" dist/virustotal-extension.zip
 
@@ -55,6 +58,7 @@ jobs:
             "dist/stingyscan-${{ steps.v.outputs.version }}.zip" \
             dist/stingyscan.zip \
             dist/virustotal-extension.zip \
+            "dist/stingyscan-catalog-${{ steps.v.outputs.version }}.zip" \
             --title "Stingy Scanner ${{ steps.v.outputs.version }}" \
             --notes-file notes.md \
             --latest

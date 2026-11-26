@@ -3385,7 +3385,8 @@ function vtWhyRowHTML(domain,st){
     +(list.length?'<span>review requested at '+list.filter(([v])=>reviews[domain]?.[v]).length+' of '+list.length+'</span>':'')
     +'<span class="sp"></span><a href="https://www.virustotal.com/gui/domain/'+vtEsc(domain)+'/detection" target="_blank" rel="noopener">Full report ↗</a> · '+close+'</div>';
   h+=extNoteHTML(domain)+faHandledHTML(domain);
-  h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
+  // Only for a red or orange site: for a clean one the explanation is not needed
+  if(['infected','suspicious'].includes(st)||list.length) h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
     +'some within hours, others only after days or weeks, and some only when you ask.</div>';
   if(list.length||avast.products?.length||gsb.enabled){

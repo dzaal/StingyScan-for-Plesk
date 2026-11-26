@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.14.1 — 2026-11-26
+- Site details: the note *Already cleaned the site, and it is still red or orange?* is only shown for an infected (red) or suspicious (orange) site, or when a vendor flags it; no longer for clean sites.
+
 ## 2.14.0 — 2026-11-26
 - Settings: the section *Breach data* is now called **Breached admin accounts**.
 - When it is switched **Off**, the **Pwned Admins** tab is hidden for every user (right away after saving, and on every page load). Choosing XposedOrNot or Have I Been Pwned brings it back.

@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.12.1 — 2026-11-26
+- The Pwned? tab is now called **Pwned Admins** and is the second tab, right after Dashboard.
+
 ## 2.12.0 — 2026-11-26
 - **Scan Monitor: Skip** a single waiting entry. Every entry that is still waiting has a *Skip* button: a VirusTotal rescan waiting for its turn (it is taken out before it costs a VirusTotal call), a rescan waiting in the server queue for cron, and a Pwned? test waiting for the request limit of the breach service (when *Check N addresses* runs, it goes on with the next address). *Cancel waiting* still takes out all waiting rescans at once.
 

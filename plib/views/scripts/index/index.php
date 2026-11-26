@@ -628,8 +628,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <div class="vt-tabs">
     <div class="vt-tab active" id="vtab-dashboard" onclick="vtShowTab('dashboard')">Dashboard</div>
+    <div class="vt-tab" id="vtab-pwned" onclick="vtShowTab('pwned');vtLoadPwned()">Pwned Admins</div>
     <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()" style="display:none">Statistics</div>
-    <div class="vt-tab" id="vtab-pwned" onclick="vtShowTab('pwned');vtLoadPwned()">Pwned?</div>
     <div class="vt-tab" id="vtab-settings" onclick="vtShowTab('settings')">Settings</div>
     <div class="vt-tab" id="vtab-log" onclick="vtShowTab('log');vtLoadLog()">Log</div>
     <div class="vt-tab" id="vtab-about" onclick="vtShowTab('about')">About</div>

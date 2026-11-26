@@ -7,8 +7,8 @@
 When a site is hacked, the damage does not stop when the malware is gone. Browsers warn visitors away, security vendors keep the address on their blocklists, mail from the domain lands in spam, and one bad site can drag down the reputation of the server's IP address and every other site on it. Stingy Scanner watches that reputation and walks you through the recovery:
 
 1. **Notice it early.** Every hosted site (and any [external site](#external-sites) you add) is checked against [VirusTotal](https://www.virustotal.com)¹, and optionally Google Safe Browsing¹ and AVG / Avast¹, for malware, phishing and spam, within the limits of VirusTotal's free API.
-2. **Find the cause.** Scan the site's files with ClamAV, Maldet or Imunify, clean or quarantine what was found, and look at the WordPress administrator accounts: unknown or recently added admins, and admins whose e-mail address is **[pwned](#pwned-data-breaches)** in a known data breach, the usual way back in for an attacker.
-3. **Close the door.** Delete rogue admins, reset passwords, and use the Pwned? overview to see every administrator address on the server that appears in a breach.
+2. **Find the cause.** Scan the site's files with ClamAV, Maldet or Imunify, clean or quarantine what was found, and look at the WordPress administrator accounts: unknown or recently added admins, and admins whose e-mail address is **[pwned](#pwned-admins-data-breaches)** in a known data breach, the usual way back in for an attacker.
+3. **Close the door.** Delete rogue admins, reset passwords, and use the Pwned Admins overview to see every administrator address on the server that appears in a breach.
 4. **Get delisted.** See exactly which vendors still flag the site, ask each of them for a review with one click, and follow the [history of the site](#cleaned-but-still-red) until every vendor has removed it.
 
 <sub>¹ Stingy Scanner is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
@@ -91,8 +91,8 @@ Stingy Scanner was built to fix that:
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
-- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned? tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
-- **Pwned? tab:** every WordPress administrator on the server and whether their e-mail address is in a known data breach, with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. Add any other address by hand (see [Pwned?](#pwned-data-breaches)).
+- **WordPress rogue admin detection** (administrator): open any site's details to see all WordPress administrator accounts. Four heuristics flag suspicious ones: account younger than 30 days, generic/bot-added username, free-email provider (Gmail, Yahoo, …), or email domain unrelated to the site. Every admin e-mail address is tested once against the breach service chosen in the Pwned Admins tab (XposedOrNot by default, free) — a red shield icon and red email address appear when the address was found in a known data breach, with the breach names in a tooltip. You can **Delete** the user (posts are reassigned to another admin) or **Reset password** directly from the panel using WP-CLI. Click **▶ Log** on any user to see recent logins, content activity, and — if the Stream plugin is installed — a full audit trail. See [WordPress rogue admin detection](#wordpress-rogue-admin-detection-administrator).
+- **Pwned Admins tab:** every WordPress administrator on the server and whether their e-mail address is in a known data breach, with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. Add any other address by hand (see [Pwned?](#pwned-admins-data-breaches)).
 - **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
@@ -171,7 +171,7 @@ Open any site's details panel (click anywhere on the row) and scroll to **WordPr
 | Foreign email | Email domain unrelated to the site domain |
 | Found in N breaches | Email address in a known data breach (source: XposedOrNot) |
 
-Every admin email is checked once against the breach service chosen in the **Pwned?** tab (see below). When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …).
+Every admin email is checked once against the breach service chosen in the **Pwned Admins** tab (see below). When a breach is found, a red shield icon appears left of the username, the email address turns red, and hovering the badge shows the breach names (Adobe, LinkedIn, Dropbox, …).
 
 A flag is a reason to investigate, not proof. Always verify before taking action.
 
@@ -189,11 +189,11 @@ A flag is a reason to investigate, not proof. Always verify before taking action
 
 WP-CLI must be installed on the server for Delete and Reset pwd. Without it, those buttons show an error with a link to [wp-cli.org](https://wp-cli.org).
 
-## Pwned? (data breaches)
+## Pwned Admins (data breaches)
 
 **Why it matters.** Most hacked WordPress sites are not broken into through a clever exploit, but simply logged into. Billions of e-mail addresses and passwords from old data breaches (LinkedIn, Adobe, Canva, …) are traded, and bots try them on every WordPress login page they find. An administrator who once used the same password for a breached service and for WordPress hands the attacker the keys: they log in, upload malware, add an admin of their own, and the site is flagged again days after you cleaned it. On a server with many sites, one address that is administrator of dozens of sites can put all of them at risk.
 
-The **Pwned?** tab (next to Statistics) shows where that risk is:
+The **Pwned Admins** tab (second, right after Dashboard) shows where that risk is:
 
 - **Every site administrator on the server**: WordPress (from the database the site's `wp-config.php` points to), **Joomla** (groups *Administrator* and *Super Users*), **Drupal** 7–11 (role *administrator* and user 1) **Wotan / phpwotan** (users with admin rights, directly or through their group), **Nextcloud / ownCloud** (group *admin*), **WHMCS** (active staff accounts) and **Laravel** apps with their own `admins` table: site, customer, login, e-mail address and since when the account exists. Other systems than WordPress get a small label. Only the install in a site's document root counts (old copies next to it are skipped), and only databases on this server are read, read-only.
 - **Whether the address is in a known data breach**: *Pwned: 3 breaches*, with the breach names and years (hover a name for the kind of data that leaked). Pwned addresses have a **red shield** and are printed in red, as in a site's *WordPress admin accounts*.
@@ -574,7 +574,7 @@ What leaves the server, and only for the services you switched on:
 | VirusTotal | The domain names of the sites being checked. |
 | Google Safe Browsing | The `https://` and `http://` address of each site. Google may use them to improve its services. |
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
-| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned? tab, each once. Off when *Breach data from* is set to Off. |
+| XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when *Breach data from* is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
 
 No site content or files are sent anywhere.

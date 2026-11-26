@@ -14,12 +14,16 @@ OUT="dist/${EXT_ID}-${VERSION}.zip"
 BUILD=$(mktemp -d)
 trap 'rm -rf "$BUILD"' EXIT
 
-# Package layout: <ext-id>/meta.xml + htdocs/ + plib/ + sbin/ (root helper) + _meta/ (catalog icons)
+# Package layout: <ext-id>/meta.xml + htdocs/ + plib/ + sbin/ (root helper) + _meta/ (catalog icons and screenshots)
 mkdir -p "$BUILD/$EXT_ID" dist
 cp -r htdocs plib sbin _meta "$BUILD/$EXT_ID/"
 chmod 755 "$BUILD/$EXT_ID"/sbin/*
 cp META_INF/meta.xml "$BUILD/$EXT_ID/meta.xml"
 cp LICENSE "$BUILD/$EXT_ID/LICENSE"
+# Plesk Extensions Catalog: extended description, changelog and privacy policy next to meta.xml
+cp DESCRIPTION.md "$BUILD/$EXT_ID/DESCRIPTION.md"
+cp CHANGELOG.md "$BUILD/$EXT_ID/CHANGES.md"
+cp PRIVACY.md "$BUILD/$EXT_ID/PRIVACY.md"
 if [ "$EXT_ID" = "virustotal-extension" ]; then
     # Only what ties the package to its id: Plesk module paths, the id itself, hook class
     # names and the zip that updates download. Names, texts and the rest stay Stingy Scanner.

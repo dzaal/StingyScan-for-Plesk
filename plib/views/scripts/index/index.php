@@ -1029,6 +1029,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <label class="vt-radio"><input type="checkbox" id="vt-s-rogue-scan">
         <span><strong>Scan for rogue WordPress admin accounts</strong><br>
         <span class="hint">Shows every account with admin rights in a site's details and flags suspicious ones. Only visible to the server administrator.</span></span></label>
+      <label class="vt-radio"><input type="checkbox" id="vt-s-wp-delete">
+        <span><strong>Show a Delete button for admin accounts</strong><br>
+        <span class="hint">Off by default. When on, each account in a site's details gets a <em>Delete</em> button (click it twice to confirm); its posts and pages go to another admin of that site. Deleting cannot be undone: <em>Reset pwd</em> or <em>🛠 Fix</em> locks an account out without losing anything.</span></span></label>
       <div class="hint" style="margin-top:10px;font-size:12px;line-height:1.6">
         <strong>What makes an account suspected.</strong> Only a <strong>strong signal</strong> (red) marks an account <em>to review</em>:
         <ul style="margin:4px 0 0;padding-left:18px">
@@ -1150,9 +1153,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <h3>Installation statistics</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-stats-share">
         <span><strong>Talk to mama: Share installation statistics</strong><br>
-        <span class="hint">On by default. StingyScan sends your server’s hostname, StingyScan version, number of hosted websites, and a random installation ID
+        <span class="hint">Off by default; nothing is sent until you tick this and save. When on, StingyScan sends your server’s hostname, StingyScan version, number of hosted websites, and a random installation ID
           to stats.digizaal.nl once a week. Digizaal uses this information to count active installations and understand which versions and hosting sizes it supports.
-          Individual server details are visible to Digizaal. You can turn sharing off at any time: untick this and save. StingyScan does not send hosted domain names, customer information, API keys, or scan results.</span></span></label>
+          Individual server details are visible to Digizaal. You can turn sharing off again at any time: untick this and save. StingyScan does not send hosted domain names, customer information, API keys, or scan results.</span></span></label>
       <div class="vt-stats-info" id="vt-stats-info"></div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -1233,6 +1236,13 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <li><strong>Ask the rest for a review</strong>, and for Chrome warnings use Google Search Console. Then rescan again after a few days.</li>
         </ul>
         <p class="hint">Before asking for a review, make sure the site is really clean and safe: updates installed, unused plugins removed and all passwords changed. Otherwise it is soon hacked again and listed again.</p>
+      </div>
+
+      <div class="vt-card">
+        <h3>Help and support</h3>
+        <p>Questions, a problem or an idea? The Stingy Scanner page has the answers to common questions and how to reach Digizaal.</p>
+        <a class="vt-btn ghost" href="https://www.digizaal.nl/stingy-scanner/#support" target="_blank" rel="noopener">Support &rarr;</a>
+        <a class="vt-btn ghost" href="https://www.digizaal.nl/stingy-scanner/privacy/" target="_blank" rel="noopener">Privacy policy &rarr;</a>
       </div>
 
       <div class="vt-card">
@@ -2583,6 +2593,7 @@ function loadSettingsForm(cfg){
   document.getElementById(cfg.wordpress_only?'vt-s-scope-wp':'vt-s-scope-all').checked=true;
   savedWpOnly=!!cfg.wordpress_only;
   document.getElementById('vt-s-rogue-scan').checked=cfg.wp_rogue_scan!==false;
+  document.getElementById('vt-s-wp-delete').checked=!!cfg.wp_user_delete;
   if(cfg.role==='admin'){
   }
   // Notifications: only offer the recipients this role may use
@@ -2809,6 +2820,7 @@ window.vtSaveSettings=async function(){
   const rogueScan=document.getElementById('vt-s-rogue-scan').checked;
   const checked=n=>[...document.querySelectorAll('input[name='+n+']:checked')].map(c=>c.value).join(',');
   const payload={wordpress_only:wpOnly?'true':'false',wp_rogue_scan:rogueScan?'true':'false',
+    wp_user_delete:document.getElementById('vt-s-wp-delete').checked?'true':'false',
     notify_enabled:document.getElementById('vt-n-enabled').checked?'true':'false',
     notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
@@ -4002,7 +4014,17 @@ async function vtWpUsersLoad(domain,force){
   vtWpUsersRefresh(domain);
 }
 
+let wpUserDelArm={};       // {'domain|id': timer}: Delete clicked once, waiting for the second click
 window.vtWpUserAction=async function(domain,userId,act){
+  if(act==='delete'){
+    const k=domain+'|'+userId, b=document.querySelector('[data-wu-act="delete-'+userId+'"]');
+    if(!wpUserDelArm[k]){
+      if(b) b.textContent='Click again to delete';
+      wpUserDelArm[k]=setTimeout(()=>{delete wpUserDelArm[k];if(b&&b.isConnected) b.textContent='Delete';},4000);
+      return;
+    }
+    clearTimeout(wpUserDelArm[k]); delete wpUserDelArm[k];
+  }
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
   // Disable both buttons on this row while the request is in flight
   document.querySelectorAll('[data-wu-act^="delete-'+userId+'"],[data-wu-act^="reset-'+userId+'"]')
@@ -4019,7 +4041,7 @@ window.vtWpUserAction=async function(domain,userId,act){
     return;
   }
   if(r.new_password) wpUsersPwd[domain+'|'+userId]=r.new_password;
-  if(r.users) (wpUsersData[domain]=wpUsersData[domain]||{}).users=r.users;
+  if(r.users){ const d=(wpUsersData[domain]=wpUsersData[domain]||{}); d.users=r.users; d.can_delete=!!r.can_delete; }
   vtToast(act==='delete'?'User deleted':'Password reset — copy the new password now','ok');
   vtWpUsersRefresh(domain);
 };
@@ -4122,6 +4144,7 @@ function vtWpUsersHTML(domain){
       if(nSus) inner+='<div class="vt-fs-note" style="color:var(--red);font-weight:600">'+nSus+' account'+(nSus===1?'':'s')+' to review — hover a badge for the reason. Red = a change or a breach; grey = only a hint.</div>';
       inner+='<table class="vt-wu-tbl"><thead><tr><th>Username</th><th>Email</th><th>Since</th><th>Flags <span class="hint" style="text-transform:none;font-weight:400">(hover for detail)</span></th><th style="text-align:right">Actions</th></tr></thead><tbody>';
       const shieldSVG='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-6px;margin-right:4px"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
+      const canDelete=!!(wpUsersData[domain]&&wpUsersData[domain].can_delete);
       for(const u of users){
         const flags=u.flags||[];
         const isSus=wuSuspect(u);
@@ -4140,7 +4163,7 @@ function vtWpUsersHTML(domain){
         const actKey=domain+'|'+u.id, actIsOpen=!!wpUserActOpen[actKey];
         const actHTML='<div class="vt-wu-actions">'
           +'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Show login and content activity for this user" onclick="vtWpUserActToggle(\''+e+'\','+u.id+')">'+(actIsOpen?'▼':'▶')+' Log</button>'
-          +'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="'+vtEsc(delTitle)+'" data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>'
+          +(canDelete?'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="'+vtEsc(delTitle)+' Click twice to confirm." data-wu-act="delete-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'delete\')">Delete</button>':'')
           +(hasBreach&&u.email
             ?'<button type="button" class="vt-btn danger" style="font-size:11px;padding:2px 8px" title="Pwned address: warn this administrator by e-mail, or reset the password in an emergency (opens the Fix panel)" onclick="vtWpFix(\''+vtEsca(u.email)+'\')">🛠 Fix</button>'
             :'<button type="button" class="vt-btn ghost" style="font-size:11px;padding:2px 8px" title="Generates a strong random password — copy it immediately" data-wu-act="reset-'+u.id+'" onclick="vtWpUserAction(\''+e+'\','+u.id+',\'reset\')">Reset pwd</button>')
@@ -4159,7 +4182,7 @@ function vtWpUsersHTML(domain){
       }
       inner+='</tbody></table>';
       inner+='<div class="vt-fs-note" style="margin-top:6px">Hover a badge for the full reason. <strong>Red</strong> badges are strong signals: admin rights that appeared or changed since the scan before, or a breached address. '
-        +'<strong>Grey</strong> badges are only hints (a generic name, a free or unrelated e-mail domain): many real admins have them. Hover <strong>Delete</strong> to see where posts are reassigned. '
+        +'<strong>Grey</strong> badges are only hints (a generic name, a free or unrelated e-mail domain): many real admins have them. '+(canDelete?'Hover <strong>Delete</strong> to see where posts are reassigned. ':'The <strong>Delete</strong> button can be switched on in Settings → WordPress admin accounts. ')
         +'<strong>🛠 Fix</strong> (pwned address) warns the administrator or resets the password in an emergency; <strong>Reset pwd</strong> generates a strong random password — copy it immediately.</div>';
     }
   }

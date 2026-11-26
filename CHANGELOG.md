@@ -3,7 +3,15 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
-## Unreleased
+## 2.17.0 — 2026-11-26
+- **Installation statistics are now off by default (opt-in).** Nothing is sent to Digizaal until the server administrator ticks *Settings → Maintenance → Talk to mama: Share installation statistics* and saves. This also applies after an upgrade: a server where the setting was never saved explicitly stops sending. A server where the administrator ticked it keeps sharing.
+- **Privacy policy** for the extension: [PRIVACY.md](PRIVACY.md), also online at <https://www.digizaal.nl/stingy-scanner/privacy/>. It lists what stays on the server, what goes to which service, and what the optional statistics contain, why, where they are stored and for how long.
+- **Plesk Extensions Catalog:** `meta.xml` has the product page (`url`, `help_url`), the support page (`support_url`) and the privacy policy (`privacy_policy_url`); the package contains `DESCRIPTION.md` (the catalog description), `CHANGES.md` (this changelog) and `PRIVACY.md`, and three catalog screenshots of 1024×768 in `_meta/screenshots/`.
+- Product and support page: <https://www.digizaal.nl/stingy-scanner/>. The extension has a **Help and support** card with links to it and to the privacy policy; the README links to it too.
+
+## 2.16.2 — 2026-11-26
+- **Fix:** *Delete* and *Reset pwd* for a site's WordPress admin accounts always failed with *WordPress path not found on disk*. The path is now passed to the root helper (`site-scan wpuser`), which runs WP-CLI as the site's user, the same way as the Pwned emergency reset. Both also log the account out everywhere.
+- **Delete is off by default:** Settings → WordPress admin accounts → *Show a Delete button for admin accounts*. When it is on, *Delete* has to be clicked twice; the server refuses a delete while the setting is off.
 - README: new screenshots of **Pwned Admins**, **Admin changes** (with Explain) and a site's **WordPress admin accounts** with red signals and grey hints, and a new Settings screenshot with the index; the intro, features and Settings section describe the current functionality (placeholder names in all screenshots).
 - Settings: every section and group heading has an **↑ Index** link back to the index at the top. The statistics section is listed in the index as *Talk to mama (statistics)*.
 - **Installation statistics ("Talk to mama"), on by default:** Settings → Maintenance → *Talk to mama: Share installation statistics*. Once a week the 5-minute task sends the server's host name, the version, the number of hosted websites and a random installation ID to stats.digizaal.nl. Nothing else; never domain names, customers, API keys or scan results. Untick it and save to stop. Settings shows what is sent, from the server itself. See the README.

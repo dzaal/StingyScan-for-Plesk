@@ -918,7 +918,7 @@ class IndexController extends pm_Controller_Action
         $raw = $this->getRequest()->getRawBody();
         $input = ($raw && $raw[0] === '{') ? (json_decode($raw, true) ?? []) : $this->getRequest()->getPost();
 
-        $allowed = ['api_key', 'wordpress_only', 'wp_rogue_scan', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days'];
+        $allowed = ['api_key', 'wordpress_only', 'wp_rogue_scan', 'wp_user_delete', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days'];
         $save    = [];
         foreach ($allowed as $k) {
             if (!isset($input[$k])) continue;
@@ -935,7 +935,7 @@ class IndexController extends pm_Controller_Action
                     $this->respond(['error' => 'Please enter a valid e-mail address']); return;
                 }
                 $save[$k] = $v;
-            } elseif ($k === 'wordpress_only' || $k === 'notify_enabled' || $k === 'wp_rogue_scan') {
+            } elseif ($k === 'wordpress_only' || $k === 'notify_enabled' || $k === 'wp_rogue_scan' || $k === 'wp_user_delete') {
                 $save[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
             } elseif (in_array($k, ['daily_limit', 'clean_ttl_days', 'infected_ttl_days'])) {
                 $save[$k] = max(1, (int)$input[$k]);
@@ -1491,7 +1491,7 @@ class IndexController extends pm_Controller_Action
         if (!(bool)$this->settings->get('wp_rogue_scan', true)) {
             $this->respond(['error' => 'WordPress admin scan is disabled in Settings', 'disabled' => true]); return;
         }
-        $this->respond(self::fetchWpAdmins($domain));
+        $this->respond(self::fetchWpAdmins($domain) + ['can_delete' => (bool)$this->settings->get('wp_user_delete', false)]);
     }
 
     /** Delete or reset the password of one WordPress admin user (administrator only) */
@@ -1506,6 +1506,9 @@ class IndexController extends pm_Controller_Action
             $this->respond(['error' => 'Invalid parameters']); return;
         }
         if (!$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+        if ($act === 'delete' && !(bool)$this->settings->get('wp_user_delete', false)) {
+            $this->respond(['error' => 'Deleting admin accounts is switched off in Settings → WordPress admin accounts']); return;
+        }
 
         $data = self::fetchWpAdmins($domain);
         if (!empty($data['error'])) { $this->respond(['error' => $data['error']]); return; }
@@ -1515,37 +1518,31 @@ class IndexController extends pm_Controller_Action
         }
         if (!$user) { $this->respond(['error' => 'User not found']); return; }
 
-        $wpPath = $data['wp_path'] ?? '';
-        if (!$wpPath || !is_dir($wpPath)) { $this->respond(['error' => 'WordPress path not found on disk']); return; }
+        // wp_path is wp-config.php relative to /var/www/vhosts; the root helper runs WP-CLI as the site user
+        // (the panel user cannot read the site's files, so this cannot be done from here)
+        $wpPath = (string)($data['wp_path'] ?? '');
+        if ($wpPath === '') { $this->respond(['error' => 'WordPress path not found on disk']); return; }
 
-        // Run as the file owner, not as root (WP-CLI reads wp-config.php as the site user)
-        $sysUser = trim((string)@shell_exec('stat -c %U ' . escapeshellarg($wpPath) . ' 2>/dev/null'));
-        $runAs   = ($sysUser && $sysUser !== 'root' && $sysUser !== 'UNKNOWN')
-                 ? 'sudo -u ' . escapeshellarg($sysUser) . ' ' : '';
-        $wpCmd   = $runAs . 'wp --path=' . escapeshellarg($wpPath) . ' --allow-root ';
-
+        $args = ['wpuser', $wpPath, (string)$userId, $act];
         if ($act === 'delete') {
-            $reassign = '';
             foreach ($data['users'] ?? [] as $u) {
-                if ((int)$u['id'] !== $userId) { $reassign = ' --reassign=' . (int)$u['id']; break; }
+                if ((int)$u['id'] !== $userId) { $args[] = (string)(int)$u['id']; break; } // posts go to another admin
             }
-            exec($wpCmd . 'user delete ' . (int)$userId . $reassign . ' --yes 2>&1', $out, $rc);
-            $newPass = null;
-        } else {
-            $newPass = bin2hex(random_bytes(16));
-            exec($wpCmd . 'user update ' . (int)$userId . ' --user_pass=' . escapeshellarg($newPass) . ' 2>&1', $out, $rc);
         }
-
-        if ($rc !== 0) {
-            $errMsg = trim(implode(' ', $out));
-            $this->respond(['error' => str_contains($errMsg, 'not found') || str_contains($errMsg, 'No such file')
-                ? 'WP-CLI is not installed on this server. Install it at https://wp-cli.org to enable user management.'
-                : 'Command failed: ' . $errMsg]);
+        try {
+            $res = pm_ApiCli::callSbin('site-scan', $args, pm_ApiCli::RESULT_FULL);
+            $o   = json_decode(trim((string)($res['stdout'] ?? '')), true);
+        } catch (\Throwable $e) {
+            $o = ['error' => $e->getMessage()];
+        }
+        if (!is_array($o) || empty($o['ok'])) {
+            $this->respond(['error' => (string)($o['error'] ?? 'The command failed')]);
             return;
         }
+        $newPass = $act === 'reset' ? (string)($o['new_password'] ?? '') : null;
 
         $this->appendLog('[wp-users] ' . $act . ' user ' . $user['login'] . ' (ID ' . $userId . ') on ' . $domain);
-        $result = ['ok' => true, 'users' => self::fetchWpAdmins($domain)['users'] ?? []];
+        $result = ['ok' => true, 'users' => self::fetchWpAdmins($domain)['users'] ?? [], 'can_delete' => (bool)$this->settings->get('wp_user_delete', false)];
         if ($newPass !== null) $result['new_password'] = $newPass;
         $this->respond($result);
     }

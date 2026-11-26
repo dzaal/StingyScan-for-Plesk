@@ -1,6 +1,6 @@
 # Installation statistics collector (stats.digizaal.nl)
 
-A small PHP + MariaDB service that receives the weekly check-ins of Stingy Scanner installations (on by default, switched off in Settings by any administrator who prefers not to share) and
+A small PHP + MariaDB service that receives the weekly check-ins of Stingy Scanner installations (off by default: only installations whose administrator switched sharing on in Settings) and
 shows them on a private dashboard. It is built for several open-source programs: each program is a *project*
 in the config with its own fields, so another program can be added later without changing the code.
 Today only StingyScan is configured. It is **not** part of the Stingy

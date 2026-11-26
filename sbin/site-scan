@@ -10,6 +10,7 @@
  *   site-scan list                       JSON list of the scanners found on this server
  *   site-scan start <scanner> <hostname> start a scan in the background, print JSON
  *   site-scan --run <scanner> <hostname> (internal) the scan itself
+ *   site-scan wpuser <wp-config> <id> delete|reset [<id>]  delete or reset one WordPress account (WP-CLI as the site user)
  *
  * Each scanner is an adapter below: detect() says whether it is installed,
  * scan() runs it on a folder and returns one common result format:
@@ -452,19 +453,17 @@ if ($mode === 'cmsconfigs') {
     }
     out(['configs' => array_values(array_filter($list, fn($x) => $x['db'] !== ''))]);
 }
-if ($mode === 'wpreset') {
-    // Pwned? fix: give one WordPress administrator an unknown random password and log them out everywhere.
-    // wpreset <path of wp-config.php under VHOSTS> <user id> <e-mail address the account must have>
-    // WP-CLI runs as the owner of wp-config.php (never as root inside the site); the new password is never shown or stored.
-    $rel   = (string)($argv[2] ?? '');
-    $uid   = (string)($argv[3] ?? '');
-    $email = strtolower(trim((string)($argv[4] ?? '')));
-    if ($rel === '' || strpos($rel, '..') !== false || $rel[0] === '/' || basename($rel) !== 'wp-config.php'
-        || !preg_match('/^[1-9][0-9]{0,9}$/', $uid) || !filter_var($email, FILTER_VALIDATE_EMAIL)) out(['error' => 'Invalid parameters']);
+/**
+ * WP-CLI for the install of one wp-config.php (path under VHOSTS), run as the owner of that file (never as root
+ * inside the site). Returns a function that runs one WP-CLI command: [exit code, output]. Stops with an error.
+ */
+function wp_cli_for(string $rel): callable
+{
+    if ($rel === '' || strpos($rel, '..') !== false || $rel[0] === '/' || basename($rel) !== 'wp-config.php') out(['error' => 'Invalid parameters']);
     $cfg = realpath(VHOSTS . $rel);
     if (!$cfg || strpos($cfg, VHOSTS) !== 0 || strpos($cfg, VHOSTS . 'system/') === 0 || is_link(VHOSTS . $rel)) out(['error' => 'wp-config.php not found']);
     $owner = posix_getpwuid(fileowner($cfg))['name'] ?? '';
-    if ($owner === '' || $owner === 'root') out(['error' => 'wp-config.php is owned by root; not resetting as root']);
+    if ($owner === '' || $owner === 'root') out(['error' => 'wp-config.php is owned by root; not running WP-CLI as root']);
     $wp  = bin_path('wp') ?: (is_file('/usr/local/bin/wp') ? '/usr/local/bin/wp' : '');
     if ($wp === '') out(['error' => 'WP-CLI is not installed on this server (https://wp-cli.org)']);
     $php = '';
@@ -475,12 +474,21 @@ if ($mode === 'wpreset') {
         // wp-config.php one level above the install
         foreach (glob($dir . '/*/wp-load.php') ?: [] as $l) { $dir = dirname($l); break; }
     }
-    $run = function (string $args) use ($owner, $php, $wp, $dir): array {
+    return function (string $args) use ($owner, $php, $wp, $dir): array {
         $cmd = 'runuser -u ' . escapeshellarg($owner) . ' -- ' . escapeshellarg($php) . ' -d memory_limit=512M ' . escapeshellarg($wp)
              . ' --path=' . escapeshellarg($dir) . ' --skip-plugins --skip-themes --quiet ' . $args . ' 2>&1';
         exec($cmd, $o, $rc);
         return [$rc, trim(implode("\n", $o))];
     };
+}
+if ($mode === 'wpreset') {
+    // Pwned? fix: give one WordPress administrator an unknown random password and log them out everywhere.
+    // wpreset <path of wp-config.php under VHOSTS> <user id> <e-mail address the account must have>
+    // The new password is never shown or stored.
+    $uid   = (string)($argv[3] ?? '');
+    $email = strtolower(trim((string)($argv[4] ?? '')));
+    if (!preg_match('/^[1-9][0-9]{0,9}$/', $uid) || !filter_var($email, FILTER_VALIDATE_EMAIL)) out(['error' => 'Invalid parameters']);
+    $run = wp_cli_for((string)($argv[2] ?? ''));
     [$rc, $got] = $run('user get ' . $uid . ' --field=user_email');
     if ($rc !== 0) out(['error' => 'WP-CLI could not read the user: ' . substr($got, 0, 300)]);
     if (strtolower(trim($got)) !== $email) out(['error' => 'This account no longer has that e-mail address']);
@@ -488,6 +496,33 @@ if ($mode === 'wpreset') {
     if ($rc !== 0) out(['error' => 'Could not set a new password: ' . substr($msg, 0, 300)]);
     [$rc2, $msg2] = $run('user session destroy ' . $uid . ' --all');
     out(['ok' => true, 'logged_out' => $rc2 === 0] + ($rc2 !== 0 ? ['note' => 'Sessions not cleared: ' . substr($msg2, 0, 200)] : []));
+}
+if ($mode === 'wpuser') {
+    // Site details → WordPress admin accounts: delete one account or give it a new password (shown once).
+    // wpuser <path of wp-config.php under VHOSTS> <user id> delete|reset [<user id the posts go to>]
+    // Both log the account out everywhere.
+    $uid = (string)($argv[3] ?? '');
+    $act = (string)($argv[4] ?? '');
+    $to  = (string)($argv[5] ?? '');
+    if (!preg_match('/^[1-9][0-9]{0,9}$/', $uid) || !in_array($act, ['delete', 'reset'], true)
+        || ($to !== '' && (!preg_match('/^[1-9][0-9]{0,9}$/', $to) || $to === $uid))) out(['error' => 'Invalid parameters']);
+    $run = wp_cli_for((string)($argv[2] ?? ''));
+    [$rc, $got] = $run('user get ' . $uid . ' --field=ID');
+    if ($rc !== 0 || trim($got) !== $uid) out(['error' => 'WP-CLI could not find this user: ' . substr($got, 0, 300)]);
+    $run('user session destroy ' . $uid . ' --all');
+    if ($act === 'reset') {
+        $pass = bin2hex(random_bytes(16));
+        [$rc, $msg] = $run('user update ' . $uid . ' --user_pass=' . escapeshellarg($pass) . ' --skip-email');
+        if ($rc !== 0) out(['error' => 'Could not set a new password: ' . substr($msg, 0, 300)]);
+        out(['ok' => true, 'new_password' => $pass]);
+    }
+    if ($to !== '') {
+        [$rc, $got] = $run('user get ' . $to . ' --field=ID');
+        if ($rc !== 0 || trim($got) !== $to) out(['error' => 'The account the posts would go to does not exist']);
+    }
+    [$rc, $msg] = $run('user delete ' . $uid . ($to !== '' ? ' --reassign=' . $to : '') . ' --yes');
+    if ($rc !== 0) out(['error' => 'Could not delete the user: ' . substr($msg, 0, 300)]);
+    out(['ok' => true, 'reassigned_to' => $to === '' ? null : (int)$to]);
 }
 if ($mode === 'wpconfigs') {
     // Which database and table prefix every WordPress install on the server uses (read-only)

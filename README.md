@@ -13,7 +13,7 @@ When a site is hacked, the damage does not stop when the malware is gone. Browse
 
 <sub>¹ Stingy Scanner is an independent product by Digizaal. It is not affiliated with, endorsed or sponsored by VirusTotal, Google, Gen Digital (AVG, Avast) or WebPros (Plesk). All trademarks belong to their owners; see [Trademarks](#trademarks).</sub>
 
-Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web development and hosting company in Amsterdam. *Stingy* because it is sparing with every API call. Stingy Scanner was called **VT Site Scanner** until version 1.35; see [Coming from VT Site Scanner](#coming-from-vt-site-scanner-1x).
+Made by **Dirk Zaal** of **[Digizaal](https://www.digizaal.nl)**, a web development and hosting company in Amsterdam. Product and support page: **[digizaal.nl/stingy-scanner](https://www.digizaal.nl/stingy-scanner/)**. *Stingy* because it is sparing with every API call. Stingy Scanner was called **VT Site Scanner** until version 1.35; see [Coming from VT Site Scanner](#coming-from-vt-site-scanner-1x).
 
 > **Nothing happens without your click.** Scans, lookups and breach checks only look and report. Changes are made only when the administrator clicks them, one at a time and with a confirmation: cleaning or quarantining a file (both can be undone), deleting a WordPress admin or resetting its password, and backing up an orphan database.
 
@@ -101,7 +101,7 @@ Stingy Scanner was built to fix that:
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
 - **Rogue admin detection** (administrator): every hour Stingy Scanner compares who has admin rights on each site with the scan before. A **new admin**, an **existing account made admin**, **admin rights without the administrator role**, a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** or a **new application password** appears on **Dashboard → Admin changes** and is e-mailed once, with **Approve** and **Explain** (requests from the site's access log, the Stream audit log, the account's logins). Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. **Trusted admin addresses** (your own and your agencies') are approved automatically. In a site's details every admin account gets badges: **red** for strong signals (a change, a breached address), **grey** for hints (generic name, free or unrelated e-mail domain). **Delete** the user (posts go to another admin), **🛠 Fix** a pwned address, or **Reset pwd** via WP-CLI; **▶ Log** shows recent logins and content activity. See [Rogue admin detection](#rogue-admin-detection-administrator).
 - **Pwned Admins tab:** every administrator of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site on the server and whether their e-mail address is in a known data breach (with the year of each breach), with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. **🛠 Fix** e-mails the administrator a warning with the breaches and links to check or change the password, or (WordPress, emergency) resets the password. Add any other address by hand (see [Pwned Admins](#pwned-admins-data-breaches)).
-- **Installation statistics ("Talk to mama", on by default):** shares the host name, version and number of hosted websites with Digizaal once a week; untick it in Settings to stop (see [Installation statistics](#installation-statistics-talk-to-mama)).
+- **Installation statistics ("Talk to mama", off by default):** only when you switch it on in Settings, shares the host name, version and number of hosted websites with Digizaal once a week; untick it to stop (see [Installation statistics](#installation-statistics-talk-to-mama)).
 - **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
 - **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
@@ -222,7 +222,7 @@ A badge is a reason to investigate, not proof. Always check before deleting an a
 Open any site's details (click anywhere on the row) and scroll to **WordPress admin accounts**. It lists every account with admin rights (also the ones without the administrator role), with the badges above, since when the account has admin rights, and how (role or capabilities). A red change badge has its own **Approve** link.
 
 - **▶ Log**: recent logins with time and IP address (from WordPress session tokens), recent posts and pages, and the Stream audit trail when that plugin is installed.
-- **Delete**: removes the user via WP-CLI; posts and pages go to another administrator (hover the button to see who). Requires WP-CLI.
+- **Delete** (off by default, switch it on in *Settings → WordPress admin accounts → Show a Delete button for admin accounts*): removes the user via WP-CLI, run as the site's own user; posts and pages go to another administrator (hover the button to see who). Click it twice to confirm. Deleting cannot be undone; *Reset pwd* or *🛠 Fix* locks an account out without losing anything. Requires WP-CLI.
 - **🛠 Fix** (for a pwned address): opens the same Fix panel as in Pwned Admins, to warn the administrator by e-mail or reset the password in an emergency.
 - **Reset pwd** (other accounts): generates a strong random password via WP-CLI, shown once; copy it immediately.
 
@@ -231,6 +231,7 @@ Open any site's details (click anywhere on the row) and scroll to **WordPress ad
 **Settings → WordPress admin accounts** (administrator only):
 
 - **Scan for rogue WordPress admin accounts**: on or off for the whole server.
+- **Show a Delete button for admin accounts**: off by default. When on, each account in a site's details gets a *Delete* button that has to be clicked twice; the server refuses a delete while this is off.
 - **Trusted admin addresses**: one per line, an address or `@domain` (your own and your agencies'). Their changes are approved automatically and they are not flagged for being admin on sites of different customers.
 - **E-mail me when admin rights change**: once per change, to the notification address (or the Plesk administrator's address), from the sender in Settings → E-mail sender.
 
@@ -314,7 +315,7 @@ The **Settings** tab starts with an **index**: one column per group, with a link
 - **E-mail sender** (administrator): see [E-mail sender](#e-mail-sender).
 
 **Maintenance**
-- **Installation statistics** (server administrator): *Talk to mama: Share installation statistics*, on by default. See [Installation statistics](#installation-statistics-talk-to-mama).
+- **Installation statistics** (server administrator): *Talk to mama: Share installation statistics*, **off by default** (opt-in). See [Installation statistics](#installation-statistics-talk-to-mama).
 - **Log rotation** (administrator, whole server): a scan log larger than the limit (default **5 MB**) is compressed to an old copy (`cron_<user>.log.1.gz`, `.2.gz`, …) and a new log is started; at most **5** old copies are kept, none older than **90 days**. The limits apply to each log file (every Plesk user has their own). Checked every 5 minutes and before the nightly scan.
 
 Each online service has its own coloured block with its logo, so you see at a glance which service a setting belongs to.
@@ -628,6 +629,8 @@ rm -rf /usr/local/psa/var/modules/stingyscan
 
 ## Data and privacy
 
+The full privacy policy is in [PRIVACY.md](PRIVACY.md) and online at [digizaal.nl/stingy-scanner/privacy](https://www.digizaal.nl/stingy-scanner/privacy/). Questions and support: [digizaal.nl/stingy-scanner](https://www.digizaal.nl/stingy-scanner/#support).
+
 All data stays on your server in `/usr/local/psa/var/modules/stingyscan/data/`: settings (including the API keys, readable only by the panel user), cached results, budget counters and logs (rotated, see [Settings](#settings)). Nothing is stored in this repository.
 
 What leaves the server, and only for the services you switched on:
@@ -639,13 +642,13 @@ What leaves the server, and only for the services you switched on:
 | AVG / Avast | The address of the site whose details are opened or that is rescanned. |
 | XposedOrNot or Have I Been Pwned (Pwned?) | The e-mail addresses of WordPress administrators and the addresses added in the Pwned Admins tab, each once. Off when **Settings → Breached admin accounts** is set to Off. |
 | GitHub | The update check asks GitHub for the latest release number. |
-| Digizaal (stats.digizaal.nl) | Unless the administrator switched off **Settings → Installation statistics** (on by default): once a week the server's host name, the Stingy Scanner version, the number of hosted websites and a random installation ID. See [Installation statistics](#installation-statistics-talk-to-mama). |
+| Digizaal (stats.digizaal.nl) | Only when the administrator switched on **Settings → Installation statistics** (off by default): once a week the server's host name, the Stingy Scanner version, the number of hosted websites and a random installation ID. See [Installation statistics](#installation-statistics-talk-to-mama). |
 
 No site content or files are sent anywhere.
 
 ## Installation statistics ("Talk to mama")
 
-**Settings → Maintenance → Installation statistics** (server administrator only) has one checkbox, **Talk to mama: Share installation statistics**. It is **on by default**: on a new installation, and after an upgrade on a server where it was never switched off. Untick it and save to stop sharing; nothing more is sent from that moment. Only the server administrator can change it; the server refuses the change from anyone else.
+**Settings → Maintenance → Installation statistics** (server administrator only) has one checkbox, **Talk to mama: Share installation statistics**. It is **off by default** (opt-in): on a new installation nothing is sent, and since version 2.17.0 it is also off after an upgrade on a server where it was never switched on explicitly. Tick it and save to start sharing; untick it and save to stop, nothing more is sent from that moment. Only the server administrator can change it; the server refuses the change from anyone else.
 
 **What is sent**, as a JSON `POST` over HTTPS to `https://stats.digizaal.nl/check-in`, and nothing else:
 
@@ -754,10 +757,10 @@ Stingy Scanner, its code, design and the way it works, is the intellectual prope
 - **You may:** install and use Stingy Scanner, exactly as published, on servers you manage, also for your business and for sites you host for others. Free of charge.
 - **You may not, without written permission:** change the code (also not privately), copy parts into other software, or distribute it.
 
-Want to do one of these? Just ask, via [digizaal.nl](https://www.digizaal.nl). Full terms, in plain language: [LICENSE](LICENSE).
+Want to do one of these? Just ask, via the [support page](https://www.digizaal.nl/stingy-scanner/#support). Full terms, in plain language: [LICENSE](LICENSE).
 
 ## Author
 
-**Dirk Zaal**, [Digizaal](https://www.digizaal.nl), Amsterdam
+**Dirk Zaal**, [Digizaal](https://www.digizaal.nl), Amsterdam · Support: [digizaal.nl/stingy-scanner](https://www.digizaal.nl/stingy-scanner/#support)
 
 Stingy Scanner is free. If it saves you time or catches a hacked site, you can [buy me a cup of coffee ($3)](https://www.paypal.com/paypalme/zirk020/3USD) ☕

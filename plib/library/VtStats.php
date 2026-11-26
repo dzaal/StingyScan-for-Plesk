@@ -6,7 +6,7 @@ require_once __DIR__ . '/PleskDomains.php';
 /**
  * VtStats: installation statistics, "Talk to mama" (Settings → Maintenance, administrator only).
  *
- * On by default (setting stats_share, default true); off once the server administrator switches it off. When on, the
+ * Off by default (opt-in: setting stats_share, default false); on only once the server administrator ticks it. When on, the
  * 5-minute background task sends at most once every 7 days a JSON POST to the collector with exactly:
  *
  *   installation_id  random, 32 hex characters (random_bytes), kept in the data folder (vt_installation_id)
@@ -29,10 +29,10 @@ class VtStats
     const ID_FILE  = 'vt_installation_id';
     const STATE    = 'vt_stats.json';
 
-    /** Is sharing switched on? On when never saved; off only when the administrator switched it off. */
+    /** Is sharing switched on? Only when the administrator switched it on (never saved: off). */
     public static function enabled(): bool
     {
-        return (new VtSettings('admin'))->get('stats_share', true) !== false;
+        return (new VtSettings('admin'))->get('stats_share', false) === true;
     }
 
     /** The installation ID; made (and saved) only when $create. Null when there is none (yet). */

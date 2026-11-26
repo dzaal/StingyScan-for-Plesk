@@ -1,5 +1,5 @@
 <?php
-// php tests/StatsTest.php — installation statistics (VtStats): on by default, off when switched off, exactly four fields,
+// php tests/StatsTest.php — installation statistics (VtStats): off by default (opt-in), on only when switched on, exactly four fields,
 // once a week, stable ID, opt-out stops at once, failures and inventory errors. No network: send is replaced.
 require __DIR__ . '/../plib/library/VtStats.php';
 
@@ -27,15 +27,21 @@ $deps = function () use (&$sent, &$now, &$host, &$sites, &$ver, &$up) {
 check(VtStats::checkIn($deps()) === 'off' && !$sent, 'switched off: no request');
 check(!is_file(VtDataDir::path(VtStats::ID_FILE)), 'switched off: no installation ID made');
 
-// On by default: an existing install whose settings file has no stats_share yet (saved before this version)
+// Off by default (opt-in): an existing install whose settings file has no stats_share yet, and a fresh install
 file_put_contents(VtDataDir::path('vt_settings_admin.json'), json_encode(['notify_enabled' => true]));
-check(VtStats::enabled(), 'never saved: on by default');
-check(VtStats::checkIn($deps()) === 'sent' && count($sent) === 1, 'on by default: one check-in sent');
+check(!VtStats::enabled(), 'never saved: off by default');
+check(VtStats::checkIn($deps()) === 'off' && !$sent, 'off by default: no request');
+check(!is_file(VtDataDir::path(VtStats::ID_FILE)), 'off by default: no installation ID made');
+$fresh = sys_get_temp_dir() . '/vtstats-fresh-' . bin2hex(random_bytes(4)); VtDataDir::useBase($fresh);
+check(!VtStats::enabled(), 'fresh install (no settings file at all): off by default');
+VtDataDir::useBase($dir); @rmdir($fresh);
+
+// Switched on by the administrator: one check-in
+(new VtSettings('admin'))->set('stats_share', true);
+check(VtStats::enabled(), 'switched on: enabled');
+check(VtStats::checkIn($deps()) === 'sent' && count($sent) === 1, 'switched on: one check-in sent');
 [$url, $json] = $sent[0]; $body = json_decode($json, true);
 check($url === 'https://stats.digizaal.nl/check-in', 'sent to https://stats.digizaal.nl/check-in');
-$fresh = sys_get_temp_dir() . '/vtstats-fresh-' . bin2hex(random_bytes(4)); VtDataDir::useBase($fresh);
-check(VtStats::enabled(), 'fresh install (no settings file at all): on by default');
-VtDataDir::useBase($dir); @rmdir($fresh);
 $k = array_keys($body); sort($k);
 check($k === ['hosted_sites', 'hostname', 'installation_id', 'version'], 'exactly installation_id, hostname, version, hosted_sites');
 check(preg_match('/^[a-f0-9]{32}$/', $body['installation_id']) === 1 && $body['hostname'] === $host && $body['version'] === $ver && $body['hosted_sites'] === 12, 'field values and types (site count is a number)');

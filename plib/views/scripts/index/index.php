@@ -49,9 +49,6 @@ body:has(#vt-wrap) .pul-page-header.page-content-header{display:none}
 .vt-brand-name{font-size:16px;font-weight:700;color:var(--heading);line-height:1.3}
 .vt-brand-ver{font-size:11px;font-weight:600;color:var(--blue);background:#dbeafe;border-radius:10px;padding:1px 7px;vertical-align:2px;margin-left:4px}
 .vt-brand-tag{font-size:12px;color:var(--muted);margin-top:2px}
-.vt-brand-by{flex-shrink:0;font-size:12px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:#fff}
-.vt-brand-by strong{color:#b91c1c;font-weight:700;letter-spacing:.2px}
-.vt-brand-by:hover{border-color:#b91c1c}
 @media (max-width:640px){.vt-brand-tag{display:none}}
 
 /* Tabs */
@@ -456,6 +453,24 @@ tr.vt-grp-c.closed .vt-grp-caret{transform:rotate(-90deg)}
 .vt-seg button.on{background:#2563eb;color:#fff}
 
 .vt-tr-tiles{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
+.vt-usage{margin-bottom:16px}
+.vt-us-row{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch}
+.vt-us-svc{border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-width:170px}
+.vt-us-vt{background:linear-gradient(135deg,#eff6ff 0%,#fff 70%);border-color:#dbe5f5}
+.vt-us-head{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--heading)}
+.vt-us-head img{border-radius:5px;object-fit:contain}
+.vt-us-dot{width:22px;height:22px;border-radius:6px;background:#ede9fe;color:#5b21b6;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.vt-us-rings{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;flex:1}
+.vt-us-cell{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px}
+.vt-us-wrap{position:relative;width:96px;height:96px}
+.vt-us-svg{width:96px;height:96px;transform:rotate(-90deg)}
+.vt-us-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--heading)}
+.vt-us-num{height:96px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:var(--heading)}
+.vt-us-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
+.vt-us-sub{font-size:12px;color:var(--muted);text-align:center}
+.vt-us-meta{font-size:12px;color:var(--muted)}
+.vt-us-meta strong{color:var(--heading)}
+.vt-bc-arc.svc{stroke:#7c3aed}
 .vt-tr-tile{border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:150px}
 .vt-tr-tile .l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .vt-tr-tile .v{font-size:22px;font-weight:800;margin-top:2px}
@@ -816,9 +831,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <div style="font-size:10px">resets at midnight UTC</div>
       </div>
     </div>
-    <a class="vt-brand-by" href="#about" onclick="vtShowTab('about');return false;" title="About the maker">
-      <span>by</span> <strong>Digizaal</strong>
-    </a>
   </div>
 
   <div class="vt-update-banner" id="vt-update-banner">
@@ -944,6 +956,10 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <!-- Statistics -->
   <div class="vt-panel" id="vtpanel-trend">
+    <div class="vt-card vt-usage" style="max-width:100%">
+      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">API usage today <span class="hint" style="font-weight:400" id="vt-us-sub"></span></h3>
+      <div class="vt-us-row" id="vt-us-row"><span class="hint">Loading…</span></div>
+    </div>
     <div class="vt-card" style="max-width:100%">
       <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="vt-tr-h">Infections on this server</span>
         <span class="hint" style="font-weight:400" id="vt-tr-sub"></span>
@@ -2495,7 +2511,40 @@ window.vtTrendToggle=function(k){
   localStorage.setItem('vt_tr_show',JSON.stringify(trShow));
   vtTrendDraw();
 };
+// ── Statistics: API usage today (VirusTotal large, then every other online service that is switched on) ──
+function vtUsRing(pct,cls,num,name,sub){
+  const p=Math.max(0,Math.min(100,pct||0));
+  return '<div class="vt-us-cell"><div class="vt-us-wrap"><svg class="vt-us-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/>'
+    +'<circle class="vt-bc-arc '+cls+'" cx="22" cy="22" r="15.9" style="stroke-dasharray:'+p+' 100"/></svg><div class="vt-us-mid">'+num+'</div></div>'
+    +'<div class="vt-us-name">'+name+'</div><div class="vt-us-sub">'+sub+'</div></div>';
+}
+const US_LOGO={avg:'avg',avast:'avast',google:'google'};
+window.vtLoadUsage=async function(){
+  const b=await vtFetch('?action=budget').catch(()=>null);
+  const row=document.getElementById('vt-us-row'); if(!row) return;
+  if(!b||!b.auto_max){ row.innerHTML='<span class="hint">No VirusTotal budget yet: add the API key in Settings.</span>'; return; }
+  budget=Object.assign(budget||{},b); updateBudget(); // the rings in the Dashboard header too
+  const au=b.auto_used??0, am=b.auto_max, mu=b.manual_used??0, mm=b.manual_max, q=b.vt_quota_used??0, lim=am+mm;
+  let h='<div class="vt-us-svc vt-us-vt"><div class="vt-us-head"><img src="'+BRAND_IMG+'virustotal.png" alt="" width="22" height="22"><strong>VirusTotal</strong></div>'
+    +'<div class="vt-us-rings">'
+    +vtUsRing(au/am*100,'auto',au,'Auto','of '+am+' (background scan)')
+    +vtUsRing((mm-mu)/mm*100,'manual',mm-mu,'Manual left','of '+mm+' (rescans)')
+    +vtUsRing(q/500*100,'quota',q,'VT quota','of 500 (this API key)')
+    +'</div><div class="vt-us-meta">Limit <strong>'+lim+'</strong> requests a day · '+vtEsc(b.date||'')+' · resets at midnight UTC</div></div>';
+  for(const s of (b.services||[])){
+    const logo=US_LOGO[s.key]?'<img src="'+BRAND_IMG+US_LOGO[s.key]+'.png" alt="" width="22" height="22">':'<span class="vt-us-dot">'+vtEsc(s.name.charAt(0))+'</span>';
+    const big=s.limit
+      ?vtUsRing(s.calls/s.limit*100,'svc',s.calls,'Requests','of '+s.limit+' a day')
+      :'<div class="vt-us-cell"><div class="vt-us-num">'+s.calls+'</div><div class="vt-us-name">Requests</div><div class="vt-us-sub">no daily limit</div></div>';
+    h+='<div class="vt-us-svc"><div class="vt-us-head">'+logo+'<strong>'+vtEsc(s.name)+'</strong></div>'
+      +'<div class="vt-us-rings">'+big+'</div>'
+      +'<div class="vt-us-meta">'+vtEsc(s.what)+(s.rpm?' · at most '+s.rpm+' a minute':'')+'</div></div>';
+  }
+  row.innerHTML=h;
+  vtSet('vt-us-sub',(b.services||[]).length?'VirusTotal and the other online services that are switched on':'VirusTotal (no other online services are switched on)');
+};
 window.vtLoadTrend=async function(){
+  vtLoadUsage();
   const [r,ev]=await Promise.all([
     vtFetch('?action=history').catch(()=>null),
     vtFetch('?action=events').catch(()=>null),

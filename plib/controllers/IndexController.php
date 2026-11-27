@@ -860,7 +860,42 @@ class IndexController extends pm_Controller_Action
     {
         $info = $this->cache->budgetInfo();
         $info['vt_quota_used'] = VtRateLimiter::todayCountForKey($this->effectiveApiKey);
+        $info['services']      = $this->serviceUsage();
         $this->respond($info);
+    }
+
+    /**
+     * The other online services that are switched on, with their requests today (Statistics → API usage).
+     * limit = a daily maximum Stingy Scanner keeps to (0 = none), rpm = requests per minute it allows itself.
+     */
+    private function serviceUsage(): array
+    {
+        $out   = [];
+        $rates = VtCheckRateLimiter::rates();
+        try {
+            $calls = VtAvast::callsToday();
+            foreach (VtAvastStore::products() as $pid) {
+                $key = $pid === 147 ? 'avg' : 'avast';
+                $out[] = ['key' => $key, 'name' => VtAvast::PRODUCTS[$pid] ?? $key, 'what' => 'Web Shield',
+                          'calls' => (int)($calls[$pid] ?? 0), 'limit' => 0, 'rpm' => (int)($rates[$key] ?? 0)];
+            }
+        } catch (\Throwable $e) {}
+        try {
+            if ((bool)(new VtSettings('admin'))->get('gsb_enabled', false) && VtSafeBrowsing::maskedKey() !== '') {
+                $out[] = ['key' => 'google', 'name' => 'Google Safe Browsing', 'what' => 'Lookup API',
+                          'calls' => VtSafeBrowsing::callsToday(), 'limit' => 0, 'rpm' => (int)($rates['google'] ?? 0)];
+            }
+        } catch (\Throwable $e) {}
+        if ($this->role() === 'admin') {
+            try {
+                $src = VtPwned::source();
+                if ($src !== '') {
+                    $out[] = ['key' => $src, 'name' => VtPwned::SOURCES[$src], 'what' => 'Breached admin accounts',
+                              'calls' => VtPwned::callsToday(), 'limit' => $src === 'xon' ? VtPwned::XON_DAY : 0, 'rpm' => 0];
+                }
+            } catch (\Throwable $e) {}
+        }
+        return $out;
     }
 
     public function installUpdateAction(): void

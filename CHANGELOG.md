@@ -3,6 +3,10 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.11 — 2026-11-28
+- Statistics: new **API usage today** at the top. VirusTotal with large rings (Auto, Manual left, VT quota, the daily limit and date), then every other online service that is switched on: AVG and Avast Web Shield, Google Safe Browsing and the breach check (XposedOrNot or Have I Been Pwned, administrator only), each with its requests today, its daily limit as a ring where there is one, and how many requests a minute it is allowed. Refreshed each time you open Statistics.
+- Header: the *by Digizaal* link is gone (the maker is still in About).
+
 ## 2.19.10 — 2026-11-28
 - Dashboard: the API usage rings (Auto, Manual left, VT quota, with the daily limit and date) moved from their own bar into the header, top right next to *by Digizaal*, at the height of the logo. They show on the Dashboard tab only; on narrow screens the limit and date are left out and the rings move below the title.
 

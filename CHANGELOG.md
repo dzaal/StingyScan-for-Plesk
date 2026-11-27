@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.10 — 2026-11-28
+- Dashboard: the API usage rings (Auto, Manual left, VT quota, with the daily limit and date) moved from their own bar into the header, top right next to *by Digizaal*, at the height of the logo. They show on the Dashboard tab only; on narrow screens the limit and date are left out and the rings move below the title.
+
 ## 2.19.9 — 2026-11-28
 - Scan Monitor: rescans the server finishes after you left the page now show what the server is doing: the site it checks now with its step (asking VirusTotal, VirusTotal analysing, fetching the report) and how long it takes, then the waiting sites with their place in line and when the next server run starts (or when a site left behind by a page is handed to the server). The summary counts them as *checking* and *queued*.
 - Dashboard: those sites show *In queue #n (server)* or *Server: checking* in the table, with the Rescan button disabled, like rescans in the page.

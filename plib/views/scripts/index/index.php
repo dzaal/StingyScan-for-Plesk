@@ -68,22 +68,26 @@ body:has(#vt-wrap) .pul-page-header.page-content-header{display:none}
 .vt-alert a{font-weight:600;color:inherit;text-decoration:underline;cursor:pointer}
 
 /* Budget strip */
-.vt-budget{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;padding:10px 20px}
-.vt-bc-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
-.vt-bc-wrap{position:relative;width:72px;height:72px}
-.vt-bc-svg{width:72px;height:72px;transform:rotate(-90deg)}
-.vt-bc-track{fill:none;stroke:var(--border);stroke-width:8}
-.vt-bc-arc{fill:none;stroke-width:8;stroke-linecap:butt;stroke-dasharray:0 100;transition:stroke-dasharray .5s}
+.vt-budget{display:flex;align-items:center;gap:16px;flex-shrink:0;height:48px;margin-left:auto}
+#vt-wrap:not([data-tab="dashboard"]) .vt-budget{display:none}
+.vt-bc-cell{display:flex;flex-direction:row;align-items:center;gap:7px}
+.vt-bc-wrap{position:relative;width:48px;height:48px;flex-shrink:0}
+.vt-bc-svg{width:48px;height:48px;transform:rotate(-90deg)}
+.vt-bc-track{fill:none;stroke:#dbe5f5;stroke-width:7}
+.vt-bc-arc{fill:none;stroke-width:7;stroke-linecap:butt;stroke-dasharray:0 100;transition:stroke-dasharray .5s}
 .vt-bc-arc.auto{stroke:#2563eb}
 .vt-bc-arc.manual{stroke:#16a34a}
 .vt-bc-arc.quota{stroke:#d97706}
-.vt-bc-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--heading)}
-.vt-bc-name{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
-.vt-bc-sub{font-size:10px;color:var(--muted)}
-.vt-bc-sep{width:1px;height:72px;background:var(--border);align-self:center}
-.vt-bc-meta{flex:1;padding-left:4px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.vt-bc-mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--heading)}
+.vt-bc-name{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;line-height:1.3;white-space:nowrap}
+.vt-bc-sub{font-size:11px;color:var(--muted);line-height:1.3;white-space:nowrap}
+.vt-bc-sep{width:1px;height:40px;background:#dbe5f5;align-self:center}
+.vt-bc-meta{font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:1px;line-height:1.3;white-space:nowrap}
 .vt-bc-meta strong{color:var(--heading);font-weight:700}
 .vt-bc-mlbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:3px}
+@media (max-width:1250px){.vt-bc-sep,.vt-bc-meta{display:none}}
+@media (max-width:980px){.vt-brand{flex-wrap:wrap}.vt-budget{order:3;width:100%;margin-left:62px}}
+@media (max-width:640px){.vt-budget{margin-left:0;gap:10px}.vt-bc-name{display:none}}
 .vt-b-fill{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
 .vt-b-fill.warn{background:var(--yellow)}.vt-b-fill.crit{background:var(--red)}
 
@@ -766,13 +770,51 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-wu-new-pass{font-family:monospace;font-size:11px;background:#f0fdf4;border:1px solid #86efac;color:#166534;padding:3px 8px;border-radius:5px;word-break:break-all}
 </style>
 
-<div id="vt-wrap">
+<div id="vt-wrap" data-tab="dashboard">
 
   <div class="vt-brand">
     <img class="vt-brand-logo" src="<?= htmlspecialchars(($this->baseUrl ?: '') . 'images/logo-128.png') ?>" alt="" width="48" height="48">
     <div class="vt-brand-text">
       <div class="vt-brand-name">Stingy Reputation Scanner<?php if ($this->version): ?> <span class="vt-brand-ver">v<?= htmlspecialchars($this->version) ?></span><?php endif; ?></div>
       <div class="vt-brand-tag">Watches the reputation of every website on this server, finds malware, phishing and hacked admin accounts, and helps a site win its good name back after an attack</div>
+    </div>
+    <div class="vt-budget" title="VirusTotal API calls today">
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc auto" id="vt-auto-ring" cx="22" cy="22" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-auto-num">—</div>
+        </div>
+        <div class="vt-bc-lbl">
+          <div class="vt-bc-name">Auto</div>
+          <div class="vt-bc-sub" id="vt-auto-sub">of —</div>
+        </div>
+      </div>
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc manual" id="vt-manual-ring" cx="22" cy="22" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-manual-num">—</div>
+        </div>
+        <div class="vt-bc-lbl">
+          <div class="vt-bc-name">Manual left</div>
+          <div class="vt-bc-sub" id="vt-manual-sub">of —</div>
+        </div>
+      </div>
+      <div class="vt-bc-cell">
+        <div class="vt-bc-wrap">
+          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc quota" id="vt-quota-ring" cx="22" cy="22" r="15.9"/></svg>
+          <div class="vt-bc-mid" id="vt-quota-num">—</div>
+        </div>
+        <div class="vt-bc-lbl">
+          <div class="vt-bc-name">VT quota</div>
+          <div class="vt-bc-sub" id="vt-quota-sub">of 500</div>
+        </div>
+      </div>
+      <div class="vt-bc-sep"></div>
+      <div class="vt-bc-meta">
+        <div><span class="vt-bc-mlbl">Limit</span> <strong id="vt-daily-total">—</strong> req/day</div>
+        <div><span class="vt-bc-mlbl">Date</span> <strong id="vt-budget-date">—</strong></div>
+        <div style="font-size:10px">resets at midnight UTC</div>
+      </div>
     </div>
     <a class="vt-brand-by" href="#about" onclick="vtShowTab('about');return false;" title="About the maker">
       <span>by</span> <strong>Digizaal</strong>
@@ -828,39 +870,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <div class="vt-alert warn" id="vt-api-warning" style="display:none">
       No valid API key configured or key is invalid (HTTP 401) &mdash; scans will not work.
       <a onclick="vtShowTab('settings')" style="cursor:pointer">Configure in Settings &rarr;</a>
-    </div>
-
-    <div class="vt-budget">
-      <div class="vt-bc-cell">
-        <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc auto" id="vt-auto-ring" cx="22" cy="22" r="15.9"/></svg>
-          <div class="vt-bc-mid" id="vt-auto-num">—</div>
-        </div>
-        <div class="vt-bc-name">Auto</div>
-        <div class="vt-bc-sub" id="vt-auto-sub">of —</div>
-      </div>
-      <div class="vt-bc-cell">
-        <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc manual" id="vt-manual-ring" cx="22" cy="22" r="15.9"/></svg>
-          <div class="vt-bc-mid" id="vt-manual-num">—</div>
-        </div>
-        <div class="vt-bc-name">Manual left</div>
-        <div class="vt-bc-sub" id="vt-manual-sub">of —</div>
-      </div>
-      <div class="vt-bc-cell">
-        <div class="vt-bc-wrap">
-          <svg class="vt-bc-svg" viewBox="0 0 44 44"><circle class="vt-bc-track" cx="22" cy="22" r="15.9"/><circle class="vt-bc-arc quota" id="vt-quota-ring" cx="22" cy="22" r="15.9"/></svg>
-          <div class="vt-bc-mid" id="vt-quota-num">—</div>
-        </div>
-        <div class="vt-bc-name">VT quota</div>
-        <div class="vt-bc-sub" id="vt-quota-sub">of 500</div>
-      </div>
-      <div class="vt-bc-sep"></div>
-      <div class="vt-bc-meta">
-        <div><span class="vt-bc-mlbl">Limit</span> <strong id="vt-daily-total">—</strong> req/day</div>
-        <div><span class="vt-bc-mlbl">Date</span> <strong id="vt-budget-date">—</strong></div>
-        <div style="font-size:10px">resets at midnight UTC</div>
-      </div>
     </div>
 
     <div class="vt-toolbar">
@@ -1721,6 +1730,7 @@ window.vtShowTab=function(name){
   document.querySelectorAll('.vt-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('vtab-'+name)?.classList.add('active');
   document.getElementById('vtpanel-'+name)?.classList.add('active');
+  document.getElementById('vt-wrap')?.setAttribute('data-tab',name); // the API usage rings in the header are for the Dashboard only
   if(name==='settings'&&document.getElementById('vt-q-card').style.display!=='none')
     vtFetch('?action=quarantine-info').then(r=>{ if(r?.quarantine) vtRenderQuarantine(r.quarantine); }).catch(()=>{});
 };

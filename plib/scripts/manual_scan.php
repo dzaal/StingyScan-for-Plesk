@@ -22,6 +22,7 @@ require_once $plibDir . '/VtApi.php';
 require_once $plibDir . '/VtManualQueue.php';
 require_once $plibDir . '/PleskDomains.php';
 require_once $plibDir . '/VtNotifier.php';
+require_once $plibDir . '/VtPanelNotify.php';
 require_once $plibDir . '/VtLogRotate.php';
 
 // Installation statistics ("Talk to mama", Settings, off unless the administrator switched it on): at most once a week, after everything else
@@ -60,6 +61,9 @@ $apiKey   = $settings->get('api_key');
 if (!$apiKey) {
     exit(0); // No key: nothing to do, no noise
 }
+
+// Status changes from rescans in the page: to the Plesk notifications (the bell)
+try { VtPanelNotify::flush(); } catch (\Throwable $e) {}
 
 // Only rescans that no open page is still working on (see VtManualQueue::ORPHAN_AFTER)
 $pending = VtManualQueue::takeable();

@@ -904,10 +904,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
       <div class="vt-spacer"></div>
       <div class="vt-seg" id="vt-view-seg" style="margin-right:4px"><button type="button" data-mode="group" onclick="vtSetViewMode('group')">Grouped</button><button type="button" data-mode="sort" onclick="vtSetViewMode('sort')">Sort</button></div>
+      <span id="vt-grp-opts"><label title="Every customer folded up; its header still shows how many sites are flagged. Click a customer to open or close it."><input type="checkbox" id="vt-grp-collapse" onchange="vtSetGrpCollapse(this.checked)"> Collapsed</label></span><!-- grouped view only: fold every customer up -->
       <span class="vt-status-txt" id="vt-scan-status"></span>
     </div>
-    <!-- Grouped view only: fold every customer up -->
-    <div id="vt-grp-opts"><label title="Every customer folded up; its header still shows how many sites are flagged. Click a customer to open or close it."><input type="checkbox" id="vt-grp-collapse" onchange="vtSetGrpCollapse(this.checked)"> Collapsed</label></div>
 
     <div id="vt-load-bar">
       <div id="vt-load-msg">Loading domain list…</div>
@@ -1262,6 +1261,14 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-set-group" id="vt-grp-sites" data-toc-group="Sites"><h2>Sites</h2><span>Which sites are watched, and their admin accounts</span></div>
+    <div class="vt-card" id="vt-set-access" style="display:none" data-toc="Access for resellers and customers">
+      <h3>Access for resellers and customers</h3>
+      <label class="vt-radio"><input type="checkbox" id="vt-acc-res"> <span><strong>Resellers can use Stingy Scanner</strong><br><span class="hint">For their own sites and their customers' sites: the entry in their Plesk menu, the page and the e-mails</span></span></label>
+      <label class="vt-radio"><input type="checkbox" id="vt-acc-cl"> <span><strong>Customers can use Stingy Scanner</strong><br><span class="hint">For their own sites only: the entry in their Plesk menu (and the tab on their subscription), the page and the e-mails</span></span></label>
+      <div class="hint" style="margin-top:6px">When switched off, the entry disappears from their menu and the page refuses them. The sites are still scanned; only you see the results. Plesk may need a page reload before the menu changes.</div>
+      <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button></div>
+    </div>
+
     <div class="vt-card" id="vt-set-scope" data-toc="Sites to scan">
       <h3>Sites to scan</h3>
       <label class="vt-radio"><input type="radio" name="vt-s-scope" id="vt-s-scope-all" value="all" checked>
@@ -1378,6 +1385,15 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </div>
         <button class="vt-btn ghost" type="button" onclick="vtTestNotify()">Send test e-mail</button>
         <span class="vt-smsg" id="vt-n-msg"></span>
+      </div>
+      <div id="vt-pn-box" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div class="vt-n-label"><strong>Plesk notifications</strong> <span class="hint">(the bell at the top of Plesk, for the administrator)</span></div>
+        <label class="vt-check"><input type="checkbox" name="vt-pn" value="infected"> <span class="vt-dot dot-r"></span> A site became infected</label>
+        <label class="vt-check"><input type="checkbox" name="vt-pn" value="suspicious"> <span class="vt-dot dot-y"></span> A site became suspicious</label>
+        <label class="vt-check"><input type="checkbox" name="vt-pn" value="clean"> <span class="vt-dot dot-g"></span> A site is clean again</label>
+        <label class="vt-check"><input type="checkbox" name="vt-pn" value="admin_change"> Admin rights changed on a site <span class="hint">(Tools → Admin changes)</span></label>
+        <div class="hint" style="margin:4px 0 8px">Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
+        <button class="vt-btn ghost" type="button" onclick="vtPanelTest(this)">Send a test notification</button>
       </div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -3254,6 +3270,10 @@ function loadSettingsForm(cfg){
   document.querySelectorAll('input[name=vt-n-ev]').forEach(c=>c.checked=evs.includes(c.value));
   const em=document.getElementById('vt-n-email');
   em.value=cfg.notify_email||'';
+  if(cfg.access){ document.getElementById('vt-set-access').style.display='';
+    document.getElementById('vt-acc-res').checked=!!cfg.access.resellers; document.getElementById('vt-acc-cl').checked=!!cfg.access.clients; }
+  if(cfg.panel){ document.getElementById('vt-pn-box').style.display=cfg.panel.available?'':'none';
+    document.querySelectorAll('input[name=vt-pn]').forEach(c=>c.checked=(cfg.panel.kinds||[]).includes(c.value)); }
   document.getElementById('vt-rv-name').value=cfg.review_name||'';
   document.getElementById('vt-rv-company').value=cfg.review_company||'';
   document.getElementById('vt-rv-email').value=cfg.review_email||'';
@@ -3502,6 +3522,8 @@ window.vtSaveSettings=async function(){
     wp_user_delete:document.getElementById('vt-s-wp-delete').checked?'true':'false',
     notify_enabled:document.getElementById('vt-n-enabled').checked?'true':'false',
     notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),
+    ...(document.getElementById('vt-pn-box').style.display!=='none'?{panel_notify:[...document.querySelectorAll('input[name=vt-pn]:checked')].map(c=>c.value).join(',')||'none'}:{}),
+    ...(document.getElementById('vt-set-access').style.display!=='none'?{show_resellers:document.getElementById('vt-acc-res').checked?'true':'false',show_clients:document.getElementById('vt-acc-cl').checked?'true':'false'}:{}),
     review_name:document.getElementById('vt-rv-name').value.trim(),review_company:document.getElementById('vt-rv-company').value.trim(),review_email:document.getElementById('vt-rv-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
     const rates={};
@@ -4299,6 +4321,13 @@ function vtAlertIdHTML(domain){
   return '<span class="vt-alert-id"><label>Alert ID <input type="text" maxlength="20" value="'+vtEsc(v)+'" placeholder="from the block page" '
     +'onchange="vtSetAlertId(\''+vtEsca(domain)+'\',this)" onclick="event.stopPropagation()"></label>'+(v?' <span class="vt-alert-ok">✓ saved</span>':'')+'</span>';
 }
+window.vtPanelTest=async function(btn){
+  btn.disabled=true;
+  const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  const r=await fetch(BASE+'?action=panel-notify-test',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken}}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  btn.disabled=false;
+  vtToast(r.ok?'Test notification sent: look at the bell at the top of Plesk (reload the page if it does not show yet)':(r.error||'Not sent'),r.ok?'ok':'err');
+};
 window.vtSetAlertId=async function(domain,inp){
   const v=inp.value.trim();
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';

@@ -185,6 +185,9 @@ class VtAdminWatch
         flock($lock, LOCK_UN);
         $mail = array_values(array_filter($new, fn($e) => in_array($e['type'], self::REVIEW, true) && empty($e['approved'])));
         if ($mail) self::mail($mail);
+        if ($mail) {
+            try { require_once __DIR__ . '/VtPanelNotify.php'; VtPanelNotify::adminChanges($mail); } catch (\Throwable $e) {}
+        }
         return $new;
     }
 

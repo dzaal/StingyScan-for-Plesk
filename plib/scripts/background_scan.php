@@ -22,6 +22,7 @@ require_once $plibDir . '/VtRateLimiter.php';
 require_once $plibDir . '/VtApi.php';
 require_once $plibDir . '/PleskDomains.php';
 require_once $plibDir . '/VtNotifier.php';
+require_once $plibDir . '/VtPanelNotify.php';
 require_once $plibDir . '/VtHistory.php';
 require_once $plibDir . '/VtLogRotate.php';
 require_once $plibDir . '/VtSafeBrowsing.php';
@@ -165,6 +166,10 @@ try {
     if ($mailed) log_msg('[mail] summary sent to ' . implode(', ', $mailed));
 } catch (\Throwable $e) {
     log_msg('[mail] could not send summary: ' . $e->getMessage());
+}
+try {
+    if ($n = VtPanelNotify::flush()) log_msg('[plesk] ' . $n . ' notification(s) sent to the Plesk notifications');
+} catch (\Throwable $e) {
 }
 
 $budget = $cache->budgetInfo();

@@ -69,6 +69,9 @@ class VtSettings
         'admin_watch_mail'   => true,   // e-mail the administrator when admin rights change (admin only)
         'wp_rogue_scan'      => true,   // list and score the WordPress admin accounts of a site (Settings → WordPress admin accounts)
         'wp_user_delete'     => false,  // show a Delete button for WordPress admin accounts (off by default)
+        'show_resellers'     => true,   // resellers see Stingy Scanner (menu entry, page, e-mails) (admin only, server-wide)
+        'show_clients'       => true,   // customers see Stingy Scanner (admin only, server-wide)
+        'panel_notify'       => null,   // kinds sent to the Plesk notifications (bell): null = infected, suspicious, admin_change (admin only)
         'review_name'        => '',     // review requests to vendors: your name, company and e-mail address, filled in on
         'review_company'     => '',     //   the forms that allow it (AVG, Fortinet) and used in the ready-made texts
         'review_email'       => '',     //   ('' = the notification address, or your Plesk address)
@@ -190,5 +193,13 @@ class VtSettings
         $file = self::settingsFile($this->userId);
         file_put_contents($file, json_encode($this->data, JSON_PRETTY_PRINT));
         @chmod($file, 0600); // contains the API key — panel user only
+    }
+
+    /** Whether a role may use Stingy Scanner (Settings → Access, by the administrator): admin always */
+    public static function roleAllowed(string $role): bool
+    {
+        if ($role === 'admin') return true;
+        $a = new self('admin');
+        return $role === 'reseller' ? (bool)$a->get('show_resellers', true) : (bool)$a->get('show_clients', true);
     }
 }

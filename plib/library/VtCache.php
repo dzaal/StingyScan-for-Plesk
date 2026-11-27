@@ -2,6 +2,7 @@
 require_once __DIR__ . '/VtDataDir.php';
 require_once __DIR__ . '/VtSettings.php';
 require_once __DIR__ . '/VtNotifier.php';
+require_once __DIR__ . '/VtPanelNotify.php';
 require_once __DIR__ . '/VtEvents.php';
 require_once __DIR__ . '/VtSiteLog.php';
 
@@ -65,6 +66,11 @@ class VtCache
             $this->lastNotified = VtNotifier::statusChanged($domain, $old, $result);
         } catch (\Throwable $e) {
             // A mail problem must never break scanning
+        }
+        try {
+            // Plesk notifications (the bell): collected, sent by the 5-minute and nightly tasks
+            if (($old['status'] ?? null) !== ($result['status'] ?? null)) VtPanelNotify::statusChanged($domain, $old['status'] ?? null, (string)($result['status'] ?? ''));
+        } catch (\Throwable $e) {
         }
         try {
             VtEvents::record($domain, $old, $result);

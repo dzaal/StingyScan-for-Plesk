@@ -334,6 +334,8 @@ Stingy Scanner works at all three Plesk user levels: **administrator**, **resell
 
 Every user has their own settings: API key, budget, sites to scan and notifications. Users without an API key of their own automatically use the administrator's key.
 
+The administrator can switch Stingy Scanner off for resellers and/or customers in **Settings → Access for resellers and customers**: the entry disappears from their Plesk menu, the page refuses them and they get no e-mails from it. The sites are still scanned; only the administrator sees the results.
+
 ## Notifications
 
 In **Settings → Notifications**, each user can switch on e-mail for when one of their sites changes status:
@@ -349,6 +351,8 @@ You don't get an e-mail per site. Changes are collected and sent as **one summar
 The summary goes out at the end of the nightly scan, and during the day 10 minutes after a change, so several changes share one e-mail. A site that flips back to its old status before the summary is sent is left out. **Send test e-mail** sends a sample summary with your current infected list.
 
 Mail is sent with the server's own mail system (PHP `mail()` via sendmail), from the administrator's e-mail address. Keep in mind that a single vendor flagging a site can be a false alarm, so check a site before alarming its owner.
+
+**Plesk notifications (the bell).** Stingy Scanner can also put its news in Plesk's own notifications, with its logo: a site that became infected or suspicious, a site that is clean again, and admin rights that changed on a site. Choose the kinds in *Settings → Notifications → Plesk notifications* (default: infected, suspicious and admin changes); *Send a test notification* checks it. Several status changes are combined into one notification per kind within 5 minutes, and a click opens Stingy Scanner. Plesk can switch each kind off too (*Tools & Settings → Notifications → Panel*). These are for the administrator.
 
 ## Statistics
 

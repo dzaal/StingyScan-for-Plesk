@@ -122,7 +122,7 @@ class VtNotifier
             $email = trim((string)($d['notify_email'] ?? '')) ?: self::emailOfLogin($login);
             if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
             $role = $login === 'admin' ? 'admin' : self::roleOf($login);
-            if (!$role) continue;
+            if (!$role || !VtSettings::roleAllowed($role)) continue; // switched off for resellers / customers
             $subs[] = array_merge($d, ['login' => $login, 'role' => $role, 'email' => $email]);
         }
         return $subs;

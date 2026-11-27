@@ -11,6 +11,7 @@ require_once $_vtLib . '/VtRateLimiter.php';
 require_once $_vtLib . '/VtApi.php';
 require_once $_vtLib . '/PleskDomains.php';
 require_once $_vtLib . '/VtNotifier.php';
+require_once $_vtLib . '/VtPanelNotify.php';
 require_once $_vtLib . '/VtHistory.php';
 require_once $_vtLib . '/VtManualQueue.php';
 require_once $_vtLib . '/VtEvents.php';
@@ -54,6 +55,10 @@ class IndexController extends pm_Controller_Action
     public function init(): void
     {
         parent::init();
+        // The administrator can switch Stingy Scanner off for resellers or customers (Settings → Access)
+        if (!VtSettings::roleAllowed($this->role())) {
+            throw new pm_Exception('Stingy Scanner is not available for your account. Ask your hosting provider.');
+        }
         $userId         = $this->resolveUserId();
         $this->settings = new VtSettings($userId);
         // Use own API key; fall back to admin's key if the user hasn't configured one
@@ -360,6 +365,15 @@ class IndexController extends pm_Controller_Action
             if ($out) return ['source' => $src, 'updated' => (string)($d['updated'] ?? ''), 'vendors' => $out];
         }
         return null;
+    }
+
+    /** Send a test notification to the Plesk notifications (administrator) */
+    public function panelNotifyTestAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
+        if (!VtPanelNotify::available()) { $this->respond(['error' => 'This Plesk has no panel notifications (Plesk Obsidian 18 or newer needed)']); return; }
+        $this->respond(VtPanelNotify::test() ? ['ok' => true] : ['error' => 'Plesk did not accept the notification']);
     }
 
     /** Store the alert ID that a vendor's block page shows for a site (AVG Web Shield); empty removes it */
@@ -951,6 +965,8 @@ class IndexController extends pm_Controller_Action
         $s['avast_products']   = VtAvastStore::products();
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
+        if ($this->role() === 'admin') $s['panel'] = ['kinds' => VtPanelNotify::kinds(), 'available' => VtPanelNotify::available()];
+        if ($this->role() === 'admin') $s['access'] = ['resellers' => VtSettings::roleAllowed('reseller'), 'clients' => VtSettings::roleAllowed('client')];
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
         if ($this->role() === 'admin' && !VtEdition::CATALOG) $s['stats'] = VtStats::localInfo(); // computed here; the collector is never asked
@@ -1070,6 +1086,18 @@ class IndexController extends pm_Controller_Action
             if ($this->settings->getUserId() === 'admin') $save['stats_share'] = $on; // same file: saved below
             else (new VtSettings('admin'))->set('stats_share', $on);
             if ($on !== VtStats::enabled()) $this->appendLog('[stats] installation statistics ' . ($on ? 'switched on' : 'switched off'));
+        }
+        if ($this->role() === 'admin' && (isset($input['show_resellers']) || isset($input['show_clients']))) {
+            $acc = [];
+            foreach (['show_resellers', 'show_clients'] as $k) if (isset($input[$k])) $acc[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
+            if ($this->settings->getUserId() === 'admin') $save += $acc;
+            else (new VtSettings('admin'))->setAll($acc);
+        }
+        if ($this->role() === 'admin' && isset($input['panel_notify'])) {
+            // Plesk notifications (the bell): which kinds; same file as these settings for the admin
+            $kinds = array_values(array_intersect(array_filter(explode(',', (string)$input['panel_notify'])), ['infected', 'suspicious', 'clean', 'admin_change']));
+            if ($this->settings->getUserId() === 'admin') $save['panel_notify'] = $kinds;
+            else (new VtSettings('admin'))->set('panel_notify', $kinds);
         }
         if ($this->role() === 'admin' && (isset($input['admin_trusted']) || isset($input['admin_watch_mail']))) {
             $aw = [];

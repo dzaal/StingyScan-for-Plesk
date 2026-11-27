@@ -516,6 +516,36 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 #vtpanel-settings input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 @media(max-width:850px){.vt-settings-numbers .vt-field{grid-column:span 4}}
 @media(max-width:560px){.vt-settings-numbers .vt-field{grid-column:span 6}}
+/* ── Tools tab ───────────────────────────────────────────────── */
+/* Badge on tab label */
+.vt-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:0 4px;margin-left:5px;vertical-align:-2px;line-height:17px}
+/* Tool cards grid: responsive, 240 px minimum per card */
+.vt-tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:24px}
+.vt-tool-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column;gap:10px;border-left:4px solid transparent}
+.vt-tool-card:hover{border-color:var(--blue-border);box-shadow:0 2px 8px rgba(37,99,235,.08)}
+.vt-tool-card.active,.vt-tool-card:focus-visible{border-color:var(--blue);border-left-color:var(--blue);box-shadow:0 2px 14px rgba(37,99,235,.13);outline:none}
+.vt-tool-card.alert{border-left-color:var(--red)}
+.vt-tool-card.alert:hover,.vt-tool-card.alert.active{border-color:var(--red-border);box-shadow:0 2px 8px rgba(220,38,38,.1)}
+.vt-tool-top{display:flex;gap:13px;align-items:flex-start}
+.vt-tool-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vt-tool-info{flex:1;min-width:0}
+.vt-tool-title{font-size:14px;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:7px;flex-wrap:wrap;line-height:1.3}
+.vt-tool-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap}
+.vt-tool-badge.red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.vt-tool-badge.orange{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.vt-tool-badge.gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--border)}
+.vt-tool-badge.blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.vt-tool-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px}
+.vt-tool-open{font-size:12px;font-weight:600;color:var(--blue);text-align:right;padding-top:4px;margin-top:auto}
+.vt-tool-card.active .vt-tool-open,.vt-tool-card:hover .vt-tool-open{color:#1d4ed8}
+/* Back link + section heading when a tool is open */
+.vt-tool-back{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--border)}
+.vt-tool-back a{font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.vt-tool-back a:hover{text-decoration:underline}
+.vt-tool-back h2{margin:0;font-size:18px;font-weight:700;color:var(--heading)}
+/* Show/hide tool sections */
+.vt-tool-section{display:none}.vt-tool-section.active{display:block}
+
 /* Settings: no text lighter than rgb(32,32,32) */
 #vtpanel-settings{--muted:#202020;color:#202020}
 #vtpanel-settings .hint,#vtpanel-settings label,#vtpanel-settings .vt-sl-name span,#vtpanel-settings .vt-sl-part.manual .vt-sl-name span,
@@ -678,10 +708,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   <div class="vt-tabs">
     <div class="vt-tab active" id="vtab-dashboard" onclick="vtShowTab('dashboard')">Dashboard</div>
-    <div class="vt-tab" id="vtab-pwned" onclick="vtShowTab('pwned');vtLoadPwned()"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>Pwned Admins</div>
-    <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()" style="display:none">Statistics</div>
+    <div class="vt-tab" id="vtab-tools" onclick="vtShowTab('tools')">Tools<span class="vt-tab-badge" id="vt-tools-badge" style="display:none"></span></div>
     <div class="vt-tab" id="vtab-settings" onclick="vtShowTab('settings')">Settings</div>
-    <div class="vt-tab" id="vtab-log" onclick="vtShowTab('log');vtLoadLog()">Log</div>
     <div class="vt-tab" id="vtab-about" onclick="vtShowTab('about')">About</div>
   </div>
 
@@ -695,7 +723,10 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <code>plesk bin extension --uninstall virustotal-extension</code>
     </div>
 <?php endif; ?>
-    <div id="vt-aw-box" style="display:none"></div>
+    <div class="vt-alert warn" id="vt-aw-alert" style="display:none">
+      &#x26A1; <strong><span id="vt-aw-alert-text"></span></strong>
+      &mdash; <a onclick="vtShowTab('tools');vtToolSelect('adminwatch')" style="cursor:pointer">Review in Tools &rarr;</a>
+    </div>
     <div class="vt-alert warn" id="vt-api-warning" style="display:none">
       No valid API key configured or key is invalid (HTTP 401) &mdash; scans will not work.
       <a onclick="vtShowTab('settings')" style="cursor:pointer">Configure in Settings &rarr;</a>
@@ -773,8 +804,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             <button onclick="vtMenuAction('rescan','pending')">Rescan</button>
           </div>
         </div>
-        <div class="vt-fgroup" data-f="orphan" id="vt-fgroup-orphan" style="display:none">
-          <button class="vt-fbtn" data-f="orphan" onclick="vtSetFilter('orphan')" title="Leftover WordPress databases for hostnames that no longer exist"><span class="vt-dot dot-gr"></span> Orphan DBs <strong id="vt-cnt-orphan">0</strong></button>
+        <div class="vt-fgroup" id="vt-fgroup-orphan" style="display:none">
+          <button class="vt-fbtn" onclick="vtShowTab('tools');vtToolSelect('orphan')" title="Leftover WordPress databases for hostnames that no longer exist"><span class="vt-dot dot-gr"></span> Orphan DBs <strong id="vt-cnt-orphan">0</strong></button>
         </div>
       </div>
       <div class="vt-spacer"></div>
@@ -804,96 +835,191 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </table>
     </div>
 
-    <div class="vt-rel" id="vt-rel" style="display:none">
-      <h3>Orphan databases <span class="vt-rel-cnt" id="vt-rel-cnt"></span></h3>
-      <p class="hint">WordPress databases on this server for a hostname under one of your domains that doesn't exist in DNS:
-        usually old copies, test or staging sites. Nobody can visit them, but VirusTotal often still lists them, sometimes as infected,
-        and an old, never-updated copy is an easy target. They are not looked up automatically; click <strong>Rescan</strong> to check one.
-        If the copy is no longer needed: click <strong>Back up</strong> (a <code>.sql.gz</code> copy in the subscription's <code>private/vt-db-backups</code> folder),
-        then delete it in Plesk. Stingy Scanner never deletes anything itself.</p>
-      <div class="vt-tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:230px">Status</th>
-            <th>Domain</th>
-            <th style="width:155px">Score</th>
-            <th style="width:135px">Last scan</th>
-            <th style="width:85px;text-align:right">Action</th>
-          </tr>
-        </thead>
-        <tbody id="vt-tbody-rel"></tbody>
-      </table>
-      </div>
-    </div>
-  </div>
+  </div><!-- end vtpanel-dashboard -->
 
-  <!-- Log -->
-  <div class="vt-panel" id="vtpanel-trend">
-    <div class="vt-card" style="max-width:100%">
-      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="vt-tr-h">Infections on this server</span>
-        <span class="hint" style="font-weight:400" id="vt-tr-sub"></span>
-        <span style="flex:1"></span>
-        <span class="vt-seg" id="vt-tr-range">
-          <button data-d="30" onclick="vtTrendRange(30)">1 month</button><button data-d="61" onclick="vtTrendRange(61)">2 months</button><button data-d="92" onclick="vtTrendRange(92)">3 months</button>
-        </span>
-      </h3>
-      <div class="vt-tr-tiles" id="vt-tr-tiles"></div>
-      <div class="vt-tr-legend"><span><i style="background:#d03b3b"></i>Infected</span><span><i style="background:#fab219"></i>Suspicious</span></div>
-      <div class="vt-tr-chart" id="vt-tr-lines"></div>
-      <div class="vt-tr-title">Sites cleaned per day <span class="hint">(infected or suspicious, then clean again)</span></div>
-      <div class="vt-tr-chart" id="vt-tr-bars"></div>
-      <div class="vt-tr-tip" id="vt-tr-tip"></div>
-      <div class="vt-fs-note" id="vt-tr-note"></div>
-      <details class="vt-tr-table"><summary>Show as table</summary><div id="vt-tr-table"></div></details>
-      <div class="vt-ev-wrap">
-        <div class="vt-tr-title">Recent status changes <span class="hint">(per site, newest first)</span></div>
-        <div id="vt-ev-list"><span class="hint">Loading…</span></div>
-      </div>
-    </div>
-  </div>
+  <!-- ── Tools ─────────────────────────────────────────────────────── -->
+  <div class="vt-panel" id="vtpanel-tools">
 
-  <div class="vt-panel" id="vtpanel-pwned">
-    <div class="vt-card" style="max-width:100%">
-      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned Admins <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
-        <span style="flex:1"></span><span id="vt-pw-actions"></span></h3>
-      <div class="hint">The administrator accounts of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site, and whether their e-mail address appears in a known data breach.
-        A breached address means a password used with it may be known: change the WordPress password (and any other place it was used) and turn on two-factor login.
-        Each address is checked once; the result stays valid, so it is never checked again.</div>
-      <div id="vt-pw-src"></div>
-      <div id="vt-pw-note"></div>
-      <div id="vt-pw-fix"></div>
-      <div class="vt-toolbar" style="margin-top:6px">
-        <input class="vt-search" type="text" id="vt-pw-search" placeholder="Search site, customer, login, e-mail or breach..." oninput="vtRenderPwned()" style="width:300px">
-        <div class="vt-filters">
-          <button class="vt-fbtn active" data-pwf="all" onclick="vtPwFilter('all')">All <strong id="vt-pw-cnt-all">0</strong></button>
-          <button class="vt-fbtn" data-pwf="bad" onclick="vtPwFilter('bad')"><span class="vt-dot dot-r"></span> Pwned <strong id="vt-pw-cnt-bad">0</strong></button>
-          <button class="vt-fbtn" data-pwf="ok" onclick="vtPwFilter('ok')"><span class="vt-dot dot-g"></span> Not pwned <strong id="vt-pw-cnt-ok">0</strong></button>
-          <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not tested <strong id="vt-pw-cnt-new">0</strong></button>
+    <!-- Tool launcher: grid of cards, hidden when a tool is open -->
+    <div id="vt-tools-home">
+      <div class="vt-tools-grid">
+
+        <!-- Pwned Admins -->
+        <div class="vt-tool-card" id="vtcard-pwned" tabindex="0" onclick="vtToolSelect('pwned')" onkeydown="if(event.key==='Enter')vtToolSelect('pwned')"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#fef2f2;color:#dc2626">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Pwned Admins <span class="vt-tool-badge red" id="vttb-pwned" style="display:none"></span></div>
+              <div class="vt-tool-desc">Admin e-mail addresses found in known data breaches — change their passwords and enable two-factor login</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
         </div>
-        <div class="vt-spacer"></div>
-        <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
-      </div>
-      <div id="vt-pw-list"><span class="hint">Loading…</span></div>
-      <div class="vt-tr-title">Other e-mail addresses <span class="hint">(added by hand, for example your own or a customer's)</span></div>
-      <div class="vt-pw-add"><input type="email" id="vt-pw-new" placeholder="name@example.com" autocomplete="off" onkeydown="if(event.key==='Enter')vtPwAdd()"><button type="button" class="vt-btn primary" onclick="vtPwAdd()">Add address</button><span id="vt-pw-addmsg" class="hint"></span></div>
-      <div id="vt-pw-custom"></div>
-      <div class="hint" id="vt-pw-attr" style="margin-top:12px"></div>
-    </div>
-  </div>
 
-  <div class="vt-panel" id="vtpanel-log">
-    <div class="vt-card" style="max-width:100%">
-      <h3 style="display:flex;align-items:center;gap:10px">
-        Scan Log
-        <span style="font-size:11px;font-weight:400;color:var(--muted)" id="vt-log-meta"></span>
-        <div style="flex:1"></div>
-        <button class="vt-btn ghost" onclick="vtLoadLog()">Refresh</button>
-        <button class="vt-btn danger" onclick="vtClearLog()" style="margin-left:4px">Clear log</button>
-      </h3>
-      <pre id="vt-log-pre" style="margin:0;padding:10px;background:var(--gray-bg);border:1px solid var(--border);border-radius:var(--radius);font-size:11px;line-height:1.6;overflow-x:auto;white-space:pre-wrap;max-height:600px;overflow-y:auto;color:var(--text)">Loading...</pre>
+        <!-- Admin changes -->
+        <div class="vt-tool-card" id="vtcard-adminwatch" tabindex="0" onclick="vtToolSelect('adminwatch')" onkeydown="if(event.key==='Enter')vtToolSelect('adminwatch')">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#fffbeb;color:#d97706">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Admin changes <span class="vt-tool-badge orange" id="vttb-adminwatch" style="display:none"></span></div>
+              <div class="vt-tool-desc">New or changed admin accounts since the last hourly scan — approve what you did, investigate anything unexpected</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
+
+        <!-- Orphan databases -->
+        <div class="vt-tool-card" id="vtcard-orphan" tabindex="0" onclick="vtToolSelect('orphan')" onkeydown="if(event.key==='Enter')vtToolSelect('orphan')" style="display:none">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#f0fdf4;color:#16a34a">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Orphan databases <span class="vt-tool-badge gray" id="vttb-orphan" style="display:none"></span></div>
+              <div class="vt-tool-desc">WordPress databases for domains that no longer exist in DNS — back up and remove what is no longer needed</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="vt-tool-card" id="vtcard-trend" tabindex="0" onclick="vtToolSelect('trend')" onkeydown="if(event.key==='Enter')vtToolSelect('trend')" style="display:none">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#eff6ff;color:#2563eb">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Statistics</div>
+              <div class="vt-tool-desc">Infection trend charts and status changes over the last 30–90 days</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
+
+        <!-- Scan log -->
+        <div class="vt-tool-card" id="vtcard-log" tabindex="0" onclick="vtToolSelect('log')" onkeydown="if(event.key==='Enter')vtToolSelect('log')">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#f9fafb;color:#6b7280">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Scan log</div>
+              <div class="vt-tool-desc">Background scan history, errors and event log</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
+
+      </div>
+    </div><!-- end vt-tools-home -->
+
+    <!-- ── Tool sections ─────────────────────────────────────────── -->
+
+    <div class="vt-tool-section" id="vtool-pwned">
+      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Pwned Admins</h2></div>
+      <div class="vt-card" style="max-width:100%">
+        <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned Admins <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
+          <span style="flex:1"></span><span id="vt-pw-actions"></span></h3>
+        <div class="hint">The administrator accounts of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site, and whether their e-mail address appears in a known data breach.
+          A breached address means a password used with it may be known: change the WordPress password (and any other place it was used) and turn on two-factor login.
+          Each address is checked once; the result stays valid, so it is never checked again.</div>
+        <div id="vt-pw-src"></div>
+        <div id="vt-pw-note"></div>
+        <div id="vt-pw-fix"></div>
+        <div class="vt-toolbar" style="margin-top:6px">
+          <input class="vt-search" type="text" id="vt-pw-search" placeholder="Search site, customer, login, e-mail or breach..." oninput="vtRenderPwned()" style="width:300px">
+          <div class="vt-filters">
+            <button class="vt-fbtn active" data-pwf="all" onclick="vtPwFilter('all')">All <strong id="vt-pw-cnt-all">0</strong></button>
+            <button class="vt-fbtn" data-pwf="bad" onclick="vtPwFilter('bad')"><span class="vt-dot dot-r"></span> Pwned <strong id="vt-pw-cnt-bad">0</strong></button>
+            <button class="vt-fbtn" data-pwf="ok" onclick="vtPwFilter('ok')"><span class="vt-dot dot-g"></span> Not pwned <strong id="vt-pw-cnt-ok">0</strong></button>
+            <button class="vt-fbtn" data-pwf="new" onclick="vtPwFilter('new')"><span class="vt-dot dot-gr"></span> Not tested <strong id="vt-pw-cnt-new">0</strong></button>
+          </div>
+          <div class="vt-spacer"></div>
+          <div class="vt-seg" id="vt-pw-view"><button data-v="group" onclick="vtPwView('group')" title="One block per site">Group</button><button data-v="sort" onclick="vtPwView('sort')" title="One row per e-mail address, with the sites it administers; click a column to sort">Sort</button></div>
+        </div>
+        <div id="vt-pw-list"><span class="hint">Loading…</span></div>
+        <div class="vt-tr-title">Other e-mail addresses <span class="hint">(added by hand, for example your own or a customer's)</span></div>
+        <div class="vt-pw-add"><input type="email" id="vt-pw-new" placeholder="name@example.com" autocomplete="off" onkeydown="if(event.key==='Enter')vtPwAdd()"><button type="button" class="vt-btn primary" onclick="vtPwAdd()">Add address</button><span id="vt-pw-addmsg" class="hint"></span></div>
+        <div id="vt-pw-custom"></div>
+        <div class="hint" id="vt-pw-attr" style="margin-top:12px"></div>
+      </div>
     </div>
-  </div>
+
+    <div class="vt-tool-section" id="vtool-adminwatch">
+      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Admin changes</h2></div>
+      <div id="vt-aw-box"></div>
+    </div>
+
+    <div class="vt-tool-section" id="vtool-orphan">
+      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Orphan databases</h2></div>
+      <div class="vt-rel" id="vt-rel">
+        <h3>Orphan databases <span class="vt-rel-cnt" id="vt-rel-cnt"></span></h3>
+        <p class="hint">WordPress databases on this server for a hostname under one of your domains that doesn&rsquo;t exist in DNS:
+          usually old copies, test or staging sites. Nobody can visit them, but VirusTotal often still lists them, sometimes as infected,
+          and an old, never-updated copy is an easy target. They are not looked up automatically; click <strong>Rescan</strong> to check one.
+          If the copy is no longer needed: click <strong>Back up</strong> (a <code>.sql.gz</code> copy in the subscription&rsquo;s <code>private/vt-db-backups</code> folder),
+          then delete it in Plesk. Stingy Scanner never deletes anything itself.</p>
+        <div class="vt-tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:230px">Status</th>
+                <th>Domain</th>
+                <th style="width:155px">Score</th>
+                <th style="width:135px">Last scan</th>
+                <th style="width:85px;text-align:right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="vt-tbody-rel"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="vt-tool-section" id="vtool-trend">
+      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Statistics</h2></div>
+      <div class="vt-card" style="max-width:100%">
+        <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="vt-tr-h">Infections on this server</span>
+          <span class="hint" style="font-weight:400" id="vt-tr-sub"></span>
+          <span style="flex:1"></span>
+          <span class="vt-seg" id="vt-tr-range">
+            <button data-d="30" onclick="vtTrendRange(30)">1 month</button><button data-d="61" onclick="vtTrendRange(61)">2 months</button><button data-d="92" onclick="vtTrendRange(92)">3 months</button>
+          </span>
+        </h3>
+        <div class="vt-tr-tiles" id="vt-tr-tiles"></div>
+        <div class="vt-tr-legend"><span><i style="background:#d03b3b"></i>Infected</span><span><i style="background:#fab219"></i>Suspicious</span></div>
+        <div class="vt-tr-chart" id="vt-tr-lines"></div>
+        <div class="vt-tr-title">Sites cleaned per day <span class="hint">(infected or suspicious, then clean again)</span></div>
+        <div class="vt-tr-chart" id="vt-tr-bars"></div>
+        <div class="vt-tr-tip" id="vt-tr-tip"></div>
+        <div class="vt-fs-note" id="vt-tr-note"></div>
+        <details class="vt-tr-table"><summary>Show as table</summary><div id="vt-tr-table"></div></details>
+        <div class="vt-ev-wrap">
+          <div class="vt-tr-title">Recent status changes <span class="hint">(per site, newest first)</span></div>
+          <div id="vt-ev-list"><span class="hint">Loading…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vt-tool-section" id="vtool-log">
+      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Scan log</h2></div>
+      <div class="vt-card" style="max-width:100%">
+        <h3 style="display:flex;align-items:center;gap:10px">
+          Scan Log
+          <span style="font-size:11px;font-weight:400;color:var(--muted)" id="vt-log-meta"></span>
+          <div style="flex:1"></div>
+          <button class="vt-btn ghost" onclick="vtLoadLog()">Refresh</button>
+          <button class="vt-btn danger" onclick="vtClearLog()" style="margin-left:4px">Clear log</button>
+        </h3>
+        <pre id="vt-log-pre" style="margin:0;padding:10px;background:var(--gray-bg);border:1px solid var(--border);border-radius:var(--radius);font-size:11px;line-height:1.6;overflow-x:auto;white-space:pre-wrap;max-height:600px;overflow-y:auto;color:var(--text)">Loading...</pre>
+      </div>
+    </div>
+
+  </div><!-- end vtpanel-tools -->
 
   <!-- Settings -->
   <div class="vt-panel" id="vtpanel-settings">
@@ -1360,7 +1486,8 @@ async function init(){
   if(!cfg.has_key||cfg.api_key_invalid) document.getElementById('vt-api-warning').style.display='flex';
   loadSettingsForm(cfg);
   if(cfg.role==='admin') vtAwLoad();
-  document.getElementById('vtab-trend').style.display=''; // admin: the server; reseller and customer: their own sites
+  // Statistics card is visible to all logged-in users
+  const tcard=document.getElementById('vtcard-trend'); if(tcard) tcard.style.display='';
   if(!cfg.has_key||cfg.api_key_invalid){
     // Without a working key every lookup fails: show the sites as waiting for a key, not as errors
     noKey=true;
@@ -1429,12 +1556,33 @@ function isStale(d){
 window.vtShowTab=function(name){
   document.querySelectorAll('.vt-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.vt-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('vtab-'+name).classList.add('active');
-  document.getElementById('vtpanel-'+name).classList.add('active');
-  // Settings: the quarantine can change from a site's details, so show its current state
+  document.getElementById('vtab-'+name)?.classList.add('active');
+  document.getElementById('vtpanel-'+name)?.classList.add('active');
   if(name==='settings'&&document.getElementById('vt-q-card').style.display!=='none')
     vtFetch('?action=quarantine-info').then(r=>{ if(r?.quarantine) vtRenderQuarantine(r.quarantine); }).catch(()=>{});
 };
+
+// ── Tools ──────────────────────────────────────────────────────
+let currentTool=null;
+window.vtToolSelect=function(name){
+  currentTool=name;
+  document.querySelectorAll('.vt-tool-card').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.vt-tool-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('vt-tools-home').style.display=name?'none':'';
+  if(!name) return;
+  document.getElementById('vtcard-'+name)?.classList.add('active');
+  document.getElementById('vtool-'+name)?.classList.add('active');
+  if(name==='pwned')      vtLoadPwned();
+  if(name==='adminwatch') vtAwLoad();
+  if(name==='trend')      vtLoadTrend();
+  if(name==='log')        vtLoadLog();
+};
+function vtToolsBadge(){
+  const badge=document.getElementById('vt-tools-badge'); if(!badge) return;
+  const awCount=aw?(aw.events||[]).filter(e=>!e.approved&&e.type!=='removed').length:0;
+  if(awCount>0){ badge.textContent=awCount>9?'!':awCount; badge.style.display=''; }
+  else badge.style.display='none';
+}
 
 // ── Scan pump ─────────────────────────────────────────────────
 // Sequential with delay — stays within VT free tier (4 req/min).
@@ -1616,8 +1764,10 @@ function renderTable(){
   updateSortHeaders();
   tbody.innerHTML=viewMode==='sort'?sortedDomains().map(d=>rowHTML(d,results[d]||null)).join(''):groupedRowsHTML();
   vtSet('vt-rel-cnt',related.length); vtSet('vt-cnt-orphan',related.length);
+  const ocard=document.getElementById('vtcard-orphan'), obadge=document.getElementById('vttb-orphan');
+  if(ocard) ocard.style.display=related.length?'':'none';
+  if(obadge){ obadge.textContent=related.length; obadge.style.display=related.length?'':'none'; }
   document.getElementById('vt-fgroup-orphan').style.display=related.length?'':'none';
-  if(!related.length&&activeFilter==='orphan') activeFilter='all';
   document.getElementById('vt-tbody-rel').innerHTML=related.map(d=>rowHTML(d,results[d]||null)).join('');
   vtApplyFilter();
 }
@@ -1980,7 +2130,7 @@ function vtTrendDraw(){
   document.getElementById('vt-tr-table').innerHTML='<table><thead><tr><th>Date</th><th>Infected</th><th>Suspicious</th><th>Clean</th><th>Cleaned</th></tr></thead><tbody>'
     +days.slice().reverse().map(d=>'<tr><td>'+trDate(d.date,1)+(d.demo?' (demo)':'')+'</td><td>'+d.infected+'</td><td>'+d.suspicious+'</td><td>'+d.clean+'</td><td>'+(d.cleaned||0)+'</td></tr>').join('')+'</tbody></table>';
 }
-window.addEventListener('resize',()=>{if(document.getElementById('vtpanel-trend').classList.contains('active'))vtTrendDraw();});
+window.addEventListener('resize',()=>{if(document.getElementById('vtool-trend')?.classList.contains('active'))vtTrendDraw();});
 
 // ── Filter ────────────────────────────────────────────────────
 window.vtSetFilter=function(f){
@@ -1991,9 +2141,7 @@ window.vtSetFilter=function(f){
 window.vtApplyFilter=function(){
   const q=document.getElementById('vt-search').value.toLowerCase();
   // Orphan databases are their own view: shown only with the Orphan DBs button, instead of the site list
-  const orphanView=activeFilter==='orphan';
-  document.getElementById('vt-rel').style.display=orphanView&&related.length?'':'none';
-  document.getElementById('vt-tbody').closest('.vt-tbl-wrap').style.display=orphanView?'none':'';
+  document.getElementById('vt-tbody').closest('.vt-tbl-wrap').style.display='';
   document.querySelectorAll('#vt-tbody-rel tr[data-domain]').forEach(row=>{row.style.display=(!q||row.dataset.domain.includes(q))?'':'none';});
   document.querySelectorAll('#vt-tbody tr[data-domain]').forEach(row=>{
     const st=row.dataset.status;
@@ -2681,11 +2829,11 @@ window.vtTocGo=function(ev,id){
   el.scrollIntoView({behavior:'smooth',block:'start'});
   el.classList.remove('vt-toc-hit'); void el.offsetWidth; el.classList.add('vt-toc-hit');
 };
-// The Pwned Admins tab, or (when switched off and hidden) its setting
+// Pwned Admins tool, or (when switched off and hidden) its setting
 window.vtOpenPwned=function(ev){
   if(ev) ev.preventDefault();
-  if(document.getElementById('vtab-pwned').style.display==='none') return vtGoSetting(null,'vt-pwcfg-card');
-  vtShowTab('pwned'); vtLoadPwned();
+  if(document.getElementById('vtcard-pwned')?.style.display==='none') return vtGoSetting(null,'vt-pwcfg-card');
+  vtShowTab('tools'); vtToolSelect('pwned');
 };
 // From another tab: open Settings, then go to the section
 window.vtGoSetting=function(ev,id){ if(ev) ev.preventDefault(); vtShowTab('settings'); setTimeout(()=>vtTocGo(null,id),60); };
@@ -3174,7 +3322,7 @@ window.vtPwSaveSrc=async function(){
   vtRenderPwCfg(r.config);
   if(r.message) m.textContent+=' · '+r.message;
   if(pw){pw.config=r.config; vtRenderPwned();}
-  document.getElementById('vtab-pwned').style.display=r.config.source?'':'none'; // off: no Pwned Admins tab
+  document.getElementById('vtcard-pwned').style.display=r.config.source?'':'none'; // off: hide Pwned Admins tool card
   vtToast(src?'Breach data from '+(r.config.source_name||src):'Breached admin accounts switched off: the Pwned Admins tab is hidden','info');
 };
 /**
@@ -3633,7 +3781,7 @@ window.vtAvastLive=async function(domain,force){
     vtFsRefresh(domain);
   }
   if(fsOpen[domain]==='vt') vtLoadSiteHist(domain);
-  if(document.getElementById('vtpanel-trend').classList.contains('active')) vtLoadTrend();
+  if(document.getElementById('vtool-trend')?.classList.contains('active')) vtLoadTrend();
 };
 function vtSiteHistHTML(domain){
   const list=siteHist[domain];
@@ -4253,9 +4401,27 @@ function awExplainHTML(x,ev){
   return h;
 }
 function vtAwRender(){
-  const box=document.getElementById('vt-aw-box'); if(!aw){box.style.display='none'; return;}
+  const box=document.getElementById('vt-aw-box');
+  if(!aw){
+    if(box) box.style.display='none';
+    const al=document.getElementById('vt-aw-alert'); if(al) al.style.display='none';
+    const ab=document.getElementById('vttb-adminwatch'); if(ab) ab.style.display='none';
+    document.getElementById('vtcard-adminwatch')?.classList.remove('alert');
+    vtToolsBadge(); return;
+  }
   const evs=aw.events||[], open=evs.filter(e=>!e.approved&&e.type!=='removed'), cross=Object.entries(aw.cross||{});
-  if(!evs.length&&!cross.length){box.style.display='none'; return;}
+  // Compact dashboard alert
+  const alertEl=document.getElementById('vt-aw-alert'), alertTxt=document.getElementById('vt-aw-alert-text');
+  if(alertEl&&alertTxt){
+    if(open.length){ alertTxt.textContent=open.length+' admin change'+(open.length===1?'':'s')+' to review'; alertEl.style.display='flex'; }
+    else alertEl.style.display='none';
+  }
+  // Admin changes tool card badge
+  const awBadge=document.getElementById('vttb-adminwatch'), awCard=document.getElementById('vtcard-adminwatch');
+  if(awBadge){ awBadge.textContent=open.length; awBadge.style.display=open.length?'':'none'; }
+  if(awCard) awCard.classList.toggle('alert',open.length>0);
+  vtToolsBadge();
+  if(!evs.length&&!cross.length){if(box) box.style.display='none'; return;}
   box.style.display='';
   let h='<div class="vt-aw'+(open.length?' alert':'')+'"><div class="vt-aw-top" onclick="vtAwToggle()"><span class="vt-aw-title">'
     +(open.length?'⚠ '+open.length+' admin change'+(open.length===1?'':'s')+' to review':'Admin changes')+'</span>'
@@ -4300,7 +4466,7 @@ window.vtAwScan=async function(btn){
 };
 // Fix a pwned admin address from a site's admin list: the same panel as in Pwned Admins
 window.vtWpFix=async function(email){
-  vtShowTab('pwned'); if(!pw) await vtLoadPwned();
+  vtShowTab('tools'); vtToolSelect('pwned');
   vtPwFixOpen(email);
 };
 

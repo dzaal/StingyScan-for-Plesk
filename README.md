@@ -92,18 +92,18 @@ Stingy Scanner was built to fix that:
 - **Optional AVG / Avast Web Shield** classification (experimental), asked live (see [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental)).
 - **Update check:** when a newer version is on GitHub, a yellow banner appears with the release notes and, for the administrator, an **Install** button that upgrades the extension in one click.
 - **Nightly background scan** (03:00, server time), scheduled automatically through Plesk's own scheduler.
-- **Statistics tab:** a trend graph of infected, suspicious and cleaned sites per day over the last 1, 2 or 3 months, for the whole server, per reseller or per customer (see [Statistics](#statistics)).
+- **Tools tab:** Pwned Admins, Admin changes, Orphan databases, Statistics and the Scan log are grouped in a **Tools** tab, each as a card with a live badge. The Tools tab itself shows a red badge when admin changes need review.
 - **Helps you solve it, not just report it.** Click the score of an infected or suspicious site to see which vendors flag it, with a link per vendor to ask for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 - **E-mail notifications:** one summary e-mail with status changes and the full list of infected sites (see [Notifications](#notifications)).
 - **Works for every Plesk user level:** administrator, reseller and client (see [Users and roles](#users-and-roles)).
 - **Category menus:** the small arrow next to each status button (All, Infected, Suspicious, …) opens a menu with **Rescan**, which rescans every site in that category, worst first and never more than today's manual budget allows. The menu next to **All** also has **Refresh site list**.
 - **File scanners on demand:** in a site's details, one file-scan button for the engine found on the server (ClamAV, or Maldet when ClamAV is missing) plus Imunify's results. Results and infected files appear right under the site (see [File scanners](#file-scanners-clamav-maldet-imunify)).
 - **Clean and quarantine** (administrator): let Imunify clean a file after showing what changes, or move it to a root-only quarantine; both can be undone (see [Cleaning and quarantine](#cleaning-and-quarantine-administrator)).
-- **Rogue admin detection** (administrator): every hour Stingy Scanner compares who has admin rights on each site with the scan before. A **new admin**, an **existing account made admin**, **admin rights without the administrator role**, a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** or a **new application password** appears on **Dashboard → Admin changes** and is e-mailed once, with **Approve** and **Explain** (requests from the site's access log, the Stream audit log, the account's logins). Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. **Trusted admin addresses** (your own and your agencies') are approved automatically. In a site's details every admin account gets badges: **red** for strong signals (a change, a breached address), **grey** for hints (generic name, free or unrelated e-mail domain). **Delete** the user (posts go to another admin), **🛠 Fix** a pwned address, or **Reset pwd** via WP-CLI; **▶ Log** shows recent logins and content activity. See [Rogue admin detection](#rogue-admin-detection-administrator).
-- **Pwned Admins tab:** every administrator of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site on the server and whether their e-mail address is in a known data breach (with the year of each breach), with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. **🛠 Fix** e-mails the administrator a warning with the breaches and links to check or change the password, or (WordPress, emergency) resets the password. Add any other address by hand (see [Pwned Admins](#pwned-admins-data-breaches)).
+- **Rogue admin detection** (administrator): every hour Stingy Scanner compares who has admin rights on each site with the scan before. A **new admin**, an **existing account made admin**, **admin rights without the administrator role**, a **role that got admin rights**, a new **Multisite super admin**, an admin's **e-mail address changed** or a **new application password** appears in **Tools → Admin changes** and is e-mailed once, with **Approve** and **Explain** (requests from the site's access log, the Stream audit log, the account's logins). Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins are compared too. **Trusted admin addresses** (your own and your agencies') are approved automatically. In a site's details every admin account gets badges: **red** for strong signals (a change, a breached address), **grey** for hints (generic name, free or unrelated e-mail domain). **Delete** the user (posts go to another admin), **🛠 Fix** a pwned address, or **Reset pwd** via WP-CLI; **▶ Log** shows recent logins and content activity. See [Rogue admin detection](#rogue-admin-detection-administrator).
+- **Tools → Pwned Admins:** every administrator of every WordPress, Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel site on the server and whether their e-mail address is in a known data breach (with the year of each breach), with search, filters (Pwned / Not pwned / Not tested) and a view per address; each address is tested once. **🛠 Fix** e-mails the administrator a warning with the breaches and links to check or change the password, or (WordPress, emergency) resets the password. Add any other address by hand (see [Pwned Admins](#pwned-admins-data-breaches)).
 - **Installation statistics ("Talk to mama", off by default):** only when you switch it on in Settings, shares the host name, version and number of hosted websites with Digizaal once a week; untick it to stop (see [Installation statistics](#installation-statistics-talk-to-mama)).
 - **External sites:** watch the reputation of sites hosted elsewhere, in the same list (see [External sites](#external-sites)).
-- **Log tab** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
+- **Tools → Scan log** with a colour-coded scan log, and **log rotation** so the logs stay small (see [Settings](#settings)).
 - **About tab** about the maker, with a *Buy me a coffee* button.
 
 ## File scanners (ClamAV, maldet, Imunify)
@@ -203,7 +203,7 @@ A badge is a reason to investigate, not proof. Always check before deleting an a
 
 - Every hour, Stingy Scanner reads who has admin rights on every WordPress site on the server: the administrator role, every role and capability that gives control over the site, Multisite super admins, the admins' e-mail addresses and their application passwords. Joomla, Drupal, Wotan, Nextcloud, WHMCS and Laravel admins (the ones listed in [Pwned Admins](#pwned-admins-data-breaches)) are compared too: new admin, existing account made admin, e-mail address changed, admin removed.
 - The **first scan is the baseline**: the admins that are there already are not reported (their badge says *admin since before* that date). From then on, each scan is compared with the one before, and every difference becomes a change.
-- **Dashboard → Admin changes** lists the changes that nobody approved yet, with the site, the account, what it was before and between which two scans it happened. A change appears there, and is e-mailed once, on the first scan that sees it.
+- **Tools → Admin changes** lists the changes that nobody approved yet, with the site, the account, what it was before and between which two scans it happened. A change appears there, and is e-mailed once, on the first scan that sees it. When changes are waiting, a compact alert bar on the Dashboard links directly to it.
 - **Approve** a change that you or the site owner made. Changes of a **trusted address** (Settings) are approved automatically.
 - **Explain** shows what happened in that period:
   - the requests that can change accounts, from the site's own access logs (WordPress user screens, the REST users route, application passwords, XML-RPC, plugin and theme changes, successful logins; for Joomla and Drupal their admin and user screens), with time and IP address;
@@ -213,7 +213,7 @@ A badge is a reason to investigate, not proof. Always check before deleting an a
   No requests found usually means the change was made directly in the database or by a script uploaded to the site, which is itself a strong sign of a hack.
 - **Scan now** compares right away instead of waiting for the next hour.
 
-![Admin changes on the Dashboard, with Approve and Explain (placeholder names)](docs/screenshots/admin-changes.png)
+![Admin changes in Tools, with Approve and Explain (placeholder names)](docs/screenshots/admin-changes.png)
 
 ### In a site's details
 
@@ -243,7 +243,7 @@ WP-CLI must be installed on the server for Delete and Reset pwd. Without it, tho
 
 ![Pwned Admins: every administrator address with its data breaches and a Fix button (placeholder names)](docs/screenshots/pwned-admins.png)
 
-The **Pwned Admins** tab (second, right after Dashboard) shows where that risk is:
+**Tools → Pwned Admins** shows where that risk is:
 
 - **Every site administrator on the server**: WordPress (from the database the site's `wp-config.php` points to), **Joomla** (groups *Administrator* and *Super Users*), **Drupal** 7–11 (role *administrator* and user 1) **Wotan / phpwotan** (users with admin rights, directly or through their group), **Nextcloud / ownCloud** (group *admin*), **WHMCS** (active staff accounts) and **Laravel** apps with their own `admins` table: site, customer, login, e-mail address and since when the account exists. Other systems than WordPress get a small label. Only the install in a site's document root counts (old copies next to it are skipped), and only databases on this server are read, read-only.
 - **Whether the address is in a known data breach**: *Pwned: 3 breaches*, with the breach names and years (hover a name for the kind of data that leaked). Pwned addresses have a **red shield** and are printed in red, as in a site's *WordPress admin accounts*.
@@ -304,7 +304,7 @@ The **Settings** tab starts with an **index**: one column per group, with a link
 - **Sites to scan**: all hosted websites, or WordPress sites only.
 - **Add custom not hosted domains**: sites hosted elsewhere, see [External sites](#external-sites).
 - **WordPress admin accounts** (administrator): enable or disable the rogue admin scan for all users on the server, the trusted admin addresses and the e-mail when admin rights change. When enabled, the **WordPress admin accounts** section appears at the bottom of every site's details panel. See [WordPress rogue admin detection](#rogue-admin-detection-administrator).
-- **Breached admin accounts** (administrator): which service tests the administrator addresses of the Pwned Admins tab (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins tab. See [Pwned Admins](#pwned-admins-data-breaches).
+- **Breached admin accounts** (administrator): which service tests the administrator addresses in Tools → Pwned Admins (Off, XposedOrNot, Have I Been Pwned) and the Have I Been Pwned API key, tested before it is saved. Off also hides the Pwned Admins card in Tools. See [Pwned Admins](#pwned-admins-data-breaches).
 
 **On this server**
 - **File scanners** (*Internal serverside file scanners*): ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
@@ -350,7 +350,7 @@ Mail is sent with the server's own mail system (PHP `mail()` via sendmail), from
 
 ## Statistics
 
-The **Statistics** tab shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
+**Tools → Statistics** shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
 
 - **Infected** and **suspicious** sites per day, as lines.
 - **Sites cleaned per day**: sites that were infected or suspicious and are clean again, as bars.
@@ -377,7 +377,7 @@ Options: `--resellers` also fills every reseller's history, `--customers` every 
 
 ## Orphan databases
 
-The **Orphan DBs** button next to the status filters (shown only when there are any) opens a separate list, WordPress databases on the server for a hostname under one of your domains that doesn't exist in DNS: usually old copies, test or staging sites (`staging.`, `test.`, `2025.`, …) whose database was never removed.
+The **Orphan DBs** button next to the status filters (shown only when there are any) opens **Tools → Orphan databases**, a list of WordPress databases on the server for a hostname under one of your domains that doesn't exist in DNS: usually old copies, test or staging sites (`staging.`, `test.`, `2025.`, …) whose database was never removed.
 
 Nobody can visit them, but VirusTotal often still has them on file, sometimes as infected, and an old copy that is never updated is an easy target. Per hostname you see:
 

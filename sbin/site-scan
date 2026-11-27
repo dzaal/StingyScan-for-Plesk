@@ -14,6 +14,7 @@
  *   site-scan wpuser <wp-config> <id> delete|reset [<id>]   one WordPress account, WP-CLI as the site user
  *   site-scan wpreset <wp-config> <id> <e-mail>      random password for one pwned WordPress admin, WP-CLI as the site user
  *   site-scan dump <db> [<prefix>] [<hostname>]      database backup into the subscription's private folder, written as the site user
+ *   site-scan dbscan <db> [<prefix>]                 ClamAV scan of a temporary dump in /var/lib/stingyscan (root only), always deleted
  *
  * Rules: every argument is checked against a strict pattern; paths stay inside /var/www/vhosts (realpath, no links);
  * code of a site (WP-CLI) never runs as root or as a system account; root never writes through a path that a
@@ -88,11 +89,13 @@ function clamav_detect(): ?array
 
     // "ClamAV 1.4.6/28191/Sun Nov 22 07:27:13 2026" → "1.4.6, signatures 28191"
     $version = trim((string)shell_exec(escapeshellarg($clamscan ?: $clamdscan) . ' --version 2>/dev/null'));
+    // Date of the newest signatures (the daily database), from the same line
+    $sigdate = preg_match('#^ClamAV [\d.]+/\d+/(.+)$#', $version, $m) ? (int)strtotime($m[1]) : 0;
     if (preg_match('#^ClamAV ([\d.]+)(?:/(\d+))?#', $version, $m)) $version = $m[1] . (isset($m[2]) ? ', signatures ' . $m[2] : '');
 
     $mode = ($daemonConf && $clamdscan) ? 'clamd' : ($clamscan ? 'clamscan' : 'none');
     return ['id' => 'clamav', 'name' => 'ClamAV', 'mode' => $mode, 'conf' => $daemonConf, 'clamdscan' => $clamdscan,
-            'clamscan' => $clamscan, 'daemon' => (bool)$daemonConf, 'version' => $version, 'sigdir' => $sigdir, 'rfxn' => $rfxn];
+            'clamscan' => $clamscan, 'daemon' => (bool)$daemonConf, 'version' => $version, 'sigdate' => $sigdate, 'sigdir' => $sigdir, 'rfxn' => $rfxn];
 }
 
 /** Report progress of a running scan: done of total files (set by --run, throttled there) */
@@ -145,7 +148,10 @@ function maldet_detect(): ?array
     foreach ($bins as $b) {
         if (!is_executable($b)) continue;
         $v = (string)shell_exec('timeout 10 ' . escapeshellarg($b) . ' --version 2>/dev/null');
-        return ['id' => 'maldet', 'name' => 'Maldet', 'bin' => $b, 'version' => preg_match('/\bv(\d[\d.]*)/', $v, $m) ? $m[1] : ''];
+        // Signature version is the release date plus a build number: 2026112590478 = 25 November 2026
+        $sv = trim((string)@file_get_contents(dirname((string)realpath($b)) . '/sigs/maldet.sigs.ver'));
+        $sigdate = preg_match('/^(\d{4})(\d{2})(\d{2})/', $sv, $d) && checkdate((int)$d[2], (int)$d[3], (int)$d[1]) ? (int)mktime(0, 0, 0, (int)$d[2], (int)$d[3], (int)$d[1]) : 0;
+        return ['id' => 'maldet', 'name' => 'Maldet', 'bin' => $b, 'version' => preg_match('/\bv(\d[\d.]*)/', $v, $m) ? $m[1] : '', 'sigdate' => $sigdate];
     }
     return null;
 }
@@ -177,7 +183,13 @@ function maldet_scan(array $s, string $root): array
 function imunify_detect(): ?array
 {
     foreach (['/usr/bin/imunify-antivirus', '/usr/bin/imunify360-agent'] as $b) {
-        if (is_executable($b)) return ['id' => 'imunify', 'name' => 'Imunify', 'bin' => $b, 'instant' => true];
+        if (!is_executable($b)) continue;
+        // The current signatures: /var/imunify360/files/sigs/v1 -> v1_2026-11-27T102808.660286Z (UTC)
+        $sigdate = 0;
+        $l = (string)@readlink('/var/imunify360/files/sigs/v1');
+        if (preg_match('/_(\d{4}-\d{2}-\d{2})T(\d{2})(\d{2})(\d{2})/', $l, $m)) $sigdate = (int)strtotime($m[1] . ' ' . $m[2] . ':' . $m[3] . ':' . $m[4] . ' UTC');
+        elseif (is_dir('/var/imunify360/files/sigs')) $sigdate = (int)filemtime('/var/imunify360/files/sigs');
+        return ['id' => 'imunify', 'name' => 'Imunify', 'bin' => $b, 'instant' => true, 'sigdate' => $sigdate];
     }
     return null;
 }
@@ -351,6 +363,7 @@ if ($mode === 'list') {
             $lic = (string)(imunify_json($s, 'malware malicious summary')['license']['license_type'] ?? '');
             $row['license'] = $lic;
             $row['cleanup'] = $lic !== '' && strcasecmp($lic, 'imunifyAV') !== 0;
+            $row['sigdate'] = (int)($s['sigdate'] ?? 0);
             $row['detail'] .= $lic !== '' ? ' (' . $lic . ($row['cleanup'] ? ', can clean' : ', detection only') . ')' : '';
         }
         $list[] = $row;
@@ -567,6 +580,71 @@ if ($mode === 'wpconfigs') {
         $list[] = ['path' => substr($p, strlen(VHOSTS)), 'db' => $db[1], 'prefix' => $prefix];
     }
     out(['configs' => $list]);
+}
+if ($mode === 'dbscan') {
+    // Scan a database (or only the tables with one prefix) with ClamAV: a temporary plain SQL dump in the
+    // root-only folder, scanned and then always deleted. Nothing is written in a site's folders and nothing
+    // in the database is changed. ClamAV finds known malware strings (injected scripts, web shells) in the data.
+    $db     = (string)($argv[2] ?? '');
+    $prefix = (string)($argv[3] ?? '');
+    if ($prefix === '-') $prefix = '';
+    if (!preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $db) || !preg_match('/^[A-Za-z0-9_]{0,32}$/', $prefix)) out(['error' => 'Invalid database or prefix']);
+    $s = clamav_detect();
+    if (!$s || $s['mode'] === 'none') out(['error' => 'ClamAV is not available: start clamd or install clamscan']);
+    $q = fn(string $sql) => trim((string)shell_exec('plesk db -Ne ' . escapeshellarg($sql) . ' 2>/dev/null'));
+    if ($q("SHOW DATABASES LIKE '" . str_replace('_', '\\_', $db) . "'") !== $db) out(['error' => 'Database ' . $db . ' does not exist on the local database server']);
+    $skip = []; $tables = 0;
+    if ($prefix !== '') {
+        foreach (explode("\n", $q('SHOW TABLES FROM `' . $db . '`')) as $t) {
+            if ($t === '') continue;
+            if (strpos($t, $prefix) === 0) { $tables++; continue; }
+            if (!preg_match('/^[A-Za-z0-9_$\-]{1,64}$/', $t)) out(['error' => 'Table ' . $t . ' has an unusual name; this database cannot be scanned from here']);
+            $skip[] = '--ignore-table=' . $db . '.' . $t;
+        }
+        if (!$tables) out(['error' => 'No tables with prefix ' . $prefix . ' in ' . $db]);
+    }
+    // Root-only folder (0700, owned by root): no other user can put a link there or read the dump
+    $tmp = root_dir() . '/dbscan-' . bin2hex(random_bytes(8)) . '.sql';
+    register_shutdown_function(fn() => @unlink($tmp)); // the dump never stays behind, whatever happens
+    $fh = @fopen($tmp, 'x');
+    if (!$fh) out(['error' => 'Could not create the temporary dump']);
+    @chmod($tmp, 0600);
+    fclose($fh);
+    $code = trim((string)shell_exec('bash -c ' . escapeshellarg('timeout 600 plesk db dump --single-transaction --quick --no-tablespaces '
+        . implode(' ', array_map('escapeshellarg', $skip)) . ' ' . escapeshellarg($db) . ' 2>/dev/null > ' . escapeshellarg($tmp) . '; echo $?')));
+    clearstatcache();
+    $size = (int)@filesize($tmp);
+    if ($code !== '0' || $size < 100) { @unlink($tmp); out(['error' => 'The temporary dump failed']); }
+
+    // clamd skips files over its MaxFileSize / MaxScanSize without a warning: use clamscan with higher limits then
+    $limit = 100 << 20;
+    if ($s['mode'] === 'clamd') {
+        $conf = (string)@file_get_contents($s['conf']);
+        foreach (['MaxFileSize', 'MaxScanSize'] as $k) {
+            if (preg_match('/^\s*' . $k . '\s+(\d+)([KkMm]?)/m', $conf, $m)) {
+                $v = (int)$m[1] * (['k' => 1 << 10, 'm' => 1 << 20][strtolower($m[2])] ?? 1);
+                if ($v > 0) $limit = min($limit, $v);
+            }
+        }
+    }
+    $useClamd = $s['mode'] === 'clamd' && $size < $limit;
+    if (!$useClamd && !$s['clamscan']) { @unlink($tmp); out(['error' => 'The dump (' . round($size / 1048576) . ' MB) is larger than clamd scans, and clamscan is not installed']); }
+    $mb  = (int)ceil($size / 1048576) + 16;
+    $cmd = $useClamd
+        ? escapeshellarg($s['clamdscan']) . ' -c ' . escapeshellarg($s['conf']) . ' --fdpass --no-summary ' . escapeshellarg($tmp)
+        : escapeshellarg($s['clamscan']) . ' --no-summary --max-filesize=' . $mb . 'M --max-scansize=' . $mb . 'M ' . escapeshellarg($tmp);
+    $t0 = time();
+    exec('timeout 900 nice -n 19 ionice -c3 ' . $cmd . ' 2>&1', $lines, $rc);
+    @unlink($tmp);
+    $found = []; $err = '';
+    foreach ($lines as $l) {
+        if (preg_match('/: (\S+) FOUND$/', $l, $m)) $found[] = $m[1];
+        elseif ($l !== '' && substr($l, -4) !== ': OK') $err = $err ?: trim(str_replace($tmp, 'dump', $l));
+    }
+    // ClamAV: 0 = clean, 1 = found, anything else = error. Only a clean exit counts as clean.
+    if ($rc === 1 && $found) out(['ok' => true, 'clean' => false, 'found' => array_values(array_unique($found)), 'size' => $size, 'engine' => $useClamd ? 'clamd' : 'clamscan', 'secs' => time() - $t0]);
+    if ($rc === 0 && !$found) out(['ok' => true, 'clean' => true, 'found' => [], 'size' => $size, 'engine' => $useClamd ? 'clamd' : 'clamscan', 'secs' => time() - $t0]);
+    out(['error' => 'ClamAV could not scan the dump' . ($rc === 124 ? ' (took too long)' : ($err !== '' ? ': ' . $err : ''))]);
 }
 if ($mode === 'dump') {
     // Back up a database (or only the tables with one prefix) to the subscription's private folder.
@@ -987,7 +1065,7 @@ function q_restore(string $qid): array
     return ['ok' => true, 'qid' => $qid, 'domain' => $m['domain'], 'rel' => $m['rel'], 'note' => ''];
 }
 
-if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | start <scanner> <hostname> | fileact <op> <hostname> <file> | wpconfigs | cmsconfigs | adminlog <hostname> <from> <to> | mailcheck <domain> | wpuser | wpreset | dump <db> [prefix] [hostname]']);
+if ($mode !== 'start' && $mode !== '--run') out(['error' => 'usage: site-scan list | start <scanner> <hostname> | fileact <op> <hostname> <file> | wpconfigs | cmsconfigs | adminlog <hostname> <from> <to> | mailcheck <domain> | wpuser | wpreset | dump <db> [prefix] [hostname] | dbscan <db> [prefix]']);
 
 $id   = (string)($argv[2] ?? '');
 $host = strtolower(trim((string)($argv[3] ?? '')));

@@ -581,6 +581,10 @@ class VtPwned
         $emails = array_keys(self::custom());
         foreach (self::accounts() as $list) foreach ($list as $a) $emails[] = $a['email'];
         $emails = array_values(array_unique(array_filter($emails, fn($e) => filter_var($e, FILTER_VALIDATE_EMAIL))));
+        // Trusted admin addresses (Settings) are not checked, except the ones added by hand
+        require_once __DIR__ . '/VtAdminWatch.php';
+        $trusted = VtAdminWatch::trusted(); $own = self::custom();
+        $emails = array_values(array_filter($emails, fn($e) => isset($own[$e]) || !VtAdminWatch::isTrusted($e, $trusted)));
         $res = self::results();
         $end = time() + $seconds;
         $n = 0; $bad = 0;

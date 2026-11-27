@@ -113,7 +113,7 @@ class IndexController extends pm_Controller_Action
     {
         $domain = $this->sanitize($this->_getParam('domain', ''));
         if (!$domain) { $this->respond(['error' => 'invalid']); return; }
-        if (!$this->mayCheck($domain)) {
+        if (!$this->mayVtCheck($domain)) {
             $this->respond(['error' => 'forbidden']); return;
         }
 
@@ -187,7 +187,7 @@ class IndexController extends pm_Controller_Action
     {
         $domain = $this->sanitize($this->_getParam('domain', ''));
         if (!$domain) { $this->respond(['error' => 'invalid']); return; }
-        if (!$this->mayCheck($domain)) {
+        if (!$this->mayVtCheck($domain)) {
             $this->respond(['error' => 'forbidden']); return;
         }
 
@@ -264,6 +264,7 @@ class IndexController extends pm_Controller_Action
             'budget'  => $budgetInfo,
             'scans'    => self::scanResults($domains),
             'scanners' => self::enabledScanners(),
+            'dbscan'   => $this->role() === 'admin' && (self::detection()['engines']['clamav']['mode'] ?? 'none') !== 'none', // ClamAV scan of orphan databases
             'fileact'  => ['admin' => $this->role() === 'admin', 'qdays' => (int)(new VtSettings('admin'))->get('quarantine_days', 30),
                            'imunify' => (bool)array_filter(self::scanners(), fn($s) => $s['id'] === 'imunify' && !empty($s['installed']) && !empty($s['cleanup']))],
             'reviews' => VtReviews::forDomains(array_merge($domains, $related)),
@@ -417,7 +418,7 @@ class IndexController extends pm_Controller_Action
             'active'         => VtScanEngine::select($d['engines'], self::maldetEnabled()),
             'maldet_enabled' => self::maldetEnabled(),
             'clamav_detail'  => self::detailOf($d['scanners'], 'clamav'),
-            'imunify'        => ['installed' => !empty($imu['installed']), 'detail' => (string)($imu['detail'] ?? ''),
+            'imunify'        => ['installed' => !empty($imu['installed']), 'detail' => (string)($imu['detail'] ?? ''), 'sigdate' => (int)($imu['sigdate'] ?? 0),
                                  'enabled' => !in_array('imunify', self::disabledScanners(), true)],
             'buttons'        => VtScanEngine::buttons($d['engines'], self::maldetEnabled(), self::imunifyOn()),
         ];
@@ -732,7 +733,7 @@ class IndexController extends pm_Controller_Action
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
         $domain = $this->sanitize($this->_getParam('domain', ''));
         if (!$domain) { $this->respond(['error' => 'invalid']); return; }
-        if (!$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+        if (!$this->mayVtCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
         VtManualQueue::enqueue([$domain]);
         $this->respond(['ok' => true]);
     }
@@ -1267,6 +1268,12 @@ class IndexController extends pm_Controller_Action
     {
         $mine   = array_flip(PleskDomains::hostedForCurrentUser(false));
         $sites  = array_intersect_key(VtPwned::accounts($fresh), $mine);
+        // Trusted admin addresses (Settings) are your own and your agencies': not shown and not checked
+        $trusted = VtAdminWatch::trusted();
+        foreach ($sites as $h => $list) {
+            $sites[$h] = array_values(array_filter($list, fn($a) => !VtAdminWatch::isTrusted((string)($a['email'] ?? ''), $trusted)));
+            if (!$sites[$h]) unset($sites[$h]);
+        }
         $custom = VtPwned::customFor($this->resolveUserId(), $this->role());
         $emails = [];
         foreach ($sites as $list) foreach ($list as $a) if ($a['email'] !== '') $emails[$a['email']] = true;
@@ -1472,6 +1479,7 @@ class IndexController extends pm_Controller_Action
         $want    = array_flip($related);
         $configs = self::wpConfigs();
         $dbs     = PleskDomains::pleskDatabases();
+        $scans   = self::loadDbScans();
         $out     = [];
         foreach (PleskDomains::wordPressSources() ?? [] as $s) {
             if (!isset($want[$s['host']])) continue;
@@ -1490,6 +1498,8 @@ class IndexController extends pm_Controller_Action
                 'webspace'  => $p['webspace_name'] ?? '',
                 'in_plesk'  => (bool)$p,
                 'plesk_url' => $ws ? '/admin/subscription/login/id/' . $ws . '?pageUrl=/smb/database/list/domainId/' . $ws : '',
+                // last ClamAV scan of what a scan covers here: the whole database, or only the old tables
+                'clamav'    => $scans[self::dbScanKey($s['db'], ($configs !== null && !$same && $usedBy) ? $s['prefix'] : '')] ?? null,
             ];
         }
         return $out;
@@ -1518,6 +1528,65 @@ class IndexController extends pm_Controller_Action
         if (!is_array($out)) $out = ['error' => 'The backup failed'];
         if (!empty($out['ok'])) $this->appendLog('[db] Backup of ' . $item['db'] . ($item['kind'] === 'tables' ? ' (tables ' . $item['prefix'] . '*)' : '') . " for $host: " . $out['file']);
         $this->respond($out);
+    }
+
+    /**
+     * ClamAV scan of an orphan database (administrator only). The root helper makes a temporary dump in its
+     * root-only folder, scans it and deletes it again; only the result is kept (vt_dbscans.json, per database).
+     */
+    public function scanDbAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can scan databases']); return; }
+        $host = $this->sanitize($this->_getParam('domain', ''));
+        $db   = (string)$this->_getParam('db', '');
+        $item = null;
+        foreach (self::orphanInfo(PleskDomains::relatedForCurrentUser())[$host] ?? [] as $o) {
+            if ($o['db'] === $db) $item = $o;
+        }
+        if (!$item || !in_array($item['kind'], ['database', 'tables'], true)) { $this->respond(['error' => 'Not an orphan database']); return; }
+        @set_time_limit(1000);
+        $prefix = $item['kind'] === 'tables' ? $item['prefix'] : '';
+        try {
+            $res = pm_ApiCli::callSbin('site-scan', ['dbscan', $item['db'], $prefix !== '' ? $prefix : '-'], pm_ApiCli::RESULT_FULL);
+            $out = json_decode(trim((string)($res['stdout'] ?? '')), true);
+        } catch (\Throwable $e) {
+            $out = ['error' => 'The scan failed: ' . $e->getMessage()];
+        }
+        if (!is_array($out)) $out = ['error' => 'The scan failed'];
+        $what = $item['db'] . ($prefix !== '' ? ' (tables ' . $prefix . '*)' : '');
+        $by   = $this->resolveUserId();
+        if (!empty($out['ok'])) {
+            $out['ts'] = time();
+            self::saveDbScan(self::dbScanKey($item['db'], $prefix), $out);
+            $this->appendLog('[db] ClamAV scan of ' . $what . " for $host: " . ($out['clean'] ? 'clean' : 'FOUND ' . implode(', ', $out['found']))
+                . ' (' . round(((int)$out['size']) / 1048576, 1) . ' MB dump, ' . ($out['engine'] ?? '') . ', ' . (int)($out['secs'] ?? 0) . ' s; dump deleted) by ' . $by);
+            VtSiteLog::dbScan($host, $item['db'], $prefix, (bool)$out['clean'], (array)$out['found'], (int)$out['size'], $by);
+        } else {
+            $this->appendLog('[db] ClamAV scan of ' . $what . " for $host failed: " . ($out['error'] ?? 'unknown error') . ' by ' . $by);
+            VtSiteLog::dbScan($host, $item['db'], $prefix, null, [], 0, $by, (string)($out['error'] ?? 'unknown error'));
+        }
+        $this->respond($out);
+    }
+
+    private static function dbScanKey(string $db, string $prefix): string { return $db . ($prefix !== '' ? '|' . $prefix : ''); }
+
+    /** Last ClamAV result per orphan database: [db or db|prefix => {clean, found, size, ts, ...}] */
+    private static function loadDbScans(): array
+    {
+        $a = json_decode((string)@file_get_contents(VtDataDir::path('vt_dbscans.json')), true);
+        return is_array($a) ? $a : [];
+    }
+
+    private static function saveDbScan(string $key, array $r): void
+    {
+        $f  = VtDataDir::path('vt_dbscans.json');
+        $fp = @fopen($f . '.lock', 'c');
+        if ($fp) flock($fp, LOCK_EX);
+        $all = self::loadDbScans();
+        $all[$key] = array_intersect_key($r, array_flip(['clean', 'found', 'size', 'engine', 'secs', 'ts']));
+        if (@file_put_contents($f . '.tmp', json_encode($all)) !== false) @rename($f . '.tmp', $f);
+        if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
     }
 
     // ── WordPress admin user scan (rogue user detection) ──────────────────────
@@ -1913,6 +1982,12 @@ class IndexController extends pm_Controller_Action
             fn($e) => isset($allowed[$e['domain'] ?? ''])
         ));
         $this->respond(['events' => array_slice($events, 0, 200)]);
+    }
+
+    /** VirusTotal checks: only the user's own sites, never the hostname of an orphan database */
+    private function mayVtCheck(string $domain): bool
+    {
+        return in_array($domain, PleskDomains::forCurrentUser($this->wpOnly()), true);
     }
 
     /** A site of this user, or a related hostname under one of the user's domains */

@@ -291,6 +291,15 @@ class PleskDomains
     }
 
     /** Hostnames from the siteurl option of every WordPress database, cached for a day */
+    /**
+     * Hostnames of orphan databases on the whole server (WordPress databases for a hostname that is
+     * not a hosted site). VirusTotal never checks these: they do not exist in DNS.
+     */
+    public static function orphanHosts(): array
+    {
+        return array_values(array_diff(self::wordPressHosts(), self::allDomains(false)));
+    }
+
     private static function wordPressHosts(): array
     {
         $file = self::wpCacheFile();

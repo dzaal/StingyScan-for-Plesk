@@ -3,6 +3,20 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.1 — 2026-11-27
+- **Tools → Orphan databases redesigned:** one row per database with its own columns for **Database**, **Tables**, **Size**, **Why orphan**, **Reputation** and **ClamAV**; click any column heading to sort (largest first by default). A **keyword search** of its own filters on domain, database, table prefix and subscription (the search box of the site list still applies here too).
+- **Scan with ClamAV** for an orphan database (administrator): the root helper makes a temporary SQL dump in the root-only folder `/var/lib/stingyscan`, scans it with ClamAV (clamd, or clamscan with higher size limits for large dumps) and deletes it again right after, also when the scan fails. Nothing is written in the site's folders; only the result is kept (date, size, what was found) and shown in the ClamAV column. A scan error is reported as an error, never as clean. For a database that a live site shares, only the old tables are scanned.
+- A database scan is shown in the **Scan Monitor** (running, then the result or the error) and written to the **Scan log** (result, dump size, engine, duration, who) and to the site's **history**; a failed scan is logged too.
+- Dashboard: the *Orphan DBs* button in the site list toolbar is gone; the orphan databases are in Tools → Orphan databases.
+- **Orphan databases are no longer checked by VirusTotal** (their hostnames don't exist in DNS): no Rescan button and no Reputation column, the server refuses a VirusTotal check or rescan for them, and the 5-minute task takes any that are still in the rescan queue out of it. This saves VirusTotal quota for the real sites.
+- The orphan table has no fixed column widths, so it fits narrow screens; long names wrap, and the action buttons are stacked one per line.
+- Tools → Admin changes: in *Same address, admin on sites of different customers* the address column has a fixed width (a long address wraps), so the sites line up.
+- **Dashboard → Group → collapsed:** a checkbox inside the *Group* button folds up every customer in the site list, except customers with an infected site, so those stand out. Click a customer to open or close it; the choice is remembered in the browser.
+- **Tools → Vendors:** a keyword search for vendor names and domains (every word must match), so you can quickly find a site to request a review or confirm a delisting. The sites under each vendor are indented, so the vendor names stand out.
+- **Tools → Scan log:** a find box: shows only the lines with all the words and highlights them.
+- **Pwned Admins:** the **Trusted admin addresses** from Settings (your own and your agencies') are left out: not shown and not checked with the breach service. An address you added by hand in Pwned Admins stays.
+- **Settings → File scanners:** shows how recent the **latest definitions** are for ClamAV, Maldet and Imunify (orange after 3 days, red after 7, with how to update them).
+
 ## 2.18.8 — 2026-11-27
 - **Statistics tab always visible:** the tab no longer hides until settings finish loading — it is shown immediately when the page opens.
 - **Settings index appears instantly:** the contents list at the top of Settings is now built from the static page structure at load time, so it appears without waiting for domain data. Dynamic sections (quarantine, mail sender, log rotation) are added once settings finish loading.

@@ -15,6 +15,7 @@ require_once __DIR__ . '/VtEvents.php';
  *   denied    {ts, vendor, reason, by}          the vendor turned the review request down
  *   av        {ts, product, from, to, detection} Avast / AVG classification appeared, changed or went away
  *   file      {ts, action, file, by, detail}  a file was cleaned, quarantined or put back
+ *   dbscan    {ts, db, prefix, clean, found[], size, by}  ClamAV scan of an (orphan) database, or error
  */
 class VtSiteLog
 {
@@ -58,6 +59,13 @@ class VtSiteLog
     public static function fileAction(string $domain, string $action, string $file, string $by, string $detail = ''): void
     {
         self::add($domain, [['ts' => time(), 'type' => 'file', 'action' => $action, 'file' => $file, 'by' => $by, 'detail' => $detail]]);
+    }
+
+    /** ClamAV scan of a database (a temporary dump, deleted after the scan). $error set when the scan failed. */
+    public static function dbScan(string $domain, string $db, string $prefix, ?bool $clean, array $found, int $size, string $by, string $error = ''): void
+    {
+        self::add($domain, [['ts' => time(), 'type' => 'dbscan', 'db' => $db, 'prefix' => $prefix, 'clean' => $clean,
+                             'found' => array_values($found), 'size' => $size, 'by' => $by] + ($error !== '' ? ['error' => $error] : [])]);
     }
 
     /** The Avast / AVG classification of a site changed ('' = no classification) */

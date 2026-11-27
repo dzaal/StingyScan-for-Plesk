@@ -20,6 +20,7 @@ require_once $plibDir . '/VtCache.php';
 require_once $plibDir . '/VtRateLimiter.php';
 require_once $plibDir . '/VtApi.php';
 require_once $plibDir . '/VtManualQueue.php';
+require_once $plibDir . '/PleskDomains.php';
 require_once $plibDir . '/VtNotifier.php';
 require_once $plibDir . '/VtLogRotate.php';
 
@@ -64,6 +65,17 @@ if (!$apiKey) {
 $pending = VtManualQueue::takeable();
 if (empty($pending)) {
     exit(0);
+}
+// Orphan databases are never checked by VirusTotal: take their hostnames out of the queue
+try {
+    $orphan = array_values(array_intersect($pending, PleskDomains::orphanHosts()));
+} catch (\Throwable $e) {
+    $orphan = [];
+}
+if ($orphan) {
+    VtManualQueue::complete($orphan);
+    $pending = array_values(array_diff($pending, $orphan));
+    if (empty($pending)) exit(0);
 }
 
 $api    = new VtApi($apiKey);

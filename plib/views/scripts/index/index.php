@@ -193,6 +193,9 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-aw-sub{font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--heading)}
 .vt-aw-more{margin-top:8px;font-size:12px}
 .vt-fs-tbl.vt-aw-tbl td,.vt-fs-tbl.vt-aw-tbl td:last-child{white-space:normal;word-break:break-word;font-family:inherit;color:var(--text)}
+/* Same address on sites of different customers: the address column has one fixed width, a long address wraps */
+.vt-fs-tbl.vt-aw-cross{table-layout:fixed;width:100%}
+.vt-fs-tbl.vt-aw-cross td:first-child{width:300px;overflow-wrap:anywhere}
 .vt-aw-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .vt-aw-search{flex:1;min-width:160px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:var(--surface);color:var(--text)}
 .vt-aw-summary{font-size:13px;margin-bottom:12px}
@@ -212,7 +215,14 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-vnd-grid{display:flex;flex-direction:column;gap:10px}
 .vt-vnd-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .vt-vnd-head{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--gray-bg);border-bottom:1px solid var(--border);flex-wrap:wrap;row-gap:6px}
-.vt-vnd-name{font-weight:700;font-size:14px;color:var(--heading)}
+.vt-vnd-name{font-weight:700;font-size:15px;color:var(--heading)}
+/* The sites under a vendor are indented, so the vendor name stands out */
+.vt-vnd-group>.vt-why-tbl,.vt-vnd-group>.vt-vnd-tip{margin-left:28px;width:calc(100% - 28px)}
+.vt-vnd-group>.vt-why-tbl{border-left:3px solid var(--border)}
+/* Find box above a tool (Vendors, Scan log) */
+.vt-tool-find{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap}
+.vt-tool-find input{width:340px;max-width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)}
+mark.vt-hit{background:#fde68a;color:inherit;padding:0 1px;border-radius:2px}
 .vt-vnd-cnt{font-size:12px;color:var(--muted);background:var(--border);border-radius:9px;padding:1px 7px;font-weight:600;white-space:nowrap}
 .vt-vnd-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .vt-vnd-link{font-size:12px;color:var(--blue);text-decoration:none;cursor:pointer;white-space:nowrap}
@@ -417,6 +427,14 @@ tr.vt-grp-c.closed .vt-grp-caret{transform:rotate(-90deg)}
 .vt-seg button{all:unset;cursor:pointer;font-size:12px;padding:5px 12px;color:var(--text);border-left:1px solid var(--border)}
 .vt-seg button:first-child{border-left:0}
 .vt-seg button.on{background:#2563eb;color:#fff}
+/* Group segment with the "collapsed" checkbox inside it */
+.vt-seg-grp{display:inline-flex;align-items:center}
+.vt-seg-grp.on{background:#2563eb;color:#fff}
+.vt-seg-grp.on>button{color:#fff}
+.vt-seg-grp>button{padding-right:6px}
+.vt-seg-col{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:0 10px 0 2px;cursor:pointer;user-select:none;opacity:.9}
+.vt-seg-col input{margin:0;width:13px;height:13px;cursor:pointer}
+.vt-seg-grp:not(.on) .vt-seg-col{opacity:.45}
 .vt-tr-tiles{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
 .vt-tr-tile{border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:150px}
 .vt-tr-tile .l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
@@ -442,6 +460,19 @@ tr.vt-grp-c.closed .vt-grp-caret{transform:rotate(-90deg)}
 .vt-orphan-kind.free{color:#15803d}
 .vt-orphan-kind.part{color:#b45309}
 .vt-orphan-kind.live{color:#b91c1c;font-weight:600}
+.vt-orph-bar{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.vt-orph-q{width:340px;max-width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)}
+/* Orphan databases: columns size to their content (no fixed widths), long names wrap */
+.vt-orph-tbl{table-layout:auto;width:100%}
+.vt-orph-tbl th,.vt-orph-tbl td{width:auto!important;min-width:0;white-space:normal;overflow-wrap:anywhere;vertical-align:top}
+.vt-orph-tbl .num{text-align:right;white-space:nowrap;overflow-wrap:normal;font-variant-numeric:tabular-nums}
+.vt-orph-tbl .vt-orph-act{text-align:right}
+/* Action buttons stacked, one per line, all as wide as the widest */
+.vt-orph-tbl td.vt-orph-act .vt-orph-btns{display:inline-flex;flex-direction:column;align-items:stretch;gap:4px}
+.vt-orph-tbl td.vt-orph-act .vt-row-btn{margin:0;text-align:center;white-space:nowrap}
+.vt-clam{font-size:12px;line-height:1.4}
+.vt-clam.ok{color:#15803d}.vt-clam.bad{color:#b91c1c;font-weight:600}.vt-clam.none{color:var(--muted)}
+.vt-clam small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 #vt-tbody-rel .vt-row-btn{margin-left:4px}
 .vt-rel h3{font-size:15px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
@@ -850,12 +881,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             <button onclick="vtMenuAction('rescan','pending')">Rescan</button>
           </div>
         </div>
-        <div class="vt-fgroup" id="vt-fgroup-orphan" style="display:none">
-          <button class="vt-fbtn" onclick="vtShowTab('tools');vtToolSelect('orphan')" title="Leftover WordPress databases for hostnames that no longer exist"><span class="vt-dot dot-gr"></span> Orphan DBs <strong id="vt-cnt-orphan">0</strong></button>
-        </div>
       </div>
       <div class="vt-spacer"></div>
-      <div class="vt-seg" id="vt-view-seg" style="margin-right:4px"><button class="on" onclick="vtSetViewMode('group',this)">Group</button><button onclick="vtSetViewMode('sort',this)">Sort</button></div>
+      <div class="vt-seg" id="vt-view-seg" style="margin-right:4px"><span class="vt-seg-grp on" data-mode="group"><button type="button" onclick="vtSetViewMode('group')">Group</button><label class="vt-seg-col" title="Every customer folded up, except customers with an infected site. Click a customer to open or close it."><input type="checkbox" id="vt-grp-collapse" onchange="vtSetGrpCollapse(this.checked)"> collapsed</label></span><button type="button" data-mode="sort" onclick="vtSetViewMode('sort')">Sort</button></div>
       <span class="vt-status-txt" id="vt-scan-status"></span>
     </div>
 
@@ -1038,18 +1066,25 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <h3>Orphan databases <span class="vt-rel-cnt" id="vt-rel-cnt"></span></h3>
         <p class="hint">WordPress databases on this server for a hostname under one of your domains that doesn&rsquo;t exist in DNS:
           usually old copies, test or staging sites. Nobody can visit them, but VirusTotal often still lists them, sometimes as infected,
-          and an old, never-updated copy is an easy target. They are not looked up automatically; click <strong>Rescan</strong> to check one.
+          and an old, never-updated copy is an easy target. <strong>Scan with ClamAV</strong> checks the data for known malware
+          (injected scripts, spam links, web shells): a temporary dump is made in a root-only folder, scanned and deleted again right after.
           If the copy is no longer needed: click <strong>Back up</strong> (a <code>.sql.gz</code> copy in the subscription&rsquo;s <code>private/vt-db-backups</code> folder),
-          then delete it in Plesk. Stingy Scanner never deletes anything itself.</p>
+          then delete it in Plesk. Stingy Scanner never deletes a database or a backup itself. Click a column heading to sort.</p>
+        <div class="vt-orph-bar">
+          <input type="search" id="vt-orph-q" class="vt-orph-q" placeholder="Search domain, database, prefix or subscription&hellip;" oninput="vtOrphanFilter()" aria-label="Search orphan databases">
+          <span class="hint" id="vt-orph-shown"></span>
+        </div>
         <div class="vt-tbl-wrap">
-          <table>
+          <table class="vt-orph-tbl">
             <thead>
-              <tr>
-                <th style="width:230px">Status</th>
-                <th>Domain</th>
-                <th style="width:155px">Score</th>
-                <th style="width:135px">Last scan</th>
-                <th style="width:85px;text-align:right">Action</th>
+              <tr id="vt-orph-head">
+                <th data-ocol="domain">Domain</th>
+                <th data-ocol="db">Database</th>
+                <th data-ocol="tables" class="num">Tables</th>
+                <th data-ocol="size" class="num">Size</th>
+                <th data-ocol="kind">Why orphan</th>
+                <th data-ocol="clam">ClamAV</th>
+                <th class="vt-orph-act">Actions</th>
               </tr>
             </thead>
             <tbody id="vt-tbody-rel"></tbody>
@@ -1067,6 +1102,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </h3>
         <div class="hint" style="margin-bottom:12px">Every security vendor that flags one or more of your sites. Click a site name to open its detail panel.
           Use <strong>Copy URLs</strong> to copy all flagged site addresses to the clipboard at once — handy for vendors whose form accepts multiple URLs (like <a href="https://threatcenter.crdf.fr/false_positive.html" target="_blank" rel="noopener">CRDF / Fortinet ↗</a>).</div>
+        <div class="vt-tool-find"><input type="search" id="vt-vnd-q" placeholder="Search vendor or domain&hellip;" oninput="vtVendorsRender()" aria-label="Search vendors and domains"><span class="hint" id="vt-vnd-shown"></span></div>
         <div id="vt-vnd-box"><span class="hint">Loading…</span></div>
       </div>
     </div>
@@ -1080,6 +1116,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <button class="vt-btn ghost" onclick="vtLoadLog()">Refresh</button>
           <button class="vt-btn danger" onclick="vtClearLog()" style="margin-left:4px">Clear log</button>
         </h3>
+        <div class="vt-tool-find"><input type="search" id="vt-log-q" placeholder="Find in the log (domain, [db], error&hellip;)" oninput="vtLogFilter()" aria-label="Find in the scan log"><span class="hint" id="vt-log-shown"></span></div>
         <pre id="vt-log-pre" style="margin:0;padding:10px;background:var(--gray-bg);border:1px solid var(--border);border-radius:var(--radius);font-size:11px;line-height:1.6;overflow-x:auto;white-space:pre-wrap;max-height:600px;overflow-y:auto;color:var(--text)">Loading...</pre>
       </div>
     </div>
@@ -1240,7 +1277,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       <div class="vt-settings-numbers" style="margin-top:12px">
         <div class="vt-field wide"><label for="vt-aw-trusted">Trusted admin addresses</label>
           <textarea id="vt-aw-trusted" rows="4" style="width:100%;font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:5px" placeholder="you@your-agency.com&#10;@your-agency.com"></textarea>
-          <div class="hint">One per line: an address, or <code>@domain</code> for everyone at that domain. Your own and your agencies' addresses: their admin changes are approved automatically, and they are not flagged for being admin on sites of different customers.</div></div>
+          <div class="hint">One per line: an address, or <code>@domain</code> for everyone at that domain. Your own and your agencies' addresses: their admin changes are approved automatically, they are not flagged for being admin on sites of different customers, and they are left out of <em>Pwned Admins</em> (not shown, not checked; an address you added there by hand stays).</div></div>
       </div>
       <label class="vt-radio" style="margin-top:6px"><input type="checkbox" id="vt-aw-mail">
         <span><strong>E-mail me when admin rights change</strong><br><span class="hint">Once per change, to the notification address (or your Plesk address). Checked every hour.</span></span></label>
@@ -1495,7 +1532,7 @@ window.addEventListener('resize',vtSyncHeaderH);
 document.addEventListener('DOMContentLoaded',vtSyncHeaderH);
 
 let domains=[], results={}, budget={}, activeFilter='all', gsb={enabled:false};
-let scanners=[], scans={}, fsOpen={}, fsFull={}, reviews={}, histSites=new Set(), siteHist={}, avast={products:[]}; // file scanners: installed list, results per site, open panel per site
+let scanners=[], scans={}, fsOpen={}, fsFull={}, reviews={}, histSites=new Set(), siteHist={}, avast={products:[]}, dbScanOk=false; // file scanners: installed list, results per site, open panel per site
 let scanQueue=[], inFlight=0;
 const MAX_C=1;          // one at a time to stay within VT rate limits
 const PUMP_DELAY=15500; // 15.5s between requests = safe for 4 req/min free tier
@@ -1532,7 +1569,7 @@ async function init(){
   vtSet('vt-cnt-all',domains.length);
   updateBudget();
   for(const d of domains) if(!results[d]) results[d]={status:'loading',domain:d};
-  document.querySelectorAll('#vt-view-seg button').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===viewMode));
+  vtSyncViewSeg();
   renderTable(); updateCounts();
   vtLoadProgress(30,`Found ${domains.length} domain${domains.length===1?'':'s'} — loading scan results…`);
 
@@ -1544,10 +1581,10 @@ async function init(){
   ]);
   external=data.external||[]; extSet=new Set(external.map(x=>x.domain)); vtRenderExternal();
   panelUrl=data.panel||{}; domains=data.domains||domains; related=data.related||[]; relSet=new Set(related); orphans=data.orphans||{}; owners=data.owners||{}; results=data.results||{};
-  for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
+  for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; dbScanOk=!!data.dbscan; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
   for(const d in scans) for(const id in scans[d]) if(fsBusy(d,id)) vtFsPoll(d,id);
   vtSet('vt-cnt-all',domains.length);
-  document.querySelectorAll('#vt-view-seg button').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===viewMode));
+  vtSyncViewSeg();
   updateBudget(); renderTable(); updateCounts(); vtRenderExternal();
   vtLoadProgress(100,'Ready');
 
@@ -1700,9 +1737,15 @@ function vtVendorsRender(){
   const totalFlags=Object.values(map).reduce((s,a)=>s+a.length,0);
   if(sub) sub.textContent=vendors.length?vendors.length+' vendor'+(vendors.length===1?'':'s')+', '+totalFlags+' flag'+(totalFlags===1?'':'s'):'no flags';
   if(!vendors.length){ box.innerHTML='<p class="hint">No sites are currently flagged by any vendor.</p>'; return; }
-  let h='<div class="vt-vnd-grid">';
+  // Keyword search: every word must match the vendor name or the domain. A vendor that matches shows all its sites.
+  const words=(document.getElementById('vt-vnd-q')?.value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shownEl=document.getElementById('vt-vnd-shown');
+  let h='<div class="vt-vnd-grid">', nV=0, nS=0;
   for(const vendor of vendors){
-    const sites=map[vendor];
+    const vl=vendor.toLowerCase();
+    const sites=words.length?map[vendor].filter(x=>words.every(w=>vl.includes(w)||x.domain.toLowerCase().includes(w))):map[vendor];
+    if(!sites.length) continue;
+    nV++; nS+=sites.length;
     const k=vtFpKey(vendor), tip=k&&VT_FP_TIP[k]?VT_FP_TIP[k]:'';
     const urls=sites.map(s=>'https://'+s.domain+'/').join('\n');
     h+='<div class="vt-vnd-group">';
@@ -1729,7 +1772,8 @@ function vtVendorsRender(){
     h+='</tbody></table></div>';
   }
   h+='</div>';
-  box.innerHTML=h;
+  if(shownEl) shownEl.textContent=words.length?nV+' vendor'+(nV===1?'':'s')+', '+nS+' site'+(nS===1?'':'s')+' match':'';
+  box.innerHTML=nV?h:'<p class="hint">No vendor or site matches \u201c'+vtEsc(words.join(' '))+'\u201d.</p>';
 }
 window.vtVndOpenSite=function(domain){
   // Switch to Overview tab, then open the site's Why? panel
@@ -1912,6 +1956,108 @@ function orphanBtns(domain){
     return h;
   }).join('');
 }
+let orphSort={col:'size',dir:'desc'};
+const ORPH_KIND_ORDER={inuse:0,unknown:1,tables:2,database:3};
+function orphEntries(){
+  const list=[];
+  for(const d of related){
+    const os=orphans[d]||[];
+    if(!os.length) list.push({domain:d,o:null});
+    for(const o of os) list.push({domain:d,o});
+  }
+  const k=orphSort.col, m=orphSort.dir==='asc'?1:-1;
+  const val=e=>{const o=e.o||{};
+    switch(k){
+      case 'db': return (o.db||'')+'|'+(o.prefix||'');
+      case 'tables': return +o.tables||0;
+      case 'size': return +o.size||0;
+      case 'kind': return ORPH_KIND_ORDER[o.kind]??9;
+      case 'clam': return o.clamav?(o.clamav.clean?2:0):1;   // found, not scanned, clean
+      default: return e.domain;
+    }};
+  return list.sort((a,b)=>{const x=val(a),y=val(b);
+    const c=typeof x==='number'?x-y:String(x).localeCompare(String(y));
+    return (c||a.domain.localeCompare(b.domain))*m;});
+}
+function orphClamHTML(o){
+  const c=o.clamav;
+  if(!c) return '<span class="vt-clam none">not scanned</span>';
+  const when='<small>'+vtAgo(c.ts)+' · '+vtBytes(c.size)+' dump</small>';
+  return c.clean?'<span class="vt-clam ok">✓ Nothing found'+when+'</span>'
+    :'<span class="vt-clam bad">'+(c.found||[]).length+' found: '+(c.found||[]).map(vtEsc).join(', ')+when+'</span>';
+}
+function vtRenderOrphans(){
+  const tb=document.getElementById('vt-tbody-rel'); if(!tb) return;
+  document.querySelectorAll('#vt-orph-head th[data-ocol]').forEach(th=>{
+    th.classList.add('vt-sortable');
+    th.classList.toggle('vt-sort-asc',orphSort.col===th.dataset.ocol&&orphSort.dir==='asc');
+    th.classList.toggle('vt-sort-desc',orphSort.col===th.dataset.ocol&&orphSort.dir==='desc');
+    th.onclick=()=>vtOrphanSort(th.dataset.ocol);
+  });
+  const rows=orphEntries().map(({domain,o})=>{
+    const e=vtEsca(domain);
+    const dcell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+(o&&o.webspace&&o.webspace!==domain?'<div class="hint" style="font-size:11px">in '+vtEsc(o.webspace)+'</div>':'');
+    const search=(domain+' '+(o?[o.db,o.prefix,o.webspace,...(o.used_by||[])].join(' '):'')).toLowerCase();
+    if(!o) return '<tr data-domain="'+vtEsc(domain)+'" data-q="'+vtEsc(search)+'"><td>'+dcell+'</td><td colspan="4" class="hint">No database details (administrator only)</td><td></td><td></td></tr>';
+    const k=ORPHAN_KIND[o.kind]||ORPHAN_KIND.unknown, canDb=o.kind==='database'||o.kind==='tables';
+    let act='';
+    if(canDb){
+      act+='<button class="vt-row-btn" title="Make a .sql.gz copy in the private folder of the subscription" onclick="vtDumpDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Back up</button>';
+      if(dbScanOk) act+='<button class="vt-row-btn" title="Scan the data with ClamAV: a temporary dump in a root-only folder, deleted right after the scan" onclick="vtScanDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Scan with ClamAV</button>';
+    }
+    if(o.plesk_url) act+='<a class="vt-row-btn" href="'+vtEsc(o.plesk_url)+'" target="_top" title="Open the Databases page of '+vtEsc(o.webspace)+' in Plesk">Delete in Plesk ↗</a>';
+    return '<tr data-domain="'+vtEsc(domain)+'" data-q="'+vtEsc(search)+'">'
+      +'<td>'+dcell+'</td>'
+      +'<td><code>'+vtEsc(o.db)+'</code>'+(o.kind==='tables'?'<div class="hint" style="font-size:11px">tables <code>'+vtEsc(o.prefix)+'*</code></div>':'')
+        +(o.in_plesk===false?'<div class="hint" style="font-size:11px" title="Created outside Plesk, so Plesk cannot show or delete it">not in Plesk: remove with phpMyAdmin or mysql</div>':'')+'</td>'
+      +'<td class="num">'+(+o.tables||0)+'</td>'
+      +'<td class="num"><strong>'+vtBytes(o.size)+'</strong></td>'
+      +'<td><div class="vt-orphan-kind '+k[0]+'">'+vtEsc(k[1])+(o.used_by&&o.used_by.length&&o.kind!=='database'?' ('+o.used_by.map(vtEsc).join(', ')+')':'')+'</div></td>'
+      +'<td>'+(canDb?orphClamHTML(o):'<span class="vt-clam none">—</span>')+'</td>'
+      +'<td class="vt-orph-act"><div class="vt-orph-btns">'+act+'</div></td></tr>';
+  });
+  tb.innerHTML=rows.length?rows.join(''):'<tr class="vt-empty"><td colspan="7">No orphan databases found.</td></tr>';
+  vtOrphanFilter();
+}
+window.vtOrphanSort=function(col){
+  if(orphSort.col===col) orphSort.dir=orphSort.dir==='asc'?'desc':'asc';
+  else orphSort={col,dir:(col==='size'||col==='tables')?'desc':'asc'};
+  vtRenderOrphans();
+};
+// Its own keyword search; the search box of the site list applies here too
+window.vtOrphanFilter=function(){
+  const q=(document.getElementById('vt-orph-q')?.value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const g=(document.getElementById('vt-search')?.value||'').toLowerCase();
+  let shown=0, all=0;
+  document.querySelectorAll('#vt-tbody-rel tr[data-domain]').forEach(row=>{
+    all++;
+    const ok=(!g||row.dataset.domain.includes(g))&&q.every(w=>row.dataset.q.includes(w));
+    row.style.display=ok?'':'none'; if(ok) shown++;
+  });
+  const el=document.getElementById('vt-orph-shown');
+  if(el) el.textContent=(q.length||g)?shown+' of '+all+' shown'+(g?' (also filtered by the site list search: '+g+')':''):'';
+};
+window.vtScanDb=async function(domain,db,btn){
+  btn.disabled=true; btn.innerHTML='<span class="vt-spin"></span> Scanning';
+  const jid='db:'+db, j=addFsJob(domain,jid);
+  j.label='ClamAV · database'; j.msg='Temporary dump of '+db+', then ClamAV scan…';
+  renderQueue();
+  const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  const res=await fetch(BASE+'?action=scan-db',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},body:new URLSearchParams({domain,db})})
+    .then(r=>r.json()).catch(()=>({error:'Network error'}));
+  if(res.ok){
+    for(const o of orphans[domain]||[]) if(o.db===db) o.clamav={clean:res.clean,found:res.found||[],size:res.size,engine:res.engine,secs:res.secs,ts:res.ts||Math.floor(Date.now()/1000)};
+    updateFsJob(domain,jid,'done',{infected:res.clean?0:(res.found||[]).length,files:1},
+      (res.clean?'Nothing found in '+db:'Found in '+db+': '+(res.found||[]).join(', '))+' · '+vtBytes(res.size)+' dump, deleted');
+    vtToast(res.clean?'ClamAV: nothing found in '+db+' (temporary dump deleted)':'ClamAV found '+res.found.join(', ')+' in '+db,res.clean?'ok':'err');
+    histSites.add(domain);
+    vtRenderOrphans();
+  }else{
+    updateFsJob(domain,jid,'failed',null,(res.error||'The scan failed')+' ('+db+')');
+    btn.disabled=false; btn.textContent='Scan with ClamAV';
+    vtToast(res.error||'The scan failed','err');
+  }
+};
 window.vtDumpDb=async function(domain,db,btn){
   btn.disabled=true; btn.innerHTML='<span class="vt-spin"></span> Backing up';
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
@@ -1933,8 +2079,7 @@ function renderTable(){
   if(obadge){ obadge.textContent=related.length; obadge.style.display=related.length?'':'none'; }
   if(onav) onav.style.display=related.length?'':'none';
   if(onb){ onb.textContent=related.length; onb.style.display=related.length?'':'none'; }
-  document.getElementById('vt-fgroup-orphan').style.display=related.length?'':'none';
-  document.getElementById('vt-tbody-rel').innerHTML=related.map(d=>rowHTML(d,results[d]||null)).join('');
+  vtRenderOrphans();
   vtApplyFilter();
 }
 
@@ -1943,10 +2088,24 @@ function grpKey(o){return (o.rl||'-')+'|'+o.cl;}
 let viewMode=localStorage.getItem('vt_view_mode')||'group';
 let sortCol=localStorage.getItem('vt_sort_col')||'domain';
 let sortDir=localStorage.getItem('vt_sort_dir')||'asc';
-window.vtSetViewMode=function(m,btn){
+function vtSyncViewSeg(){
+  document.querySelectorAll('#vt-view-seg [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===viewMode));
+  const cb=document.getElementById('vt-grp-collapse'); if(cb) cb.checked=grpCollapse;
+}
+window.vtSetViewMode=function(m){
   viewMode=m;
   localStorage.setItem('vt_view_mode',m);
-  document.querySelectorAll('#vt-view-seg button').forEach(b=>b.classList.toggle('on',b===btn));
+  vtSyncViewSeg();
+  renderTable();
+};
+// Group → collapsed: every customer folded up, except customers with an infected site.
+// A customer you open or close yourself stays that way until the checkbox changes.
+let grpCollapse=localStorage.getItem('vt_grp_collapsed')==='1', grpManual=new Set();
+window.vtSetGrpCollapse=function(on){
+  grpCollapse=!!on; localStorage.setItem('vt_grp_collapsed',on?'1':'0');
+  grpManual.clear(); grpClosed.clear();
+  if(viewMode!=='group'){ viewMode='group'; localStorage.setItem('vt_view_mode','group'); }
+  vtSyncViewSeg();
   renderTable();
 };
 window.vtSortBy=function(col){
@@ -2009,7 +2168,11 @@ function groupedRowsHTML(){
     const custKeys=Object.keys(R.cust).sort((a,b)=>{const A=R.cust[a].o,B=R.cust[b].o;
       const w=o=>o.ct==='admin'||o.ct==='reseller'?0:o.ct==='external'?2:1; return w(A)-w(B)||cmp(A.c,B.c);});
     for(const ck of custKeys){
-      const C=R.cust[ck], b=bad(C.list), closed=grpClosed.has(ck);
+      const C=R.cust[ck], b=bad(C.list);
+      if(grpCollapse&&!grpManual.has(ck)){
+        if(C.list.some(d=>results[d]?.status==='infected')) grpClosed.delete(ck); else grpClosed.add(ck);
+      }
+      const closed=grpClosed.has(ck);
       const label=C.o.ct==='reseller'?'Own sites of the reseller':C.o.ct==='admin'?'Administrator':C.o.ct==='external'?'External sites <span class="hint">(not hosted on this server)</span>':vtEsc(C.o.c);
       h+='<tr class="vt-grp-c'+(closed?' closed':'')+'" data-res="'+vtEsc(rk)+'" data-gk="'+vtEsc(ck)+'" onclick="vtGrpToggle(this)"><td colspan="5">'
         +'<span class="vt-grp-caret">▾</span> '+label+(C.o.ct==='client'?' <span class="vt-grp-login">'+vtEsc(C.o.cl)+'</span>':'')
@@ -2022,12 +2185,16 @@ function groupedRowsHTML(){
 window.vtGrpToggle=function(tr){
   const k=tr.dataset.gk;
   if(grpClosed.has(k)) grpClosed.delete(k); else grpClosed.add(k);
+  grpManual.add(k);
   tr.classList.toggle('closed',grpClosed.has(k));
   vtApplyFilter();
 };
 function updateRow(domain,data){
+  if(relSet.has(domain)){vtRenderOrphans();return;}
   const row=document.getElementById('vtr-'+rid(domain));
   if(!row){renderTable();return;}
+  // Group → collapsed: a customer whose site just turned infected opens up
+  if(grpCollapse&&viewMode==='group'&&data?.status==='infected'&&grpClosed.has(row.dataset.grp)&&!grpManual.has(row.dataset.grp)){renderTable();return;}
   document.getElementById('vtfs-'+rid(domain))?.remove();
   row.outerHTML=rowHTML(domain,data);
   vtApplyFilter();
@@ -2308,7 +2475,7 @@ window.vtApplyFilter=function(){
   const q=document.getElementById('vt-search').value.toLowerCase();
   // Orphan databases are their own view: shown only with the Orphan DBs button, instead of the site list
   document.getElementById('vt-tbody').closest('.vt-tbl-wrap').style.display='';
-  document.querySelectorAll('#vt-tbody-rel tr[data-domain]').forEach(row=>{row.style.display=(!q||row.dataset.domain.includes(q))?'':'none';});
+  vtOrphanFilter();
   document.querySelectorAll('#vt-tbody tr[data-domain]').forEach(row=>{
     const st=row.dataset.status;
     const match=activeFilter==='all'||st===activeFilter
@@ -2449,7 +2616,7 @@ function logAutoJob(domain,prev,data,t0){
 }
 
 function enqueueRescan(domain){
-  if(activeJob(domain)) return false;
+  if(activeJob(domain)||relSet.has(domain)) return false; // orphan databases are never checked by VirusTotal
   scanQueue=scanQueue.filter(d=>d!==domain); // manual takes priority over auto pump
   const j={id:++jobSeq,domain,state:'queued',step:'queued',prev:results[domain]||null,createdAt:Date.now()};
   jobs.push(j);
@@ -2761,14 +2928,14 @@ function fsJobHTML(j){
   if(j.state==='done'&&j.result){
     const dur=(j.endedAt&&j.startedAt)?'<div>'+fmtSecs(j.endedAt-j.startedAt)+'</div>':'';
     right=dur+(j.result.infected
-      ?'<span class="vt-badge infected"><span class="vt-dot dot-r"></span>'+j.result.infected+' infected</span>'
+      ?'<span class="vt-badge infected"><span class="vt-dot dot-r"></span>'+j.result.infected+(j.label?' found':' infected')+'</span>'
       :'<span class="vt-badge clean"><span class="vt-dot dot-g"></span>Clean</span>');
   }else if(j.state==='running'){
     right='<div>'+fmtSecs(Date.now()-j.startedAt)+'</div>';
   }
   return '<div class="vt-q-item vt-q-fs '+j.state+'">'+icon
     +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(j.domain)
-    +'<span class="vt-q-kind fs">'+vtEsc(fsName(j.scanner))+'</span></div>'
+    +'<span class="vt-q-kind fs">'+vtEsc(j.label||fsName(j.scanner))+'</span></div>'
     +'<div class="vt-q-msg">'+vtEsc(msg)+'</div>'+pbar+'</div>'
     +'<div class="vt-q-right">'+right+'</div></div>';
 }
@@ -3076,13 +3243,22 @@ function vtRenderScanners(sc,isAdmin){
   const c=sc.engines.clamav||{}, m=sc.engines.maldet||{}, a=sc.active||{}, i=sc.imunify||{};
   const rate=(id,name)=>'<label class="vt-rate" for="vt-rate-'+id+'"><input type="number" id="vt-rate-'+id+'" data-check-rate="'+id+'" min="1" max="5" step="1" value="'+(checkRates[id]||2)+'" '+(!isAdmin?'disabled ':'')+'aria-label="'+name+' scans per minute"> / minute</label>';
   const sw=(id,on,can,title)=>'<label class="vt-sw" title="'+title+'"><input type="checkbox" '+(on?'checked ':'')+(can&&isAdmin?'':'disabled ')+'onchange="vtToggleScanner(\''+id+'\',this.checked)"><span></span></label>';
+  // How recent the newest signatures (definitions) are: orange after 3 days, red after 7, with how to update them
+  const sig=(ts,fix)=>{
+    if(!ts) return '<br>Latest definitions: <span class="hint">unknown</span>';
+    const days=(Date.now()/1000-ts)/86400, col=days>7?'var(--red)':days>3?'var(--orange,#d97706)':'var(--green,#16a34a)';
+    const full=new Date(ts*1000).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return '<br>Latest definitions: <strong style="color:'+col+'" title="'+full+'">'+vtAgo(ts)+'</strong> <span class="hint">('+full+')</span>'
+      +(days>3&&fix?' · <span style="color:'+col+'">'+fix+'</span>':'');
+  };
   let h='<div class="vt-sc-sub">Scan engine</div>';
   h+='<div class="vt-sc-row'+(c.installed?'':' missing')+'"><span class="vt-sc-name">'+vtBrandIco('clamav')+'ClamAV</span><span class="vt-sc-info">'
     +(c.installed?'<strong>Installed</strong>'+(c.version?' · version '+vtEsc(c.version):'')+' · daemon running: <strong>'+(c.daemon?'yes':'no')+'</strong>'+(sc.clamav_detail?' · '+vtEsc(sc.clamav_detail):'')
+      +sig(c.sigdate,'check that <code>freshclam</code> runs (e.g. <code>systemctl status clamav-freshclam</code>)')
                  :'Not installed')+'</span>'+(c.installed?rate('clamav','ClamAV'):'')+'</div>';
   h+='<div class="vt-sc-row'+(m.installed?'':' missing')+'">'+sw('maldet',sc.maldet_enabled,m.installed,'Maldet enabled')
     +'<span class="vt-sc-name">'+vtBrandIco('maldet')+'Maldet</span><span class="vt-sc-info">'
-    +(m.installed?'<strong>Installed</strong>'+(m.version?' · version '+vtEsc(m.version):''):'Not installed')
+    +(m.installed?'<strong>Installed</strong>'+(m.version?' · version '+vtEsc(m.version):'')+sig(m.sigdate,'run <code>maldet -u</code> on the server'):'Not installed')
     +' · Maldet enabled: <strong>'+(sc.maldet_enabled?'on':'off')+'</strong>'
     +(c.installed?'<br>Ignored while ClamAV is installed: ClamAV already scans with the Maldet signatures, so Maldet never runs.':'<br>Used only when ClamAV is not installed.')
     +'</span>'+(m.installed&&!c.installed?rate('maldet','Maldet'):'')+'</div>';
@@ -3096,7 +3272,7 @@ function vtRenderScanners(sc,isAdmin){
     +(a.id?'<strong>'+vtEsc(a.name)+'</strong> · button in the site details: <strong>'+vtEsc(a.label)+'</strong>':'<strong style="color:var(--red)">None</strong> · '+vtEsc(a.message||''))+'</span></div>';
   if(i.installed){
     h+='<div class="vt-sc-sub">Other results</div><div class="vt-sc-row">'+sw('imunify',i.enabled,true,isAdmin?'Switch on or off':'Set by the administrator')
-      +'<span class="vt-sc-name">'+vtBrandIco('imunify')+'Imunify</span><span class="vt-sc-info">Installed: '+vtEsc(i.detail||'')+' · shows the results of Imunify\'s own scans, starts no scan'+(i.enabled?'':' · <strong>switched off</strong>')+'</span>'
+      +'<span class="vt-sc-name">'+vtBrandIco('imunify')+'Imunify</span><span class="vt-sc-info">Installed: '+vtEsc(i.detail||'')+' · shows the results of Imunify\'s own scans, starts no scan'+(i.enabled?'':' · <strong>switched off</strong>')+sig(i.sigdate,'Imunify updates itself: check its service')+'</span>'
       +rate('imunify','Imunify')+'</div>';
   }
   el.innerHTML=h+(isAdmin?'':'<div class="hint" style="margin-top:6px">Only the administrator can change these.</div>');
@@ -3563,23 +3739,36 @@ window.vtLoadLog=async function(){
   const meta=document.getElementById('vt-log-meta');
   pre.textContent='Loading...';
   const data=await vtFetch('?action=get-log').catch(()=>({log:'',size:0}));
+  vtLogLines=data.log?data.log.split('\n'):[];
   if(!data.log){pre.textContent='(Log is empty — no cron runs yet)';meta.textContent='';return;}
-  pre.innerHTML=data.log.split('\n').map(l=>{
-    const esc=l.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]||c));
+  vtLogFilter();
+  const kb=Math.round(data.size/1024*10)/10;
+  meta.textContent='('+kb+' KB — last 200 lines, newest first)';
+};
+let vtLogLines=[];
+window.vtLogFilter=function(){
+  const pre=document.getElementById('vt-log-pre'); if(!pre||!vtLogLines.length) return;
+  const words=(document.getElementById('vt-log-q')?.value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const lines=words.length?vtLogLines.filter(l=>{const x=l.toLowerCase(); return words.every(w=>x.includes(w));}):vtLogLines;
+  const shown=document.getElementById('vt-log-shown');
+  if(shown) shown.textContent=words.length?lines.length+' of '+vtLogLines.length+' lines':'';
+  const re=words.length?new RegExp('('+words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')).join('|')+')','gi'):null;
+  if(!lines.length){pre.textContent='(No lines match)';return;}
+  pre.innerHTML=lines.map(l=>{
+    let esc=l.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]||c));
+    if(re) esc=esc.replace(re,'<mark class="vt-hit">$1</mark>');
     if(/\[!\]|\[ERR\]|INFECTED/.test(l)) return '<span style="color:#dc2626;font-weight:600">'+esc+'</span>';
     if(/\[\?]|suspicious/.test(l))       return '<span style="color:#d97706;font-weight:600">'+esc+'</span>';
     if(/\[ok\]|\[manual\]/.test(l))      return '<span style="color:#16a34a">'+esc+'</span>';
     if(/Done —/.test(l))                 return '<span style="font-weight:600">'+esc+'</span>';
     return esc;
   }).join('\n');
-  const kb=Math.round(data.size/1024*10)/10;
-  meta.textContent='('+kb+' KB — last 200 lines, newest first)';
 };
 
 window.vtClearLog=async function(){
   if(!confirm('Clear the scan log?')) return;
   await fetch(BASE+'?action=clear-log&confirm=1').then(r=>r.json()).catch(()=>{});
-  document.getElementById('vt-log-pre').textContent='(Log cleared)';
+  vtLogLines=[]; document.getElementById('vt-log-pre').textContent='(Log cleared)';
   document.getElementById('vt-log-meta').textContent='';
   vtToast('Log cleared','ok');
 };
@@ -3995,6 +4184,9 @@ function vtSiteHistHTML(domain){
                :vtEsc(e.product)+(e.observed?' check returned no classification':' no longer classifies the site')+(e.from?' (was '+vtEsc(e.from)+')':'');}
     else if(e.type==='file'){const L={clean:['good','Cleaned'],unclean:['warn','Cleanup undone'],quarantine:['good','Quarantined'],unquarantine:['warn','Restored'],qdelete:['','Deleted']}[e.action]||['',vtEsc(e.action)];
       what=pill(L[0],L[1]);text='<code>'+vtEsc(e.file)+'</code>'+(e.detail?' · '+vtEsc(e.detail):'')+(e.by?' · by '+vtEsc(e.by):'');}
+    else if(e.type==='dbscan'){const tgt='<code>'+vtEsc(e.db)+'</code>'+(e.prefix?' (tables <code>'+vtEsc(e.prefix)+'*</code>)':'');
+      what=e.error?pill('warn','DB scan failed'):e.clean?pill('good','DB scan: clean'):pill('bad','DB scan: found');
+      text='ClamAV scan of '+tgt+(e.error?': '+vtEsc(e.error):e.clean?': nothing found':': '+vtEsc((e.found||[]).join(', ')))+(e.size?' · '+vtBytes(e.size)+' dump, deleted':'')+(e.by?' · by '+vtEsc(e.by):'');}
     else if(e.type==='unreview'){what=pill('','Undone');text='review request for <strong>'+vtEsc(e.vendor)+'</strong> undone'+(e.by?' · by '+vtEsc(e.by):'');}
     else if(e.type==='confirmed'){what=pill('good','Delisting confirmed');text='<strong>'+vtEsc(e.vendor)+'</strong> confirmed the delisting'+(e.by?' · by '+vtEsc(e.by):'');}
     else if(e.type==='unconfirmed'){what=pill('','Undone');text='delisting confirmation for <strong>'+vtEsc(e.vendor)+'</strong> undone'+(e.by?' · by '+vtEsc(e.by):'');}
@@ -4660,7 +4852,7 @@ function vtAwRender(){
   if(cross.length&&!q){
     h+='<div class="vt-aw-sub" style="margin-top:16px">Same address, admin on sites of different customers'
       +' <span class="hint">(normal for a web agency or maintainer: add to Trusted admin addresses in Settings)</span></div>'
-      +'<table class="vt-fs-tbl vt-aw-tbl"><tbody>'
+      +'<table class="vt-fs-tbl vt-aw-tbl vt-aw-cross"><colgroup><col style="width:300px"><col></colgroup><tbody>'
       +cross.map(([em,l])=>'<tr><td><strong>'+vtEsc(em)+'</strong></td><td>'+l.map(x=>vtEsc(x.host)+(x.owner?' <span class="hint">('+vtEsc(x.owner)+')</span>':'')).join(', ')+'</td></tr>').join('')
       +'</tbody></table>';
   }

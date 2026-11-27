@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.5 — 2026-11-27
+- Tools: the card icons are bigger (52 px instead of 24 px) and dark monochrome, without the coloured box behind them.
+
 ## 2.19.4 — 2026-11-27
 - **Fix:** Dashboard: with *Collapsed* ticked, switching to *Sort* showed no sites (the folded-up customers kept their sites hidden, without headers to open them). Folding up now only applies in the *Grouped* view; *Sort* always shows every site, and *Collapsed* is hidden there.
 - Dashboard: the search box has an **✕** to clear it, like the search in Tools → Vendor requests.

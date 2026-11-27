@@ -670,7 +670,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-tool-back a:hover{text-decoration:underline}
 .vt-tool-back h2{margin:0;font-size:18px;font-weight:700;color:var(--heading)}
 /* Show/hide tool sections */
-.vt-tool-section{display:none}.vt-tool-section.active{display:block}
+.vt-tool-section{display:none}.vt-tool-section.active{display:flex;gap:20px;align-items:flex-start}
+.vt-tool-hero{flex-shrink:0;width:8em;height:8em;padding-top:4px}
+.vt-tool-hero svg{width:8em;height:8em;stroke-width:1.5}
+.vt-tool-body{flex:1;min-width:0}
+@media(max-width:800px){.vt-tool-section.active{display:block}.vt-tool-hero{width:4em;height:4em;margin-bottom:8px}.vt-tool-hero svg{width:4em;height:4em}}
 
 /* Settings: no text lighter than rgb(32,32,32) */
 #vtpanel-settings{--muted:#202020;color:#202020}
@@ -1771,6 +1775,18 @@ window.vtShowTab=function(name){
 
 // ── Tools ──────────────────────────────────────────────────────
 let currentTool=null;
+// Each tool's page shows the icon of its card in Tools, large, in a column on the left
+(function vtToolHeroes(){
+  document.querySelectorAll('.vt-tool-section').forEach(sec=>{
+    const name=sec.id.replace(/^vtool-/,''), ico=document.querySelector('#vtcard-'+name+' .vt-tool-icon');
+    if(!ico||sec.querySelector(':scope>.vt-tool-hero')) return;
+    const body=document.createElement('div'); body.className='vt-tool-body';
+    while(sec.firstChild) body.appendChild(sec.firstChild); // the page's own content keeps its elements and ids
+    const hero=document.createElement('div'); hero.className='vt-tool-hero'; hero.setAttribute('aria-hidden','true');
+    hero.style.color=ico.style.color; hero.innerHTML=ico.innerHTML;
+    sec.append(hero,body);
+  });
+})();
 window.vtToolSelect=function(name){
   currentTool=name;
   document.querySelectorAll('.vt-tool-card').forEach(c=>c.classList.remove('active'));

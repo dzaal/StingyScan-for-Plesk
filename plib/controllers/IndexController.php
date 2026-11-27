@@ -322,6 +322,20 @@ class IndexController extends pm_Controller_Action
         $this->respond(['ok' => true, 'reviews' => VtReviews::mark($domain, $vendor, $by, $remove)]);
     }
 
+    /** Record that a vendor confirmed the delisting after a review request (or undo that confirmation) */
+    public function reviewConfirmAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        $vendor = trim(substr((string)$this->_getParam('vendor', ''), 0, 80));
+        if (!$domain || $vendor === '') { $this->respond(['error' => 'invalid']); return; }
+        if (!$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+        $undo = (bool)$this->_getParam('remove', false);
+        $by   = $this->resolveUserId();
+        VtSiteLog::confirmed($domain, $vendor, $by, $undo);
+        $this->respond(['ok' => true, 'reviews' => VtReviews::confirm($domain, $vendor, $undo)]);
+    }
+
     /** History of one site: detections, vendors that started or stopped flagging it, status changes, review requests */
     public function siteHistoryAction(): void
     {
@@ -1085,14 +1099,23 @@ class IndexController extends pm_Controller_Action
         }
     }
 
-    // ── Admin changes (VtAdminWatch), administrator only ───────
+    // ── Admin changes (VtAdminWatch) ─────────────────────────
 
     /** Changes in admin rights on the WordPress sites, and addresses that are admin on sites of different customers */
     public function adminWatchAction(): void
     {
-        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
-        $this->respond(['events' => array_slice(VtAdminWatch::events(), 0, 150), 'open' => count(VtAdminWatch::events(true)),
-                        'cross' => VtAdminWatch::crossSite(), 'last' => VtAdminWatch::lastScan()]);
+        $isAdmin   = $this->role() === 'admin';
+        $allEvents = VtAdminWatch::events();
+        if (!$isAdmin) {
+            $myHosts   = array_flip(PleskDomains::hostedForCurrentUser());
+            $allEvents = array_values(array_filter($allEvents, fn($e) => isset($myHosts[$e['host'] ?? ''])));
+        }
+        $openCount = count(array_filter($allEvents, fn($e) => in_array($e['type'], VtAdminWatch::REVIEW, true) && empty($e['approved'])));
+        $this->respond(['events'   => array_slice($allEvents, 0, 150),
+                        'open'     => $openCount,
+                        'cross'    => $isAdmin ? VtAdminWatch::crossSite() : [],
+                        'last'     => VtAdminWatch::lastScan(),
+                        'can_scan' => $isAdmin]);
     }
 
     /** Compare the admins of all WordPress sites with the last scan now */
@@ -1104,12 +1127,20 @@ class IndexController extends pm_Controller_Action
         $this->respond(['ok' => true, 'new' => count($new), 'last' => VtAdminWatch::lastScan()]);
     }
 
-    /** Approve one change: the administrator or the site owner made it */
+    /** Approve one change: the administrator, reseller or the site owner made it */
     public function adminWatchApproveAction(): void
     {
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
-        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
-        $ev = VtAdminWatch::approve((string)$this->_getParam('id', ''), 'admin');
+        $id = (string)$this->_getParam('id', '');
+        if ($this->role() !== 'admin') {
+            $found = null;
+            foreach (VtAdminWatch::events() as $e) if (($e['id'] ?? '') === $id) { $found = $e; break; }
+            if (!$found) { $this->respond(['error' => 'Change not found']); return; }
+            if (!in_array($found['host'] ?? '', PleskDomains::hostedForCurrentUser(), true)) {
+                $this->respond(['error' => 'Not your domain']); return;
+            }
+        }
+        $ev = VtAdminWatch::approve($id, $this->role() === 'admin' ? 'admin' : $this->role());
         if (!$ev) { $this->respond(['error' => 'Change not found']); return; }
         $this->appendLog('[admins] approved on ' . $ev['host'] . ': ' . ($ev['label'] ?? $ev['type']) . ' ' . $ev['login'] . ' ' . $ev['detail']);
         $this->respond(['ok' => true]);
@@ -1121,11 +1152,13 @@ class IndexController extends pm_Controller_Action
      */
     public function adminWatchExplainAction(): void
     {
-        if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
         $id = (string)$this->_getParam('id', '');
         $ev = null;
         foreach (VtAdminWatch::events() as $e) if (($e['id'] ?? '') === $id) { $ev = $e; break; }
         if (!$ev) { $this->respond(['error' => 'Change not found']); return; }
+        if ($this->role() !== 'admin' && !in_array($ev['host'] ?? '', PleskDomains::hostedForCurrentUser(), true)) {
+            $this->respond(['error' => 'Not your domain']); return;
+        }
         $from = max(1, (int)$ev['from']); $to = (int)$ev['to'];
         $out  = ['from' => $from, 'to' => $to, 'log' => [], 'stream' => [], 'logins' => []];
         try {

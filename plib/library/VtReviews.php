@@ -36,6 +36,22 @@ class VtReviews
         return $all[$domain] ?? [];
     }
 
+    /** Record or undo that a vendor confirmed the delisting (adds/removes confirmed_at timestamp) */
+    public static function confirm(string $domain, string $vendor, bool $undo = false): array
+    {
+        $fp = @fopen(VtDataDir::path(self::FILE . '.lock'), 'c');
+        if ($fp) flock($fp, LOCK_EX);
+        $all = self::load();
+        if (isset($all[$domain][$vendor])) {
+            if ($undo) unset($all[$domain][$vendor]['confirmed_at']);
+            else $all[$domain][$vendor]['confirmed_at'] = time();
+        }
+        $f = VtDataDir::path(self::FILE);
+        if (@file_put_contents($f . '.tmp', json_encode($all)) !== false) @rename($f . '.tmp', $f);
+        if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
+        return $all[$domain] ?? [];
+    }
+
     private static function load(): array
     {
         $d = json_decode((string)@file_get_contents(VtDataDir::path(self::FILE)), true);

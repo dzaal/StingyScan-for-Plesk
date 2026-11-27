@@ -48,6 +48,12 @@ class VtSiteLog
         self::add($domain, [$e]);
     }
 
+    /** A vendor confirmed the delisting after a review request (or the confirmation was undone) */
+    public static function confirmed(string $domain, string $vendor, string $by, bool $undo = false): void
+    {
+        self::add($domain, [['ts' => time(), 'type' => $undo ? 'unconfirmed' : 'confirmed', 'vendor' => $vendor, 'by' => $by]]);
+    }
+
     /** A file was cleaned (Imunify), quarantined, or put back. $action: clean | unclean | quarantine | unquarantine */
     public static function fileAction(string $domain, string $action, string $file, string $by, string $detail = ''): void
     {

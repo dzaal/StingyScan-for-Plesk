@@ -193,6 +193,41 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-aw-sub{font-weight:700;font-size:12px;margin:10px 0 4px;color:var(--heading)}
 .vt-aw-more{margin-top:8px;font-size:12px}
 .vt-fs-tbl.vt-aw-tbl td,.vt-fs-tbl.vt-aw-tbl td:last-child{white-space:normal;word-break:break-word;font-family:inherit;color:var(--text)}
+.vt-aw-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vt-aw-search{flex:1;min-width:160px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:var(--surface);color:var(--text)}
+.vt-aw-summary{font-size:13px;margin-bottom:12px}
+.vt-aw-domain-group{margin-bottom:16px}
+.vt-aw-domain-header{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px}
+.vt-aw-domain-header a{cursor:pointer;color:var(--heading)}
+.vt-aw-domain-pend{background:#dc2626;color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:1px 6px}
+.vt-tools-nav{display:flex;align-items:center;gap:4px;padding:0 0 12px;margin-bottom:16px;border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+.vt-tools-nav::-webkit-scrollbar{display:none}
+.vt-tools-nav-item{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;color:var(--muted);background:transparent;border:1px solid transparent;cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .15s,color .15s}
+.vt-tools-nav-item:hover{background:var(--gray-bg);color:var(--heading)}
+.vt-tools-nav-item.active{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.vt-tools-nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;font-size:10px;font-weight:700;line-height:1}
+.vt-tools-nav-badge.orange{background:#fef3c7;color:#d97706}
+.vt-tools-nav-badge.red{background:#fee2e2;color:#dc2626}
+.vt-tools-nav-badge.gray{background:#f3f4f6;color:#6b7280}
+.vt-vnd-grid{display:flex;flex-direction:column;gap:10px}
+.vt-vnd-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.vt-vnd-head{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--gray-bg);border-bottom:1px solid var(--border);flex-wrap:wrap;row-gap:6px}
+.vt-vnd-name{font-weight:700;font-size:14px;color:var(--heading)}
+.vt-vnd-cnt{font-size:12px;color:var(--muted);background:var(--border);border-radius:9px;padding:1px 7px;font-weight:600;white-space:nowrap}
+.vt-vnd-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.vt-vnd-link{font-size:12px;color:var(--blue);text-decoration:none;cursor:pointer;white-space:nowrap}
+.vt-vnd-link:hover{text-decoration:underline}
+.vt-vnd-copy{font-size:11px;font-weight:600;padding:3px 10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:12px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.vt-vnd-copy:hover{background:#dbeafe}
+.vt-vnd-sites{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px}
+.vt-vnd-site{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 9px;border-radius:12px;background:var(--red-bg,#fef2f2);border:1px solid var(--red-border,#fecaca);color:var(--red,#dc2626)}
+.vt-vnd-site.susp{background:#fffbeb;border-color:#fde68a;color:#d97706}
+.vt-vnd-site a{color:inherit;text-decoration:none;cursor:pointer}
+.vt-vnd-site a:hover{text-decoration:underline}
+.vt-vnd-verdict{opacity:.65;font-size:11px}
+.vt-vnd-tip{font-size:12px;color:var(--muted);padding:7px 14px;border-bottom:1px solid var(--border);background:var(--gray-bg);line-height:1.45}
+.vt-blue-link{color:var(--blue);cursor:pointer;text-decoration:none}
+.vt-blue-link:hover{text-decoration:underline}
 .vt-wu-pill.hintpill{background:var(--gray-bg);color:var(--muted);border:1px solid var(--border)}
 .vt-fs-tbl.vt-ms-tbl td,.vt-fs-tbl.vt-ms-tbl td:last-child{white-space:normal;color:var(--text);font-family:inherit;word-break:normal}.vt-ms-tbl td:first-child{width:90px}
 .vt-pw-cms{display:inline-block;font-size:10px;font-weight:600;padding:0 5px;border-radius:4px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;margin-left:4px;vertical-align:middle}
@@ -440,8 +475,16 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-rev-deny input{flex:1;min-width:180px;padding:3px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px}
 .vt-rev-deny a{color:var(--muted);cursor:pointer}
 .vt-sh-pill.info{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)}
-.vt-rev-done{display:inline-flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:20px;padding:1px 8px}
-.vt-rev-done a{color:var(--muted);font-weight:400;cursor:pointer}
+.vt-rev-done{display:block;margin-top:3px}
+.vt-rev-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:20px;padding:1px 8px;white-space:nowrap}
+.vt-rev-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;font-size:11px;color:var(--muted)}
+.vt-rev-actions a{color:var(--blue);cursor:pointer;text-decoration:none}
+.vt-rev-actions a:hover{text-decoration:underline}
+.vt-rev-confirmed{display:block;margin-top:3px}
+.vt-rev-conf-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#14532d;background:#bbf7d0;border:1px solid #4ade80;border-radius:20px;padding:1px 8px;white-space:nowrap}
+.vt-rev-conf-pill a{color:#166534;font-weight:400;cursor:pointer;text-decoration:none}
+.vt-rev-conf-pill a:hover{text-decoration:underline}
+.vt-why-tbl tr.asked.confirmed td:first-child::after{content:' \2713 delisting confirmed';font-size:11px}
 .vt-why-tbl tr.vt-av-row td{background:var(--gray-bg)}
 .vt-why-tbl tr.vt-why-grp td{background:var(--gray-bg);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--heading);padding-top:8px;padding-bottom:6px;white-space:normal}
 .vt-why-tbl tr.vt-why-grp td span{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);margin-left:8px}
@@ -535,6 +578,8 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-tool-badge.orange{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
 .vt-tool-badge.gray{background:var(--gray-bg);color:var(--gray);border:1px solid var(--border)}
 .vt-tool-badge.blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.vt-tool-badge.purple{background:#fdf4ff;color:#9333ea;border:1px solid #e9d5ff}
+.vt-tools-nav-badge.purple{background:#fdf4ff;color:#9333ea}
 .vt-tool-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px}
 .vt-tool-open{font-size:12px;font-weight:600;color:var(--blue);text-align:right;padding-top:4px;margin-top:auto}
 .vt-tool-card.active .vt-tool-open,.vt-tool-card:hover .vt-tool-open{color:#1d4ed8}
@@ -709,7 +754,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
   <div class="vt-tabs">
     <div class="vt-tab active" id="vtab-dashboard" onclick="vtShowTab('dashboard')">Dashboard</div>
     <div class="vt-tab" id="vtab-tools" onclick="vtShowTab('tools')">Tools<span class="vt-tab-badge" id="vt-tools-badge" style="display:none"></span></div>
-    <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()" style="display:none">Statistics</div>
+    <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()">Statistics</div>
     <div class="vt-tab" id="vtab-settings" onclick="vtShowTab('settings')">Settings</div>
     <div class="vt-tab" id="vtab-about" onclick="vtShowTab('about')">About</div>
   </div>
@@ -866,6 +911,16 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
   <!-- ── Tools ─────────────────────────────────────────────────────── -->
   <div class="vt-panel" id="vtpanel-tools">
 
+    <!-- Persistent tools submenu — visible while inside any tool -->
+    <nav class="vt-tools-nav" id="vt-tools-nav" style="display:none">
+      <a class="vt-tools-nav-item" id="vtnav-overview" onclick="vtToolSelect(null)">&#8592; All tools</a>
+      <a class="vt-tools-nav-item" id="vtnav-pwned" onclick="vtToolSelect('pwned')"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>Pwned Admins <span class="vt-tools-nav-badge red" id="vtnb-pwned" style="display:none"></span></a>
+      <a class="vt-tools-nav-item" id="vtnav-adminwatch" onclick="vtToolSelect('adminwatch')">Admin changes <span class="vt-tools-nav-badge orange" id="vtnb-adminwatch" style="display:none"></span></a>
+      <a class="vt-tools-nav-item" id="vtnav-orphan" onclick="vtToolSelect('orphan')" style="display:none">Orphan DBs <span class="vt-tools-nav-badge gray" id="vtnb-orphan" style="display:none"></span></a>
+      <a class="vt-tools-nav-item" id="vtnav-vendors" onclick="vtToolSelect('vendors')">Vendors <span class="vt-tools-nav-badge purple" id="vtnb-vendors" style="display:none"></span></a>
+      <a class="vt-tools-nav-item" id="vtnav-log" onclick="vtToolSelect('log')">Scan log</a>
+    </nav>
+
     <!-- Tool launcher: grid of cards, hidden when a tool is open -->
     <div id="vt-tools-home">
       <div class="vt-tools-grid">
@@ -912,6 +967,20 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
           <div class="vt-tool-open">Open &rarr;</div>
         </div>
 
+        <!-- Vendors -->
+        <div class="vt-tool-card" id="vtcard-vendors" tabindex="0" onclick="vtToolSelect('vendors')" onkeydown="if(event.key==='Enter')vtToolSelect('vendors')">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#fdf4ff;color:#9333ea">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Vendors <span class="vt-tool-badge purple" id="vttb-vendors" style="display:none"></span></div>
+              <div class="vt-tool-desc">All security vendors that flag one or more of your sites — bulk-copy URLs to request a review for all your sites at once</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
+
         <!-- Scan log -->
         <div class="vt-tool-card" id="vtcard-log" tabindex="0" onclick="vtToolSelect('log')" onkeydown="if(event.key==='Enter')vtToolSelect('log')">
           <div class="vt-tool-top">
@@ -932,7 +1001,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <!-- ── Tool sections ─────────────────────────────────────────── -->
 
     <div class="vt-tool-section" id="vtool-pwned">
-      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Pwned Admins</h2></div>
       <div class="vt-card" style="max-width:100%">
         <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Pwned Admins <span class="hint" style="font-weight:400" id="vt-pw-sub"></span>
           <span style="flex:1"></span><span id="vt-pw-actions"></span></h3>
@@ -962,12 +1030,10 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-tool-section" id="vtool-adminwatch">
-      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Admin changes</h2></div>
       <div id="vt-aw-box"></div>
     </div>
 
     <div class="vt-tool-section" id="vtool-orphan">
-      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Orphan databases</h2></div>
       <div class="vt-rel" id="vt-rel">
         <h3>Orphan databases <span class="vt-rel-cnt" id="vt-rel-cnt"></span></h3>
         <p class="hint">WordPress databases on this server for a hostname under one of your domains that doesn&rsquo;t exist in DNS:
@@ -992,8 +1058,20 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
+    <div class="vt-tool-section" id="vtool-vendors">
+      <div class="vt-card" style="max-width:100%">
+        <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          Vendors <span class="hint" style="font-weight:400" id="vt-vnd-sub"></span>
+          <span style="flex:1"></span>
+          <button class="vt-btn ghost" onclick="vtVendorsRender()">Refresh</button>
+        </h3>
+        <div class="hint" style="margin-bottom:12px">Every security vendor that flags one or more of your sites. Click a site name to open its detail panel.
+          Use <strong>Copy URLs</strong> to copy all flagged site addresses to the clipboard at once — handy for vendors whose form accepts multiple URLs (like <a href="https://threatcenter.crdf.fr/false_positive.html" target="_blank" rel="noopener">CRDF / Fortinet ↗</a>).</div>
+        <div id="vt-vnd-box"><span class="hint">Loading…</span></div>
+      </div>
+    </div>
+
     <div class="vt-tool-section" id="vtool-log">
-      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Scan log</h2></div>
       <div class="vt-card" style="max-width:100%">
         <h3 style="display:flex;align-items:center;gap:10px">
           Scan Log
@@ -1458,8 +1536,12 @@ async function init(){
   renderTable(); updateCounts();
   vtLoadProgress(30,`Found ${domains.length} domain${domains.length===1?'':'s'} — loading scan results…`);
 
-  // Phase 2 — full data: results, owners, scanners, history
-  const data=await vtFetch('?action=all').catch(()=>({}));
+  // Phase 2 — full data and settings in parallel
+  vtBuildToc(); // show static settings TOC immediately while data loads
+  const [data,cfg]=await Promise.all([
+    vtFetch('?action=all').catch(()=>({})),
+    vtFetch('?action=get-settings').catch(()=>({}))
+  ]);
   external=data.external||[]; extSet=new Set(external.map(x=>x.domain)); vtRenderExternal();
   panelUrl=data.panel||{}; domains=data.domains||domains; related=data.related||[]; relSet=new Set(related); orphans=data.orphans||{}; owners=data.owners||{}; results=data.results||{};
   for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
@@ -1469,11 +1551,9 @@ async function init(){
   updateBudget(); renderTable(); updateCounts(); vtRenderExternal();
   vtLoadProgress(100,'Ready');
 
-  const cfg=await vtFetch('?action=get-settings').catch(()=>({}));
   if(!cfg.has_key||cfg.api_key_invalid) document.getElementById('vt-api-warning').style.display='flex';
-  loadSettingsForm(cfg);
-  if(cfg.role==='admin') vtAwLoad();
-  document.getElementById('vtab-trend').style.display=''; // admin: the server; reseller and customer: their own sites
+  loadSettingsForm(cfg); // also rebuilds TOC with dynamic sections
+  vtAwLoad();
   if(!cfg.has_key||cfg.api_key_invalid){
     // Without a working key every lookup fails: show the sites as waiting for a key, not as errors
     noKey=true;
@@ -1554,12 +1634,17 @@ window.vtToolSelect=function(name){
   currentTool=name;
   document.querySelectorAll('.vt-tool-card').forEach(c=>c.classList.remove('active'));
   document.querySelectorAll('.vt-tool-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.vt-tools-nav-item').forEach(i=>i.classList.remove('active'));
+  const nav=document.getElementById('vt-tools-nav');
+  if(nav) nav.style.display=name?'':'none';
   document.getElementById('vt-tools-home').style.display=name?'none':'';
   if(!name) return;
   document.getElementById('vtcard-'+name)?.classList.add('active');
   document.getElementById('vtool-'+name)?.classList.add('active');
+  document.getElementById('vtnav-'+name)?.classList.add('active');
   if(name==='pwned')      vtLoadPwned();
   if(name==='adminwatch') vtAwLoad();
+  if(name==='vendors')    vtVendorsRender();
   if(name==='log')        vtLoadLog();
 };
 function vtToolsBadge(){
@@ -1568,6 +1653,99 @@ function vtToolsBadge(){
   if(awCount>0){ badge.textContent=awCount>9?'!':awCount; badge.style.display=''; }
   else badge.style.display='none';
 }
+
+// ── Vendors tool ──────────────────────────────────────────────
+function vtVendorsBuild(){
+  const map={};
+  for(const domain of domains){
+    const d=results[domain]||{};
+    const st=d.status||'';
+    const flags=d.flagged_by||[];
+    if(!flags.length&&!['infected','suspicious'].includes(st)) continue;
+    for(const s of flags){
+      const i=s.indexOf(': ');
+      const vendor=i>0?s.slice(0,i):s, verdict=i>0?s.slice(i+2):'';
+      if(!map[vendor]) map[vendor]=[];
+      map[vendor].push({domain,verdict,status:st});
+    }
+    // Google Safe Browsing
+    if(gsb.enabled&&(gsb.results?.[domain]?.threats||[]).length){
+      if(!map['Google Safe Browsing']) map['Google Safe Browsing']=[];
+      map['Google Safe Browsing'].push({domain,verdict:'unsafe',status:st});
+    }
+    // AVG / Avast products
+    for(const pr of (avast.products||[])){
+      if((avast.results?.[domain]?.[pr.id]?.findings||[]).length){
+        const vname=pr.name||pr.id;
+        if(!map[vname]) map[vname]=[];
+        map[vname].push({domain,verdict:(avast.results[domain][pr.id].findings[0]||'flagged'),status:st});
+      }
+    }
+  }
+  return map;
+}
+function vtVendorsRender(){
+  const box=document.getElementById('vt-vnd-box'), sub=document.getElementById('vt-vnd-sub');
+  if(!box) return;
+  const map=vtVendorsBuild();
+  const vendors=Object.keys(map).sort((a,b)=>map[b].length-map[a].length||a.localeCompare(b));
+  const tb=document.getElementById('vttb-vendors'), nb=document.getElementById('vtnb-vendors');
+  if(vendors.length){
+    if(tb){tb.textContent=vendors.length;tb.style.display='';}
+    if(nb){nb.textContent=vendors.length;nb.style.display='';}
+  } else {
+    if(tb) tb.style.display='none';
+    if(nb) nb.style.display='none';
+  }
+  const totalFlags=Object.values(map).reduce((s,a)=>s+a.length,0);
+  if(sub) sub.textContent=vendors.length?vendors.length+' vendor'+(vendors.length===1?'':'s')+', '+totalFlags+' flag'+(totalFlags===1?'':'s'):'no flags';
+  if(!vendors.length){ box.innerHTML='<p class="hint">No sites are currently flagged by any vendor.</p>'; return; }
+  let h='<div class="vt-vnd-grid">';
+  for(const vendor of vendors){
+    const sites=map[vendor];
+    const k=vtFpKey(vendor), tip=k&&VT_FP_TIP[k]?VT_FP_TIP[k]:'';
+    const urls=sites.map(s=>'https://'+s.domain+'/').join('\n');
+    h+='<div class="vt-vnd-group">';
+    // Header row
+    h+='<div class="vt-vnd-head">'
+      +'<span class="vt-vnd-name">'+vtEsc(vendor)+'</span>'
+      +'<span class="vt-vnd-cnt">'+sites.length+' site'+(sites.length===1?'':'s')+'</span>'
+      +'<div class="vt-vnd-actions">'
+      +'<button class="vt-vnd-copy" onclick="vtVndCopy(this,\''+vtEsca(urls)+'\')" title="Copy all URLs — one per line">Copy '+(sites.length>1?sites.length+' URLs':'URL')+'</button>'
+      +'</div></div>';
+    // Tip (once, above table)
+    if(tip) h+='<div class="vt-vnd-tip">'+vtEsc(tip)+'</div>';
+    // Sites table — same columns as the Why? panel
+    h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th style="width:200px">Site</th><th style="width:120px">Verdict</th><th>Ask for a review</th></tr></thead><tbody>';
+    for(const {domain,verdict,status} of sites){
+      const rev=reviews[domain]?.[vendor];
+      const rowCls=rev?' class="asked'+(rev.confirmed_at?' confirmed':'')+'\"':'';
+      h+='<tr'+rowCls+'>'
+        +'<td><a class="vt-blue-link" onclick="vtVndOpenSite(\''+vtEsca(domain)+'\')">'+vtEsc(domain)+'</a></td>'
+        +'<td>'+vtEsc(verdict||status)+'</td>'
+        +'<td>'+vtFpLink(vendor,domain,false)+'</td>'
+        +'</tr>';
+    }
+    h+='</tbody></table></div>';
+  }
+  h+='</div>';
+  box.innerHTML=h;
+}
+window.vtVndOpenSite=function(domain){
+  // Switch to Overview tab, then open the site's Why? panel
+  document.querySelectorAll('.vt-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.vt-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('vtab-overview')?.classList.add('active');
+  document.getElementById('vtpanel-overview')?.classList.add('active');
+  setTimeout(()=>vtFsOpen(domain),80);
+};
+window.vtVndCopy=function(btn,urls){
+  navigator.clipboard.writeText(urls).then(()=>{
+    const orig=btn.textContent;
+    btn.textContent='Copied!'; btn.style.background='#dcfce7'; btn.style.color='#166534'; btn.style.borderColor='#4ade80';
+    setTimeout(()=>{btn.textContent=orig; btn.style.cssText='';},2000);
+  }).catch(()=>vtToast('Could not copy to clipboard','error'));
+};
 
 // ── Scan pump ─────────────────────────────────────────────────
 // Sequential with delay — stays within VT free tier (4 req/min).
@@ -1750,8 +1928,11 @@ function renderTable(){
   tbody.innerHTML=viewMode==='sort'?sortedDomains().map(d=>rowHTML(d,results[d]||null)).join(''):groupedRowsHTML();
   vtSet('vt-rel-cnt',related.length); vtSet('vt-cnt-orphan',related.length);
   const ocard=document.getElementById('vtcard-orphan'), obadge=document.getElementById('vttb-orphan');
+  const onav=document.getElementById('vtnav-orphan'), onb=document.getElementById('vtnb-orphan');
   if(ocard) ocard.style.display=related.length?'':'none';
   if(obadge){ obadge.textContent=related.length; obadge.style.display=related.length?'':'none'; }
+  if(onav) onav.style.display=related.length?'':'none';
+  if(onb){ onb.textContent=related.length; onb.style.display=related.length?'':'none'; }
   document.getElementById('vt-fgroup-orphan').style.display=related.length?'':'none';
   document.getElementById('vt-tbody-rel').innerHTML=related.map(d=>rowHTML(d,results[d]||null)).join('');
   vtApplyFilter();
@@ -3308,6 +3489,7 @@ window.vtPwSaveSrc=async function(){
   if(r.message) m.textContent+=' · '+r.message;
   if(pw){pw.config=r.config; vtRenderPwned();}
   document.getElementById('vtcard-pwned').style.display=r.config.source?'':'none'; // off: hide Pwned Admins tool card
+  document.getElementById('vtnav-pwned').style.display=r.config.source?'':'none';
   vtToast(src?'Breach data from '+(r.config.source_name||src):'Breached admin accounts switched off: the Pwned Admins tab is hidden','info');
 };
 /**
@@ -3529,6 +3711,7 @@ const VT_FP_TIP={
   bfore:'Ticket form.',
   googlesafebrowsing:'Site owners can also ask for a review in Google Search Console.',
   socradar:'No form; e-mail with the VirusTotal link. Site owners report this works.',
+  crdf:'False positive form at threatcenter.crdf.fr — paste each URL on a separate line; multiple URLs in one submission are accepted.',
   cyradar:'Form at cyradar.com/reportfp — no separate domain field, put the domain in the Message box.',
   malwareurl:'No form; e-mail with the VirusTotal link.',
   spamhaus:'Check the domain first; removal needs the cause fixed.',
@@ -3545,11 +3728,30 @@ function vtFpContact(vendor){const k=vtFpKey(vendor);return k?VT_FP[k]:'';}
 function vtRevDone(domain,vendor){
   const r=reviews[domain]?.[vendor]; if(!r) return '';
   const d=new Date(r.ts*1000), p=n=>String(n).padStart(2,'0');
-  return '<div class="vt-rev-done" title="Saved for this site, for everyone who manages it">&#10003; Requested '+p(d.getDate())+'-'+p(d.getMonth()+1)+'-'+d.getFullYear()
-    +' ('+p(d.getHours())+':'+p(d.getMinutes())+')'+(r.by?' by '+vtEsc(r.by):'')
-    +' · <a onclick="vtReviewDeny(this,\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\')" title="The vendor turned the request down: remove this note and log it in the history">denied</a>'
-    +' · <a onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',1)" title="Clicked by mistake: forget this request">undo</a></div>';
+  const reqDate=p(d.getDate())+'-'+p(d.getMonth()+1)+'-'+d.getFullYear()+' ('+p(d.getHours())+':'+p(d.getMinutes())+')';
+  if(r.confirmed_at){
+    const c=new Date(r.confirmed_at*1000);
+    return '<div class="vt-rev-confirmed">'
+      +'<span class="vt-rev-conf-pill">&#10003; Delisting confirmed '+p(c.getDate())+'-'+p(c.getMonth()+1)+'-'+c.getFullYear()
+      +' · <a onclick="vtReviewConfirm(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',1)" title="Undo: the delisting was not actually confirmed">undo</a></span>'
+      +(r.by?'<div class="vt-rev-actions">requested by '+vtEsc(r.by)+'</div>':'')
+      +'</div>';
+  }
+  return '<div class="vt-rev-done">'
+    +'<span class="vt-rev-pill">&#10003; Requested '+reqDate+(r.by?' by '+vtEsc(r.by):'')+'</span>'
+    +'<div class="vt-rev-actions">'
+    +'<a onclick="vtReviewConfirm(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\')" title="The vendor confirmed the delisting: record this">&#10003; delisting confirmed</a>'
+    +' · <a onclick="vtReviewDeny(this,\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\')" title="The vendor turned the request down">denied</a>'
+    +' · <a onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',1)" title="Clicked by mistake: forget this request">undo</a>'
+    +'</div></div>';
 }
+window.vtReviewConfirm=async function(domain,vendor,undo){
+  try{
+    const r=await vtPostAct('review-confirm',{domain,vendor,remove:undo?'1':''});
+    if(r&&r.ok){reviews[domain]=r.reviews; vtFsRefresh(domain); vtLoadSiteHist(domain); if(currentTool==='vendors') vtVendorsRender();}
+    else vtToast(r?.error||'Could not save','error');
+  }catch(e){vtToast('Could not save','error');}
+};
 window.vtReviewDeny=function(a,domain,vendor){
   const box=a.closest('.vt-rev-done');
   box.outerHTML='<div class="vt-rev-deny"><input type="text" maxlength="300" placeholder="Reason (optional), e.g. added less than a day ago">'
@@ -3594,10 +3796,10 @@ window.vtReviewMark=async function(domain,vendor,remove,via,to,deniedReason){
     if(r&&r.ok){reviews[domain]=r.reviews; if(Array.isArray(r.reviews)) reviews[domain]={};}
     else vtToast('Could not save the review request','error');
   }catch(e){vtToast('Could not save the review request','error');}
-  vtFsRefresh(domain); vtLoadSiteHist(domain);
+  vtFsRefresh(domain); vtLoadSiteHist(domain); if(currentTool==='vendors') vtVendorsRender();
 };
-function vtFpLink(vendor,domain){
-  const k=vtFpKey(vendor), c=k?VT_FP[k]:'', tip=k&&VT_FP_TIP[k]?'<div class="vt-why-tip">'+vtEsc(VT_FP_TIP[k])+'</div>':'';
+function vtFpLink(vendor,domain,showTip=true){
+  const k=vtFpKey(vendor), c=k?VT_FP[k]:'', tip=showTip&&k&&VT_FP_TIP[k]?'<div class="vt-why-tip">'+vtEsc(VT_FP_TIP[k])+'</div>':'';
   const via=c.includes('@')?'email':'form';
   const mark=' onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',0,\''+via+'\',\''+vtEsca(c)+'\')"', done=vtRevDone(domain,vendor);
   if(!c) return '<a data-site-url="'+vtEsc('https://'+domain+'/')+'" onclick="vtCopyReviewUrl(this.dataset.siteUrl)" href="'+VT_FP_LIST+'" target="_blank" rel="noopener">find the contact</a>';
@@ -3625,10 +3827,12 @@ function vtWhyRowHTML(domain,st){
     h+='<div class="vt-why-howto"><strong>How asking for a review works:</strong> click <em>request a review ↗</em>. The vendor\'s form opens in a new tab '
       +'and the site address (<code>https://'+vtEsc(domain)+'/</code>) is <strong>copied to your clipboard</strong>: paste it into the form. '
       +'Stingy Scanner <strong>remembers every request</strong>: the vendor gets <em>✓ Requested</em> with the date and who asked, the count at the top goes up, '
-      +'and it is added to the site\'s history, for everyone who manages this site. Turned down? Click <em>denied</em> (with the reason). Clicked by mistake? <em>undo</em>.</div>';
+      +'and it is added to the site\'s history, for everyone who manages this site. '
+      +'When the vendor confirms the delisting (by e-mail or in their portal), click <em>✓ delisting confirmed</em> to record it — it turns green and is added to the history. '
+      +'Turned down? Click <em>denied</em> (with the reason). Clicked by mistake? <em>undo</em>.</div>';
     h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th>Vendor</th><th>Verdict</th><th>Ask for a review</th></tr></thead><tbody>'
       +'<tr class="vt-why-grp"><td colspan="3">VirusTotal vendors <span>'+(list.length?list.length+tot+' flag this site':'none'+tot+' flags this site')+'</span></td></tr>'
-      +(list.length?list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')
+      +(list.length?list.map(([v,r])=>'<tr'+(reviews[domain]?.[v]?' class="asked'+(reviews[domain][v].confirmed_at?' confirmed':'')+'\"':'')+'><td>'+vtEsc(v)+'</td><td>'+vtEsc(r)+'</td><td>'+vtFpLink(v,domain)+'</td></tr>').join('')
         :'<tr><td colspan="3" class="hint">No VirusTotal vendor flags this site'+(d.last_scan?' (report of '+vtEsc(d.last_scan)+')':'')+'.</td></tr>')
       +(extra?'<tr class="vt-why-grp"><td colspan="3">Extra services <span>switched on in Settings</span></td></tr>'+extra:'')
       +'</tbody></table>';
@@ -3792,6 +3996,8 @@ function vtSiteHistHTML(domain){
     else if(e.type==='file'){const L={clean:['good','Cleaned'],unclean:['warn','Cleanup undone'],quarantine:['good','Quarantined'],unquarantine:['warn','Restored'],qdelete:['','Deleted']}[e.action]||['',vtEsc(e.action)];
       what=pill(L[0],L[1]);text='<code>'+vtEsc(e.file)+'</code>'+(e.detail?' · '+vtEsc(e.detail):'')+(e.by?' · by '+vtEsc(e.by):'');}
     else if(e.type==='unreview'){what=pill('','Undone');text='review request for <strong>'+vtEsc(e.vendor)+'</strong> undone'+(e.by?' · by '+vtEsc(e.by):'');}
+    else if(e.type==='confirmed'){what=pill('good','Delisting confirmed');text='<strong>'+vtEsc(e.vendor)+'</strong> confirmed the delisting'+(e.by?' · by '+vtEsc(e.by):'');}
+    else if(e.type==='unconfirmed'){what=pill('','Undone');text='delisting confirmation for <strong>'+vtEsc(e.vendor)+'</strong> undone'+(e.by?' · by '+vtEsc(e.by):'');}
     return '<div class="vt-sh-row"><div class="vt-sh-time">'+when+'</div><div class="vt-sh-what">'+what+'</div><div class="vt-sh-text">'+text+'</div></div>';
   }).join('');
 }
@@ -4334,21 +4540,22 @@ function vtWpUsersHTML(domain){
 }
 
 
-// ── Admin changes (administrator): admin rights compared with the last scan, see VtAdminWatch ──
-let aw=null, awOpen=false, awExplain={};
+// ── Admin changes: admin rights compared with the last scan, see VtAdminWatch ──
+let aw=null, awSearch='', awFilter='all', awExplain={};
 async function vtAwLoad(){
   const r=await vtFetch('?action=admin-watch').catch(()=>null);
   if(!r||r.error) return;
   aw=r; vtAwRender();
 }
-function awTime(ts){return ts?new Date(ts*1000).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
-function awEventHTML(ev){
-  const id=vtEsca(ev.id), open=ev.approved?'':' open';
+function awTime(ts){return ts?new Date(ts*1000).toLocaleString([],{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
+function awEventHTML(ev,grouped){
+  const id=vtEsca(ev.id),open=ev.approved?'':' open';
   const ex=awExplain[ev.id];
   let h='<div class="vt-aw-ev'+open+(ev.type==='removed'?' info':'')+'">'
-    +'<div class="vt-aw-head"><strong>'+vtEsc(ev.label)+'</strong> on <a onclick="vtAwSite(\''+vtEsca(ev.host)+'\')">'+vtEsc(ev.host)+'</a>'
+    +'<div class="vt-aw-head"><strong>'+vtEsc(ev.label)+'</strong>'
+    +(grouped?'':' on <a onclick="vtAwSite(\''+vtEsca(ev.host)+'\')">'+vtEsc(ev.host)+'</a>')
     +(ev.cms&&ev.cms!=='WordPress'?' <span class="vt-pw-cms">'+vtEsc(ev.cms)+'</span>':'')
-    +'<span class="vt-aw-when">between '+awTime(ev.from)+' and '+awTime(ev.to)+'</span></div>'
+    +'<span class="vt-aw-when">'+awTime(ev.from)+'&ndash;'+awTime(ev.to)+'</span></div>'
     +'<div class="vt-aw-body">'
     +(ev.login?'Account <strong>'+vtEsc(ev.login)+'</strong> &lt;'+vtEsc(ev.email)+'&gt;':'')
     +(ev.detail?(ev.login?' · ':'')+vtEsc(ev.detail):'')
@@ -4391,42 +4598,74 @@ function vtAwRender(){
     if(box) box.style.display='none';
     const al=document.getElementById('vt-aw-alert'); if(al) al.style.display='none';
     const ab=document.getElementById('vttb-adminwatch'); if(ab) ab.style.display='none';
+    const anb=document.getElementById('vtnb-adminwatch'); if(anb) anb.style.display='none';
     document.getElementById('vtcard-adminwatch')?.classList.remove('alert');
     vtToolsBadge(); return;
   }
   const evs=aw.events||[], open=evs.filter(e=>!e.approved&&e.type!=='removed'), cross=Object.entries(aw.cross||{});
-  // Compact dashboard alert
-  const alertEl=document.getElementById('vt-aw-alert'), alertTxt=document.getElementById('vt-aw-alert-text');
+  // Dashboard alert and tool card badge
+  const alertEl=document.getElementById('vt-aw-alert'),alertTxt=document.getElementById('vt-aw-alert-text');
   if(alertEl&&alertTxt){
-    if(open.length){ alertTxt.textContent=open.length+' admin change'+(open.length===1?'':'s')+' to review'; alertEl.style.display='flex'; }
+    if(open.length){alertTxt.textContent=open.length+' admin change'+(open.length===1?'':'s')+' to review';alertEl.style.display='flex';}
     else alertEl.style.display='none';
   }
-  // Admin changes tool card badge
-  const awBadge=document.getElementById('vttb-adminwatch'), awCard=document.getElementById('vtcard-adminwatch');
-  if(awBadge){ awBadge.textContent=open.length; awBadge.style.display=open.length?'':'none'; }
+  const awBadge=document.getElementById('vttb-adminwatch'),awCard=document.getElementById('vtcard-adminwatch');
+  const awNavBadge=document.getElementById('vtnb-adminwatch');
+  if(awBadge){awBadge.textContent=open.length;awBadge.style.display=open.length?'':'none';}
+  if(awNavBadge){awNavBadge.textContent=open.length;awNavBadge.style.display=open.length?'':'none';}
   if(awCard) awCard.classList.toggle('alert',open.length>0);
   vtToolsBadge();
-  if(!evs.length&&!cross.length){if(box) box.style.display='none'; return;}
+  if(!evs.length&&!cross.length){if(box) box.style.display='none';return;}
   box.style.display='';
-  let h='<div class="vt-aw'+(open.length?' alert':'')+'"><div class="vt-aw-top" onclick="vtAwToggle()"><span class="vt-aw-title">'
-    +(open.length?'⚠ '+open.length+' admin change'+(open.length===1?'':'s')+' to review':'Admin changes')+'</span>'
-    +'<span class="hint">'+(open.length?'Admin rights appeared or changed on '+[...new Set(open.map(e=>e.host))].length+' site'+([...new Set(open.map(e=>e.host))].length===1?'':'s')+' since the scan before. Approve what you or the site owner did.':evs.length?'all changes approved':'no changes since the first scan')
-    +(cross.length?' · '+cross.length+' address'+(cross.length===1?'':'es')+' with admin rights on sites of different customers':'')
-    +' · last scan '+awTime(aw.last)+'</span><span style="flex:1"></span>'
-    +'<button type="button" class="vt-btn ghost" onclick="event.stopPropagation();vtAwScan(this)">Scan now</button>'
-    +'<span class="vt-aw-arrow">'+(awOpen||open.length?'▲':'▼')+'</span></div>';
-  if(awOpen||open.length){
-    h+=open.map(awEventHTML).join('');
-    if(awOpen){
-      const rest=evs.filter(e=>!open.includes(e));
-      if(rest.length) h+='<div class="vt-aw-sub">Earlier changes</div>'+rest.slice(0,40).map(awEventHTML).join('');
-      if(cross.length) h+='<div class="vt-aw-sub">Admin on sites of different customers <span class="hint">(normal for a web agency or maintainer: add those addresses to Trusted admin addresses in Settings)</span></div>'
-        +'<table class="vt-fs-tbl vt-aw-tbl"><tbody>'+cross.map(([em,l])=>'<tr><td><strong>'+vtEsc(em)+'</strong></td><td>'+l.map(x=>vtEsc(x.host)+(x.owner?' <span class="hint">('+vtEsc(x.owner)+')</span>':'')).join(', ')+'</td></tr>').join('')+'</tbody></table>';
-    }else if(evs.length>open.length||cross.length) h+='<div class="vt-aw-more"><a onclick="vtAwToggle()">Show earlier changes'+(cross.length?' and shared admin addresses':'')+'</a></div>';
+  // Apply search + status filters
+  const q=(awSearch||'').toLowerCase().trim();
+  let shown=q?evs.filter(e=>(e.host||'').toLowerCase().includes(q)||(e.login||'').toLowerCase().includes(q)||(e.email||'').toLowerCase().includes(q)||(e.detail||'').toLowerCase().includes(q)):evs;
+  if(awFilter==='pending') shown=shown.filter(e=>!e.approved&&e.type!=='removed');
+  else if(awFilter==='approved') shown=shown.filter(e=>e.approved||e.type==='removed');
+  // Group by domain, domains with pending changes first
+  const groups={};
+  shown.forEach(e=>{if(!groups[e.host])groups[e.host]={host:e.host,evs:[]};groups[e.host].evs.push(e);});
+  const sorted=Object.values(groups).sort((a,b)=>
+    b.evs.filter(e=>!e.approved&&e.type!=='removed').length-a.evs.filter(e=>!e.approved&&e.type!=='removed').length
+  );
+  // Toolbar
+  let h='<div class="vt-aw-toolbar">'
+    +'<input class="vt-aw-search" type="search" placeholder="Search domain, account\u2026" value="'+vtEsc(awSearch)+'" oninput="awSearch=this.value;vtAwRender()">'
+    +'<div style="display:flex;gap:4px">'
+    +['all','pending','approved'].map(v=>'<button type="button" class="vt-btn'+(awFilter===v?' active':' ghost')+'" style="font-size:12px;padding:3px 8px" onclick="awFilter=\''+v+'\';vtAwRender()">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>').join('')
+    +'</div>'
+    +(aw.can_scan?'<button type="button" class="vt-btn ghost" onclick="vtAwScan(this)">Scan now</button>':'')
+    +'<span class="hint" style="margin-left:auto">Last scan: '+awTime(aw.last)+'</span>'
+    +'</div>';
+  // Summary line
+  if(open.length) h+='<div class="vt-aw-summary"><strong>'+open.length+' change'+(open.length===1?' needs':'s need')+' review</strong> on '
+    +[...new Set(open.map(e=>e.host))].length+' site'+([...new Set(open.map(e=>e.host))].length===1?'':'s')
+    +'. Approve what you or the site owner did; investigate anything unexpected.</div>';
+  else if(evs.length) h+='<div class="vt-aw-summary" style="color:var(--green,#16a34a)">All '+evs.length+' recorded change'+(evs.length===1?'':'s')+' approved \u2014 no pending issues.</div>';
+  // Domain groups
+  if(sorted.length){
+    sorted.forEach(g=>{
+      const pend=g.evs.filter(e=>!e.approved&&e.type!=='removed').length;
+      h+='<div class="vt-aw-domain-group">'
+        +'<div class="vt-aw-domain-header"><a onclick="vtAwSite(\''+vtEsca(g.host)+'\')">'+vtEsc(g.host)+'</a>'
+        +(pend?'<span class="vt-aw-domain-pend">'+pend+' to review</span>':'')
+        +'</div>'
+        +g.evs.map(e=>awEventHTML(e,true)).join('')
+        +'</div>';
+    });
+  } else if(q){
+    h+='<div class="hint" style="padding:16px 0">No results for \u201c'+vtEsc(q)+'\u201d.</div>';
   }
-  box.innerHTML=h+'</div>';
+  // Cross-site admins (admin only, not filtered)
+  if(cross.length&&!q){
+    h+='<div class="vt-aw-sub" style="margin-top:16px">Same address, admin on sites of different customers'
+      +' <span class="hint">(normal for a web agency or maintainer: add to Trusted admin addresses in Settings)</span></div>'
+      +'<table class="vt-fs-tbl vt-aw-tbl"><tbody>'
+      +cross.map(([em,l])=>'<tr><td><strong>'+vtEsc(em)+'</strong></td><td>'+l.map(x=>vtEsc(x.host)+(x.owner?' <span class="hint">('+vtEsc(x.owner)+')</span>':'')).join(', ')+'</td></tr>').join('')
+      +'</tbody></table>';
+  }
+  box.innerHTML=h;
 }
-window.vtAwToggle=function(){awOpen=!awOpen; vtAwRender();};
 window.vtAwSite=function(host){
   const s=document.getElementById('vt-search'); if(s){s.value=host; s.dispatchEvent(new Event('input'));}
   vtShowTab('dashboard'); document.getElementById('vt-tbody')?.scrollIntoView({behavior:'smooth',block:'start'});

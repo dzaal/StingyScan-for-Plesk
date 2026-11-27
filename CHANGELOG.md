@@ -3,6 +3,24 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.18.8 — 2026-11-27
+- **Statistics tab always visible:** the tab no longer hides until settings finish loading — it is shown immediately when the page opens.
+- **Settings index appears instantly:** the contents list at the top of Settings is now built from the static page structure at load time, so it appears without waiting for domain data. Dynamic sections (quarantine, mail sender, log rotation) are added once settings finish loading.
+- **Faster initial load:** the full scan results (`action=all`) and settings (`action=get-settings`) are now fetched in parallel instead of sequentially, cutting the wait on servers with many domains roughly in half.
+
+## 2.18.6 — 2026-11-27
+- **Vendors tool:** new entry in the Tools tab showing every security vendor that flags one or more of your sites, sorted by number of flagged sites. Under each vendor the flagged domains are shown as coloured chips (red = infected, orange = suspicious). A **Copy URLs** button copies all flagged site addresses at once — handy for vendors like CRDF / Fortinet whose form accepts multiple URLs in one go. Clicking a site name switches to Overview and opens that site's Why? panel. Includes VirusTotal vendors, Google Safe Browsing and AVG / Avast.
+
+## 2.18.4 — 2026-11-27
+- **Persistent tools navigation:** a horizontal nav strip stays visible at the top of every tool (Pwned Admins, Admin changes, Orphan DBs, Scan log) so you can jump directly to another tool without going back to the grid. Badges on the nav items mirror the card badges (orange count for pending admin changes, red for pwned admins, gray for orphan databases). The old ← Tools back links are removed.
+
+## 2.18.3 — 2026-11-27
+- **Vendor delisting confirmation:** after a review request is accepted and the vendor delists your domain, click **✓ delisted** in the Why? panel to record the confirmation. The orange "Requested" pill turns into a bold green "✓ Delisted [date]" badge; the vendor row gets a "✓ delisted" label; and the confirmation is added to the site's history. Click *undo* if you recorded it by mistake.
+
+## 2.18.2 — 2026-11-27
+- **Admin changes now visible to resellers and clients:** each role sees only the changes on their own sites. Approve and Explain work for resellers and clients too (domain ownership is verified server-side).
+- **Admin changes redesigned:** domain-grouped view with a search bar and All / Pending / Approved filter. Domains with pending changes sort to the top. The "Scan now" button is only shown to administrators.
+
 ## 2.18.1 — 2026-11-27
 - Statistics stays as its own tab (reverted from Tools card in 2.18.0).
 

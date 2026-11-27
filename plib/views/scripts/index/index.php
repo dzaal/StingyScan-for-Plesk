@@ -621,7 +621,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-tool-card.alert{border-left-color:var(--red)}
 .vt-tool-card.alert:hover,.vt-tool-card.alert.active{border-color:var(--red-border);box-shadow:0 2px 8px rgba(220,38,38,.1)}
 .vt-tool-top{display:flex;gap:16px;align-items:flex-start}
-.vt-tool-icon{width:52px;height:52px;color:var(--heading);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vt-tool-icon{width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .vt-tool-info{flex:1;min-width:0}
 .vt-tool-title{font-size:14px;font-weight:700;color:var(--heading);display:flex;align-items:center;gap:7px;flex-wrap:wrap;line-height:1.3}
 .vt-tool-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap}
@@ -977,7 +977,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <!-- Vendor requests -->
         <div class="vt-tool-card" id="vtcard-vendors" tabindex="0" onclick="vtToolSelect('vendors')" onkeydown="if(event.key==='Enter')vtToolSelect('vendors')">
           <div class="vt-tool-top">
-            <div class="vt-tool-icon">
+            <div class="vt-tool-icon" style="background:#fdf4ff;color:#9333ea">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3,24 H7 Q4,22 5,18 Q7,12 13,14 L16,17 M12,18 L10,22 16,24 H20 M21,20 A3,3 0 1 1 15,20 A3,3 0 1 1 21,20 M25,8 H30 L29,20 30,24 H23 Q23,21 26,20 Z"/></svg>
             </div>
             <div class="vt-tool-info">
@@ -991,7 +991,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <!-- Pwned Admins -->
         <div class="vt-tool-card" id="vtcard-pwned" tabindex="0" onclick="vtToolSelect('pwned')" onkeydown="if(event.key==='Enter')vtToolSelect('pwned')"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>
           <div class="vt-tool-top">
-            <div class="vt-tool-icon">
+            <div class="vt-tool-icon" style="background:#fef2f2;color:#dc2626">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6,27 V4 H26 V27 M4,28 H28 M16,4 V8 M10,8 H22 V11 L10,15 Z M7,23 H11 M21,23 H25 M21,22 A5,5 0 1 1 11,22 A5,5 0 1 1 21,22 M14,21 H14.2 M17.8,21 H18 M15,24 Q16,23 17,24"/></svg>
             </div>
             <div class="vt-tool-info">
@@ -1005,7 +1005,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <!-- Admin changes -->
         <div class="vt-tool-card" id="vtcard-adminwatch" tabindex="0" onclick="vtToolSelect('adminwatch')" onkeydown="if(event.key==='Enter')vtToolSelect('adminwatch')">
           <div class="vt-tool-top">
-            <div class="vt-tool-icon">
+            <div class="vt-tool-icon" style="background:#fffbeb;color:#d97706">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13,6 Q16,1 19,6 L29,24 Q31,28 27,28 H5 Q1,28 3,24 Z M16,11 V18 M16,23 H16.1"/></svg>
             </div>
             <div class="vt-tool-info">
@@ -1019,7 +1019,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <!-- Orphan databases -->
         <div class="vt-tool-card" id="vtcard-orphan" tabindex="0" onclick="vtToolSelect('orphan')" onkeydown="if(event.key==='Enter')vtToolSelect('orphan')">
           <div class="vt-tool-top">
-            <div class="vt-tool-icon">
+            <div class="vt-tool-icon" style="background:#f0fdf4;color:#16a34a">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6,20 V13 Q6,6 12,6 H21 Q27,6 27,13 V20 M6,13 H14 M19,13 H27 M12,7 Q10,9 10,13 M22,7 Q24,9 24,13 M14,12 H19 V17 H14 Z M2,23 Q5,23 7,21 Q10,19 13,22 Q16,25 19,22 Q22,19 25,22 Q28,25 30,22 M5,28 Q8,25 11,28 Q14,31 17,28 Q20,25 23,28 Q26,31 29,28"/></svg>
             </div>
             <div class="vt-tool-info">
@@ -1033,7 +1033,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <!-- Scan log -->
         <div class="vt-tool-card" id="vtcard-log" tabindex="0" onclick="vtToolSelect('log')" onkeydown="if(event.key==='Enter')vtToolSelect('log')">
           <div class="vt-tool-top">
-            <div class="vt-tool-icon">
+            <div class="vt-tool-icon" style="background:#f9fafb;color:#6b7280">
               <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8,4 H21 Q24,4 24,7 V12 Q24,15 19,16 Q15,17 15,20 Q15,23 23,23 Q28,23 28,27 Q28,30 24,30 H13 Q9,30 9,27 V24 Q9,21 13,20 M8,4 Q4,4 4,8 Q4,11 8,11 H11 V8 Q11,4 8,4 M14,8 H20 M14,12 H19 M19,26 H24"/></svg>
             </div>
             <div class="vt-tool-info">

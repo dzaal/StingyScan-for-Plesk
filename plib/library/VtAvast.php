@@ -146,6 +146,18 @@ class VtAvast
         return $out;
     }
 
+    /** Requests per product on the previous day (server time): [146 => n, 147 => n], null when unknown */
+    public static function callsYesterday(): ?array
+    {
+        $st  = json_decode((string)@file_get_contents(VtDataDir::path('vt_avast_rate.json')), true) ?: [];
+        $y   = date('Y-m-d', strtotime('yesterday'));
+        $src = ($st['day'] ?? '') === $y ? ($st['calls'] ?? []) : ((($st['prev']['day'] ?? '') === $y) ? ($st['prev']['calls'] ?? []) : null);
+        if ($src === null) return null;
+        $out = array_fill_keys(array_keys(self::PRODUCTS), 0);
+        foreach ($src as $p => $n) if (isset($out[(int)$p])) $out[(int)$p] = (int)$n;
+        return $out;
+    }
+
     // ── HTTP with the shared limiter ───────────────────────────
 
     private static function send(string $payload, ?int &$code, ?string &$err, int $product = 0)
@@ -162,7 +174,10 @@ class VtAvast
             if ($startAt > $now) usleep((int)(($startAt - $now) * 1000));
             $st['last_start_ms'] = microtime(true) * 1000;
             // Calls today per product (server time), shown next to AVG / Avast in Settings
-            if (($st['day'] ?? '') !== date('Y-m-d')) { $st['day'] = date('Y-m-d'); $st['calls'] = []; }
+            if (($st['day'] ?? '') !== date('Y-m-d')) {
+                if (!empty($st['day'])) $st['prev'] = ['day' => $st['day'], 'calls' => $st['calls'] ?? []]; // yesterday's total, for Statistics
+                $st['day'] = date('Y-m-d'); $st['calls'] = [];
+            }
             $st['calls'][$product] = (int)($st['calls'][$product] ?? 0) + 1;
             @file_put_contents($stateFile, json_encode($st));
 

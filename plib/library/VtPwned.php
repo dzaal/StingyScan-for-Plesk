@@ -183,7 +183,8 @@ class VtPwned
         self::lockedState(function (array $st) use ($src, &$wait) {
             $now = microtime(true);
             $day = gmdate('Y-m-d');
-            if (($st['day'] ?? '') !== $day) $st = ['day' => $day, 'calls' => 0, 'next_at' => (float)($st['next_at'] ?? 0)];
+            if (($st['day'] ?? '') !== $day) $st = ['day' => $day, 'calls' => 0, 'next_at' => (float)($st['next_at'] ?? 0)]
+                + (!empty($st['day']) ? ['prev' => ['day' => $st['day'], 'calls' => (int)($st['calls'] ?? 0)]] : []); // yesterday's total, for Statistics
             self::$why = 'limit';
             if ($src === 'xon' && $st['calls'] >= self::XON_DAY) { $wait = strtotime('tomorrow UTC') - (int)$now; self::$why = 'day'; return $st; }
             if ($st['next_at'] > $now) { $wait = max(1, (int)ceil($st['next_at'] - $now)); return $st; }
@@ -192,6 +193,16 @@ class VtPwned
             return $st;
         });
         return $wait;
+    }
+
+    /** Requests on the previous day (UTC, like XposedOrNot's limit), null when unknown */
+    public static function callsYesterday(): ?int
+    {
+        $st = json_decode((string)@file_get_contents(VtDataDir::path('vt_pwned_state.json')), true);
+        if (!is_array($st)) return null;
+        $y = gmdate('Y-m-d', time() - 86400);
+        if (($st['day'] ?? '') === $y) return (int)($st['calls'] ?? 0);
+        return ($st['prev']['day'] ?? '') === $y ? (int)$st['prev']['calls'] : null;
     }
 
     public static function callsToday(): int

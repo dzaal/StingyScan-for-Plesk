@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.13 — 2026-11-28
+- Statistics → API usage today: each service now says when its "today" began (00:00 server time for AVG, Avast and Google; 00:00 UTC for the breach check, like its limit) and shows **yesterday's** total too, so a low number just after midnight is not mistaken for a missing count. The heading shows the server time.
+
 ## 2.19.12 — 2026-11-28
 - Settings → Notifications → Plesk notifications: each kind (infected, suspicious, clean again, admin changes) has, on its own line, a choice of how it shows in Plesk (**Alert** red, **Warning** orange, **Information** blue; Plesk has no "success" style) and a **Test** button that sends one notification of that kind in that style. The separate *Send a test notification* button is gone.
 

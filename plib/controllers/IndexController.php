@@ -866,6 +866,8 @@ class IndexController extends pm_Controller_Action
         $info = $this->cache->budgetInfo();
         $info['vt_quota_used'] = VtRateLimiter::todayCountForKey($this->effectiveApiKey);
         $info['services']      = $this->serviceUsage();
+        $info['server_time']   = date('H:i'); // "today" of AVG, Avast and Google starts at 00:00 server time
+        $info['server_tz']     = date('T');
         $this->respond($info);
     }
 
@@ -879,16 +881,19 @@ class IndexController extends pm_Controller_Action
         $rates = VtCheckRateLimiter::rates();
         try {
             $calls = VtAvast::callsToday();
+            $prev  = VtAvast::callsYesterday();
             foreach (VtAvastStore::products() as $pid) {
                 $key = $pid === 147 ? 'avg' : 'avast';
                 $out[] = ['key' => $key, 'name' => VtAvast::PRODUCTS[$pid] ?? $key, 'what' => 'Web Shield',
-                          'calls' => (int)($calls[$pid] ?? 0), 'limit' => 0, 'rpm' => (int)($rates[$key] ?? 0)];
+                          'calls' => (int)($calls[$pid] ?? 0), 'yesterday' => $prev === null ? null : (int)($prev[$pid] ?? 0),
+                          'day_start' => 'server', 'limit' => 0, 'rpm' => (int)($rates[$key] ?? 0)];
             }
         } catch (\Throwable $e) {}
         try {
             if ((bool)(new VtSettings('admin'))->get('gsb_enabled', false) && VtSafeBrowsing::maskedKey() !== '') {
                 $out[] = ['key' => 'google', 'name' => 'Google Safe Browsing', 'what' => 'Lookup API',
-                          'calls' => VtSafeBrowsing::callsToday(), 'limit' => 0, 'rpm' => (int)($rates['google'] ?? 0)];
+                          'calls' => VtSafeBrowsing::callsToday(), 'yesterday' => VtSafeBrowsing::callsYesterday(),
+                          'day_start' => 'server', 'limit' => 0, 'rpm' => (int)($rates['google'] ?? 0)];
             }
         } catch (\Throwable $e) {}
         if ($this->role() === 'admin') {
@@ -896,7 +901,8 @@ class IndexController extends pm_Controller_Action
                 $src = VtPwned::source();
                 if ($src !== '') {
                     $out[] = ['key' => $src, 'name' => VtPwned::SOURCES[$src], 'what' => 'Breached admin accounts',
-                              'calls' => VtPwned::callsToday(), 'limit' => $src === 'xon' ? VtPwned::XON_DAY : 0, 'rpm' => 0];
+                              'calls' => VtPwned::callsToday(), 'yesterday' => VtPwned::callsYesterday(),
+                              'day_start' => 'utc', 'limit' => $src === 'xon' ? VtPwned::XON_DAY : 0, 'rpm' => 0];
                 }
             } catch (\Throwable $e) {}
         }

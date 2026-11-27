@@ -167,6 +167,15 @@ class VtSafeBrowsing
         return ($st['day'] ?? '') === date('Y-m-d') ? (int)($st['calls'] ?? 0) : 0;
     }
 
+    /** Requests on the previous day (server time), null when unknown */
+    public static function callsYesterday(): ?int
+    {
+        $st = json_decode((string)@file_get_contents(VtDataDir::path('vt_gsb_state.json')), true) ?: [];
+        $y  = date('Y-m-d', strtotime('yesterday'));
+        if (($st['day'] ?? '') === $y) return (int)($st['calls'] ?? 0);
+        return ($st['prev']['day'] ?? '') === $y ? (int)$st['prev']['calls'] : null;
+    }
+
     private static function post(string $key, array $entries): array
     {
         $stateFile = VtDataDir::path('vt_gsb_state.json');
@@ -175,7 +184,10 @@ class VtSafeBrowsing
         try {
             $st = json_decode((string)@file_get_contents($stateFile), true) ?: [];
             if (($st['not_before'] ?? 0) > time()) return [0, '', 'Paused by Google (quota or rate limit) until ' . date('H:i', (int)$st['not_before'])];
-            if (($st['day'] ?? '') !== date('Y-m-d')) $st = ['day' => date('Y-m-d'), 'calls' => 0];
+            if (($st['day'] ?? '') !== date('Y-m-d')) {
+                $prev = !empty($st['day']) ? ['day' => $st['day'], 'calls' => (int)($st['calls'] ?? 0)] : null; // yesterday's total, for Statistics
+                $st = ['day' => date('Y-m-d'), 'calls' => 0] + ($prev ? ['prev' => $prev] : []);
+            }
             $st['calls'] = (int)($st['calls'] ?? 0) + 1;
             @file_put_contents($stateFile, json_encode($st));
         } finally {

@@ -469,6 +469,7 @@ tr.vt-grp-c.closed .vt-grp-caret{transform:rotate(-90deg)}
 .vt-us-name{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
 .vt-us-sub{font-size:12px;color:var(--muted);text-align:center}
 .vt-us-meta{font-size:12px;color:var(--muted)}
+.vt-us-sub strong{color:var(--heading)}
 .vt-us-meta strong{color:var(--heading)}
 .vt-bc-arc.svc{stroke:#7c3aed}
 .vt-tr-tile{border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:150px}
@@ -2547,15 +2548,19 @@ window.vtLoadUsage=async function(){
     +'</div><div class="vt-us-meta">Limit <strong>'+lim+'</strong> requests a day · '+vtEsc(b.date||'')+' · resets at midnight UTC</div></div>';
   for(const s of (b.services||[])){
     const logo=US_LOGO[s.key]?'<img src="'+BRAND_IMG+US_LOGO[s.key]+'.png" alt="" width="22" height="22">':'<span class="vt-us-dot">'+vtEsc(s.name.charAt(0))+'</span>';
+    // "Today" starts at 00:00 server time (AVG, Avast, Google) or 00:00 UTC (the breach check, like its limit)
+    const since='since 00:00 '+(s.day_start==='utc'?'UTC':vtEsc(b.server_tz||'server time'));
+    const yest=s.yesterday==null?'':'<div class="vt-us-sub">yesterday <strong>'+s.yesterday+'</strong></div>';
     const big=s.limit
-      ?vtUsRing(s.calls/s.limit*100,'svc',s.calls,'Requests','of '+s.limit+' a day')
-      :'<div class="vt-us-cell"><div class="vt-us-num">'+s.calls+'</div><div class="vt-us-name">Requests</div><div class="vt-us-sub">no daily limit</div></div>';
+      ?vtUsRing(s.calls/s.limit*100,'svc',s.calls,'Today',since+' · of '+s.limit).replace(/<\/div><\/div>$/,'</div>'+yest+'</div>')
+      :'<div class="vt-us-cell"><div class="vt-us-num">'+s.calls+'</div><div class="vt-us-name">Today</div><div class="vt-us-sub">'+since+'</div>'+yest+'</div>';
     h+='<div class="vt-us-svc"><div class="vt-us-head">'+logo+'<strong>'+vtEsc(s.name)+'</strong></div>'
       +'<div class="vt-us-rings">'+big+'</div>'
       +'<div class="vt-us-meta">'+vtEsc(s.what)+(s.rpm?' · at most '+s.rpm+' a minute':'')+'</div></div>';
   }
   row.innerHTML=h;
-  vtSet('vt-us-sub',(b.services||[]).length?'VirusTotal and the other online services that are switched on':'VirusTotal (no other online services are switched on)');
+  vtSet('vt-us-sub',((b.services||[]).length?'VirusTotal and the other online services that are switched on':'VirusTotal (no other online services are switched on)')
+    +(b.server_time?' · server time '+b.server_time+' '+(b.server_tz||''):''));
 };
 window.vtLoadTrend=async function(){
   vtLoadUsage();

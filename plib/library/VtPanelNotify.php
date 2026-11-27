@@ -19,6 +19,8 @@ class VtPanelNotify
         'test'         => ['title' => 'test notification',             'category' => 'Alert',       'area' => 'Security'], // an Alert, like an infected site, so it shows the same way
     ];
     const DEFAULT = ['infected', 'suspicious', 'admin_change'];
+    /** How a kind shows in the bell, chosen per kind in Settings: Plesk's categories (red, orange, blue). Plesk has no "success". */
+    const STYLES = ['Alert', 'Warning', 'Information'];
     private const QUEUE = 'vt_panel_queue.json';
 
     /** Kinds switched on in Settings */
@@ -26,6 +28,37 @@ class VtPanelNotify
     {
         $v = (new VtSettings('admin'))->get('panel_notify', null);
         return is_array($v) ? array_values(array_intersect($v, array_keys(self::KINDS))) : self::DEFAULT;
+    }
+
+    /** The category (style) of a kind: the one chosen in Settings, else the default in KINDS */
+    public static function category(string $kind): string
+    {
+        $v = (new VtSettings('admin'))->get('panel_style', []);
+        $c = is_array($v) ? ($v[$kind] ?? null) : null;
+        return in_array($c, self::STYLES, true) ? $c : (self::KINDS[$kind]['category'] ?? 'Information');
+    }
+
+    /** The style of every kind that can be chosen (not the test) */
+    public static function styles(): array
+    {
+        $out = [];
+        foreach (array_keys(self::KINDS) as $k) if ($k !== 'test') $out[$k] = self::category($k);
+        return $out;
+    }
+
+    /** The stored styles with these changes applied (only valid kinds and styles) */
+    public static function mergedStyles(array $styles): array
+    {
+        $v = (new VtSettings('admin'))->get('panel_style', []);
+        $v = is_array($v) ? $v : [];
+        foreach ($styles as $k => $c) if (isset(self::KINDS[$k]) && $k !== 'test' && in_array($c, self::STYLES, true)) $v[$k] = $c;
+        return $v;
+    }
+
+    /** Store the style of one or more kinds */
+    public static function setStyles(array $styles): void
+    {
+        (new VtSettings('admin'))->set('panel_style', self::mergedStyles($styles));
     }
 
     public static function available(): bool
@@ -80,9 +113,13 @@ class VtPanelNotify
         return self::send('admin_change', $subject, $message);
     }
 
-    public static function test(): bool
+    /** A test of one kind: sent as that kind, so it shows with that kind's style (and Plesk's on/off switch for it applies) */
+    public static function test(string $kind = 'test'): bool
     {
-        return self::send('test', 'Test from Stingy Scanner', 'Plesk notifications from Stingy Scanner work. Choose which kinds you get in Stingy Scanner → Settings → Notifications.');
+        if (!isset(self::KINDS[$kind])) $kind = 'test';
+        $what = $kind === 'test' ? '' : ' (' . self::KINDS[$kind]['title'] . ', shown as ' . self::category($kind) . ')';
+        return self::send($kind, 'Test from Stingy Scanner' . $what,
+            'This is how this kind of Stingy Scanner notification looks in Plesk. Choose the kinds and their style in Stingy Scanner → Settings → Notifications.');
     }
 
     /** One panel notification to the administrator; false when Plesk can't (older Plesk, or outside the panel) */

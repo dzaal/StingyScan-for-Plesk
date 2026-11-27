@@ -33,7 +33,7 @@ class Modules_Stingyscan_PanelNotification extends pm_Notifications_PanelNotific
     public function getActionText() { return 'Open Stingy Scanner'; }
     public function getActionUrl() { return '{{ link }}'; }
     public function openActionInNewTab() { return false; }
-    public function getCategory() { return $this->k()['category']; }
+    public function getCategory() { return VtPanelNotify::category($this->kind); }  // chosen per kind in Settings
     public function getArea() { return $this->k()['area']; }
     public function getContext() { return 'Stingy Reputation Scanner'; }
     public function getContextIcon() { return pm_Context::getBaseUrl() . 'images/icon.png'; }   // the Stingy Scanner logo

@@ -563,6 +563,15 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-why-tip{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
 #vt-n-opts{margin-left:0}
 #vt-n-opts>.vt-btn{margin-left:26px}
+.vt-pn-grid{display:grid;grid-template-columns:max-content max-content max-content;gap:6px 14px;align-items:center;margin-top:6px}
+.vt-pn-grid .vt-check{margin:0}
+.vt-pn-h{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.vt-pn-style{font:inherit;font-size:13px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);border-left-width:4px}
+.vt-pn-style[data-v="Alert"]{border-left-color:#dc2626}
+.vt-pn-style[data-v="Warning"]{border-left-color:#d97706}
+.vt-pn-style[data-v="Information"]{border-left-color:#2563eb}
+.vt-pn-test{padding:3px 12px;font-size:12px}
+@media(max-width:700px){.vt-pn-grid{grid-template-columns:1fr auto}.vt-pn-grid .vt-check{grid-column:1/-1}.vt-pn-h{display:none}}
 #vt-n-opts.off{opacity:.45;pointer-events:none}
 
 /* Settings: primary service, experimental providers, then server scanners. */
@@ -1414,12 +1423,17 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
       <div id="vt-pn-box" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div class="vt-n-label"><strong>Plesk notifications</strong> <span class="hint">(the bell at the top of Plesk, for the administrator)</span></div>
-        <label class="vt-check"><input type="checkbox" name="vt-pn" value="infected"> <span class="vt-dot dot-r"></span> A site became infected</label>
-        <label class="vt-check"><input type="checkbox" name="vt-pn" value="suspicious"> <span class="vt-dot dot-y"></span> A site became suspicious</label>
-        <label class="vt-check"><input type="checkbox" name="vt-pn" value="clean"> <span class="vt-dot dot-g"></span> A site is clean again</label>
-        <label class="vt-check"><input type="checkbox" name="vt-pn" value="admin_change"> Admin rights changed on a site <span class="hint">(Tools → Admin changes)</span></label>
-        <div class="hint" style="margin:4px 0 8px">Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
-        <button class="vt-btn ghost" type="button" onclick="vtPanelTest(this)">Send a test notification</button>
+        <div class="vt-pn-grid">
+          <span class="vt-pn-h">Send</span><span class="vt-pn-h">Shown in Plesk as</span><span></span>
+<?php foreach (['infected' => ['A site became infected', 'dot-r'], 'suspicious' => ['A site became suspicious', 'dot-y'], 'clean' => ['A site is clean again', 'dot-g'], 'admin_change' => ['Admin rights changed on a site', '']] as $pk => [$pl, $pd]): ?>
+          <label class="vt-check"><input type="checkbox" name="vt-pn" value="<?= $pk ?>"> <?= $pd ? '<span class="vt-dot ' . $pd . '"></span> ' : '' ?><?= $pl ?></label>
+          <select class="vt-pn-style" data-k="<?= $pk ?>" aria-label="How &quot;<?= $pl ?>&quot; shows in Plesk" onchange="vtPnStyleUi(this)">
+            <option value="Alert">Alert (red)</option><option value="Warning">Warning (orange)</option><option value="Information">Information (blue)</option>
+          </select>
+          <button class="vt-btn ghost vt-pn-test" type="button" onclick="vtPanelTest(this,'<?= $pk ?>')" title="Send a test of this kind, in the style chosen here (the style is saved)">Test</button>
+<?php endforeach; ?>
+        </div>
+        <div class="hint" style="margin:8px 0 0">Plesk has three styles: <strong>Alert</strong> (red; stays until you close it), <strong>Warning</strong> (orange) and <strong>Information</strong> (blue). It has no green "success" style. <strong>Test</strong> sends one notification of that kind in the chosen style and saves the style. Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
       </div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
@@ -3374,7 +3388,8 @@ function loadSettingsForm(cfg){
   if(cfg.access){ document.getElementById('vt-set-access').style.display='';
     document.getElementById('vt-acc-res').checked=!!cfg.access.resellers; document.getElementById('vt-acc-cl').checked=!!cfg.access.clients; }
   if(cfg.panel){ document.getElementById('vt-pn-box').style.display=cfg.panel.available?'':'none';
-    document.querySelectorAll('input[name=vt-pn]').forEach(c=>c.checked=(cfg.panel.kinds||[]).includes(c.value)); }
+    document.querySelectorAll('input[name=vt-pn]').forEach(c=>c.checked=(cfg.panel.kinds||[]).includes(c.value));
+    document.querySelectorAll('.vt-pn-style').forEach(sel=>{ const v=(cfg.panel.styles||{})[sel.dataset.k]; if(v) sel.value=v; vtPnStyleUi(sel); }); }
   document.getElementById('vt-rv-name').value=cfg.review_name||'';
   document.getElementById('vt-rv-company').value=cfg.review_company||'';
   document.getElementById('vt-rv-email').value=cfg.review_email||'';
@@ -3623,7 +3638,8 @@ window.vtSaveSettings=async function(){
     wp_user_delete:document.getElementById('vt-s-wp-delete').checked?'true':'false',
     notify_enabled:document.getElementById('vt-n-enabled').checked?'true':'false',
     notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),
-    ...(document.getElementById('vt-pn-box').style.display!=='none'?{panel_notify:[...document.querySelectorAll('input[name=vt-pn]:checked')].map(c=>c.value).join(',')||'none'}:{}),
+    ...(document.getElementById('vt-pn-box').style.display!=='none'?{panel_notify:[...document.querySelectorAll('input[name=vt-pn]:checked')].map(c=>c.value).join(',')||'none',
+      panel_style:[...document.querySelectorAll('.vt-pn-style')].map(x=>x.dataset.k+':'+x.value).join(',')}:{}),
     ...(document.getElementById('vt-set-access').style.display!=='none'?{show_resellers:document.getElementById('vt-acc-res').checked?'true':'false',show_clients:document.getElementById('vt-acc-cl').checked?'true':'false'}:{}),
     review_name:document.getElementById('vt-rv-name').value.trim(),review_company:document.getElementById('vt-rv-company').value.trim(),review_email:document.getElementById('vt-rv-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
@@ -4423,12 +4439,15 @@ function vtAlertIdHTML(domain){
   return '<span class="vt-alert-id"><label>Alert ID <input type="text" maxlength="20" value="'+vtEsc(v)+'" placeholder="from the block page" '
     +'onchange="vtSetAlertId(\''+vtEsca(domain)+'\',this)" onclick="event.stopPropagation()"></label>'+(v?' <span class="vt-alert-ok">✓ saved</span>':'')+'</span>';
 }
-window.vtPanelTest=async function(btn){
+// The style dropdown takes the colour of the style it shows
+window.vtPnStyleUi=function(sel){ sel.dataset.v=sel.value; };
+window.vtPanelTest=async function(btn,kind){
   btn.disabled=true;
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
-  const r=await fetch(BASE+'?action=panel-notify-test',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken}}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  const category=document.querySelector('.vt-pn-style[data-k="'+kind+'"]')?.value||'';
+  const r=await fetch(BASE+'?action=panel-notify-test',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},body:new URLSearchParams({kind:kind||'test',category})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
   btn.disabled=false;
-  vtToast(r.ok?'Test notification sent: look at the bell at the top of Plesk (reload the page if it does not show yet)':(r.error||'Not sent'),r.ok?'ok':'err');
+  vtToast(r.ok?'Test sent as '+(r.category||category)+': look at the bell at the top of Plesk (reload the page if it does not show yet)':(r.error||'Not sent'),r.ok?'ok':'err');
 };
 window.vtSetAlertId=async function(domain,inp){
   const v=inp.value.trim();

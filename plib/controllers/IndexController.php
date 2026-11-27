@@ -373,7 +373,12 @@ class IndexController extends pm_Controller_Action
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
         if ($this->role() !== 'admin') { $this->respond(['error' => 'Administrator only']); return; }
         if (!VtPanelNotify::available()) { $this->respond(['error' => 'This Plesk has no panel notifications (Plesk Obsidian 18 or newer needed)']); return; }
-        $this->respond(VtPanelNotify::test() ? ['ok' => true] : ['error' => 'Plesk did not accept the notification']);
+        // A test of one kind, in the style picked next to it (that style is stored right away: it is what the test shows)
+        $kind = (string)$this->_getParam('kind', 'test');
+        $kind = isset(VtPanelNotify::KINDS[$kind]) ? $kind : 'test';
+        $cat  = (string)$this->_getParam('category', '');
+        if ($kind !== 'test' && in_array($cat, VtPanelNotify::STYLES, true)) VtPanelNotify::setStyles([$kind => $cat]);
+        $this->respond(VtPanelNotify::test($kind) ? ['ok' => true, 'category' => VtPanelNotify::category($kind)] : ['error' => 'Plesk did not accept the notification']);
     }
 
     /** Store the alert ID that a vendor's block page shows for a site (AVG Web Shield); empty removes it */
@@ -1011,7 +1016,7 @@ class IndexController extends pm_Controller_Action
         $s['avast_products']   = VtAvastStore::products();
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
-        if ($this->role() === 'admin') $s['panel'] = ['kinds' => VtPanelNotify::kinds(), 'available' => VtPanelNotify::available()];
+        if ($this->role() === 'admin') $s['panel'] = ['kinds' => VtPanelNotify::kinds(), 'styles' => VtPanelNotify::styles(), 'available' => VtPanelNotify::available()];
         if ($this->role() === 'admin') $s['access'] = ['resellers' => VtSettings::roleAllowed('reseller'), 'clients' => VtSettings::roleAllowed('client')];
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
@@ -1144,6 +1149,17 @@ class IndexController extends pm_Controller_Action
             $kinds = array_values(array_intersect(array_filter(explode(',', (string)$input['panel_notify'])), ['infected', 'suspicious', 'clean', 'admin_change']));
             if ($this->settings->getUserId() === 'admin') $save['panel_notify'] = $kinds;
             else (new VtSettings('admin'))->set('panel_notify', $kinds);
+        }
+        if ($this->role() === 'admin' && isset($input['panel_style'])) {
+            // The style of each kind in the bell ("infected:Alert,clean:Information")
+            $st = [];
+            foreach (explode(',', (string)$input['panel_style']) as $pair) {
+                [$k, $c] = array_pad(explode(':', $pair, 2), 2, '');
+                $st[trim($k)] = trim($c);
+            }
+            // the administrator's own settings are this same file: saved with the rest, or it would be overwritten
+            if ($this->settings->getUserId() === 'admin') $save['panel_style'] = VtPanelNotify::mergedStyles($st);
+            else VtPanelNotify::setStyles($st);
         }
         if ($this->role() === 'admin' && (isset($input['admin_trusted']) || isset($input['admin_watch_mail']))) {
             $aw = [];

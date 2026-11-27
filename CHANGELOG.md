@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.12 — 2026-11-28
+- Settings → Notifications → Plesk notifications: each kind (infected, suspicious, clean again, admin changes) has, on its own line, a choice of how it shows in Plesk (**Alert** red, **Warning** orange, **Information** blue; Plesk has no "success" style) and a **Test** button that sends one notification of that kind in that style. The separate *Send a test notification* button is gone.
+
 ## 2.19.11 — 2026-11-28
 - Statistics: new **API usage today** at the top. VirusTotal with large rings (Auto, Manual left, VT quota, the daily limit and date), then every other online service that is switched on: AVG and Avast Web Shield, Google Safe Browsing and the breach check (XposedOrNot or Have I Been Pwned, administrator only), each with its requests today, its daily limit as a ring where there is one, and how many requests a minute it is allowed. Refreshed each time you open Statistics.
 - Header: the *by Digizaal* link is gone (the maker is still in About).

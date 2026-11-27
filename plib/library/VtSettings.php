@@ -71,7 +71,8 @@ class VtSettings
         'wp_user_delete'     => false,  // show a Delete button for WordPress admin accounts (off by default)
         'show_resellers'     => true,   // resellers see Stingy Scanner (menu entry, page, e-mails) (admin only, server-wide)
         'show_clients'       => true,   // customers see Stingy Scanner (admin only, server-wide)
-        'panel_notify'       => null,   // kinds sent to the Plesk notifications (bell): null = infected, suspicious, admin_change (admin only)
+        'panel_notify'       => null,
+        'panel_style'        => [],     // style per kind in the bell: kind => Alert | Warning | Information (admin only)   // kinds sent to the Plesk notifications (bell): null = infected, suspicious, admin_change (admin only)
         'review_name'        => '',     // review requests to vendors: your name, company and e-mail address, filled in on
         'review_company'     => '',     //   the forms that allow it (AVG, Fortinet) and used in the ready-made texts
         'review_email'       => '',     //   ('' = the notification address, or your Plesk address)

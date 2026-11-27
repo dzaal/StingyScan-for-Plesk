@@ -229,10 +229,11 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-vnd-cp{display:inline-flex;vertical-align:middle;margin-left:4px;color:var(--muted);opacity:.7}
 .vt-vnd-cp:hover{opacity:1;color:var(--blue)}.vt-vnd-cp svg{width:13px;height:13px}.vt-vnd-cp.done{color:#16a34a;opacity:1}
 .vt-rt-btn{font-size:11.5px;margin-left:6px;cursor:pointer;white-space:nowrap;color:var(--blue)}
-.vt-rt-panel{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.vt-rt-panel{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px}
 .vt-rt-box{background:var(--surface,#fff);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.25);padding:16px 18px;width:min(640px,100%);max-height:90vh;overflow:auto}
 .vt-rt-head{display:flex;align-items:center;gap:8px}
-.vt-rt-x{cursor:pointer;font-size:16px;color:var(--muted)}
+.vt-rt-x{cursor:pointer;font-size:18px;line-height:1;color:var(--muted);padding:2px 6px;border-radius:6px}
+.vt-rt-x:hover{background:var(--gray-bg,#f3f4f6);color:var(--text)}
 .vt-rt-txt{width:100%;box-sizing:border-box;font:13px/1.5 inherit;padding:8px 10px;border:1px solid var(--border);border-radius:6px;resize:vertical;background:var(--surface);color:var(--text)}
 .vt-rt-acts{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .vt-vnd-how li{margin:2px 0}
@@ -4270,15 +4271,16 @@ window.vtCopyReviewText=function(domain,vendor){
 window.vtReviewTextPanel=function(domain,vendor){
   document.getElementById('vt-rt-panel')?.remove();
   const d=document.createElement('div'); d.id='vt-rt-panel'; d.className='vt-rt-panel'; d.setAttribute('role','dialog'); d.setAttribute('aria-label','Text for the review request');
-  d.innerHTML='<div class="vt-rt-box"><div class="vt-rt-head"><strong>Text for '+vtEsc(vendor)+'</strong> <span class="hint">'+vtEsc(domain)+'</span><span style="flex:1"></span><a class="vt-rt-x" title="Close">✕</a></div>'
+  d.innerHTML='<div class="vt-rt-box"><div class="vt-rt-head"><strong>Text for '+vtEsc(vendor)+'</strong> <span class="hint">'+vtEsc(domain)+'</span><span style="flex:1"></span><a class="vt-rt-x" title="Close" aria-label="Close">✕</a></div>'
     +'<div class="hint" style="margin:4px 0 8px">Paste this into the form\'s description or comment box. Check it first: it says the site was checked and cleaned. You can edit it here.</div>'
     +'<textarea class="vt-rt-txt" rows="12"></textarea>'
-    +'<div class="vt-rt-acts"><button type="button" class="vt-btn primary vt-rt-copy">Copy text</button> <button type="button" class="vt-btn ghost vt-rt-new">Another wording</button> <span class="vt-rt-msg hint"></span></div></div>';
-  document.body.appendChild(d);
+    +'<div class="vt-rt-acts"><button type="button" class="vt-btn primary vt-rt-copy">Copy text</button> <button type="button" class="vt-btn ghost vt-rt-new">Another wording</button> <span class="vt-rt-msg hint"></span><span style="flex:1"></span><button type="button" class="vt-btn ghost vt-rt-close">Close</button></div></div>';
+  (document.getElementById('vt-wrap')||document.body).appendChild(d); // inside #vt-wrap: its colours and button styles apply
   const ta=d.querySelector('textarea'), msg=d.querySelector('.vt-rt-msg');
   ta.value=vtReviewText(domain,vendor);
   const close=()=>d.remove();
   d.querySelector('.vt-rt-x').onclick=close;
+  d.querySelector('.vt-rt-close').onclick=close;
   d.onclick=e=>{if(e.target===d) close();};
   d.querySelector('.vt-rt-new').onclick=()=>{ta.value=vtReviewText(domain,vendor); msg.textContent='';};
   d.querySelector('.vt-rt-copy').onclick=()=>{

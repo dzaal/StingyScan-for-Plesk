@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.8 — 2026-11-27
+- **Fix:** Tools → Vendor requests: the **📋 text** popup fell behind Plesk's menu bars and its **Copy text** button was invisible (the popup sat outside the page's styles). It now opens on top, centred, with a visible **Copy text** button and a **Close** button.
+
 ## 2.19.7 — 2026-11-27
 - Tools: the card icons are coloured without the tinted box behind them.
 

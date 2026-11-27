@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.7 — 2026-11-27
+- Tools: the card icons are coloured without the tinted box behind them.
+
 ## 2.19.6 — 2026-11-27
 - Tools: the big card icons are coloured again, each in its own tinted box (64 px).
 

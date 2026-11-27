@@ -360,7 +360,7 @@ The **Statistics** tab shows how infections develop, per day, over the last **1,
 - Hover over a day for its figures, or open **Show as table**.
 - **Recent status changes**, newest first, one line per change: the date (time), the status before and after as coloured badges with a solid arrow between them (green = better, red = worse), and the site, for example `20-11-2026 (11:10)  [Infected] ➡ [Suspicious]  flower-centrum.example`. Click the site to open its VirusTotal report. A site that was infected or suspicious and leaves the site list (deleted, disabled or suspended in Plesk) shows as *Left the list*. Changes from before this list existed are filled in once from the scan logs.
 
-![Statistics: trend graph, infected and suspicious sites per day, and sites cleaned per day](docs/screenshots/trend.png)
+![Statistics in 2.19: infected, suspicious and clean sites per day on a logarithmic scale (3 months, the shaded days are demo data), and sites cleaned per day](docs/screenshots/trend.png)
 
 *The shaded days are demo data; the days after are real totals.*
 

@@ -709,6 +709,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
   <div class="vt-tabs">
     <div class="vt-tab active" id="vtab-dashboard" onclick="vtShowTab('dashboard')">Dashboard</div>
     <div class="vt-tab" id="vtab-tools" onclick="vtShowTab('tools')">Tools<span class="vt-tab-badge" id="vt-tools-badge" style="display:none"></span></div>
+    <div class="vt-tab" id="vtab-trend" onclick="vtShowTab('trend');vtLoadTrend()" style="display:none">Statistics</div>
     <div class="vt-tab" id="vtab-settings" onclick="vtShowTab('settings')">Settings</div>
     <div class="vt-tab" id="vtab-about" onclick="vtShowTab('about')">About</div>
   </div>
@@ -837,6 +838,31 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 
   </div><!-- end vtpanel-dashboard -->
 
+  <!-- Statistics -->
+  <div class="vt-panel" id="vtpanel-trend">
+    <div class="vt-card" style="max-width:100%">
+      <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="vt-tr-h">Infections on this server</span>
+        <span class="hint" style="font-weight:400" id="vt-tr-sub"></span>
+        <span style="flex:1"></span>
+        <span class="vt-seg" id="vt-tr-range">
+          <button data-d="30" onclick="vtTrendRange(30)">1 month</button><button data-d="61" onclick="vtTrendRange(61)">2 months</button><button data-d="92" onclick="vtTrendRange(92)">3 months</button>
+        </span>
+      </h3>
+      <div class="vt-tr-tiles" id="vt-tr-tiles"></div>
+      <div class="vt-tr-legend"><span><i style="background:#d03b3b"></i>Infected</span><span><i style="background:#fab219"></i>Suspicious</span></div>
+      <div class="vt-tr-chart" id="vt-tr-lines"></div>
+      <div class="vt-tr-title">Sites cleaned per day <span class="hint">(infected or suspicious, then clean again)</span></div>
+      <div class="vt-tr-chart" id="vt-tr-bars"></div>
+      <div class="vt-tr-tip" id="vt-tr-tip"></div>
+      <div class="vt-fs-note" id="vt-tr-note"></div>
+      <details class="vt-tr-table"><summary>Show as table</summary><div id="vt-tr-table"></div></details>
+      <div class="vt-ev-wrap">
+        <div class="vt-tr-title">Recent status changes <span class="hint">(per site, newest first)</span></div>
+        <div id="vt-ev-list"><span class="hint">Loading…</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Tools ─────────────────────────────────────────────────────── -->
   <div class="vt-panel" id="vtpanel-tools">
 
@@ -881,20 +907,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             <div class="vt-tool-info">
               <div class="vt-tool-title">Orphan databases <span class="vt-tool-badge gray" id="vttb-orphan" style="display:none"></span></div>
               <div class="vt-tool-desc">WordPress databases for domains that no longer exist in DNS — back up and remove what is no longer needed</div>
-            </div>
-          </div>
-          <div class="vt-tool-open">Open &rarr;</div>
-        </div>
-
-        <!-- Statistics -->
-        <div class="vt-tool-card" id="vtcard-trend" tabindex="0" onclick="vtToolSelect('trend')" onkeydown="if(event.key==='Enter')vtToolSelect('trend')" style="display:none">
-          <div class="vt-tool-top">
-            <div class="vt-tool-icon" style="background:#eff6ff;color:#2563eb">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
-            </div>
-            <div class="vt-tool-info">
-              <div class="vt-tool-title">Statistics</div>
-              <div class="vt-tool-desc">Infection trend charts and status changes over the last 30–90 days</div>
             </div>
           </div>
           <div class="vt-tool-open">Open &rarr;</div>
@@ -976,31 +988,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             </thead>
             <tbody id="vt-tbody-rel"></tbody>
           </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="vt-tool-section" id="vtool-trend">
-      <div class="vt-tool-back"><a onclick="vtToolSelect(null)">&#8592; Tools</a><h2>Statistics</h2></div>
-      <div class="vt-card" style="max-width:100%">
-        <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="vt-tr-h">Infections on this server</span>
-          <span class="hint" style="font-weight:400" id="vt-tr-sub"></span>
-          <span style="flex:1"></span>
-          <span class="vt-seg" id="vt-tr-range">
-            <button data-d="30" onclick="vtTrendRange(30)">1 month</button><button data-d="61" onclick="vtTrendRange(61)">2 months</button><button data-d="92" onclick="vtTrendRange(92)">3 months</button>
-          </span>
-        </h3>
-        <div class="vt-tr-tiles" id="vt-tr-tiles"></div>
-        <div class="vt-tr-legend"><span><i style="background:#d03b3b"></i>Infected</span><span><i style="background:#fab219"></i>Suspicious</span></div>
-        <div class="vt-tr-chart" id="vt-tr-lines"></div>
-        <div class="vt-tr-title">Sites cleaned per day <span class="hint">(infected or suspicious, then clean again)</span></div>
-        <div class="vt-tr-chart" id="vt-tr-bars"></div>
-        <div class="vt-tr-tip" id="vt-tr-tip"></div>
-        <div class="vt-fs-note" id="vt-tr-note"></div>
-        <details class="vt-tr-table"><summary>Show as table</summary><div id="vt-tr-table"></div></details>
-        <div class="vt-ev-wrap">
-          <div class="vt-tr-title">Recent status changes <span class="hint">(per site, newest first)</span></div>
-          <div id="vt-ev-list"><span class="hint">Loading…</span></div>
         </div>
       </div>
     </div>
@@ -1486,8 +1473,7 @@ async function init(){
   if(!cfg.has_key||cfg.api_key_invalid) document.getElementById('vt-api-warning').style.display='flex';
   loadSettingsForm(cfg);
   if(cfg.role==='admin') vtAwLoad();
-  // Statistics card is visible to all logged-in users
-  const tcard=document.getElementById('vtcard-trend'); if(tcard) tcard.style.display='';
+  document.getElementById('vtab-trend').style.display=''; // admin: the server; reseller and customer: their own sites
   if(!cfg.has_key||cfg.api_key_invalid){
     // Without a working key every lookup fails: show the sites as waiting for a key, not as errors
     noKey=true;
@@ -1574,7 +1560,6 @@ window.vtToolSelect=function(name){
   document.getElementById('vtool-'+name)?.classList.add('active');
   if(name==='pwned')      vtLoadPwned();
   if(name==='adminwatch') vtAwLoad();
-  if(name==='trend')      vtLoadTrend();
   if(name==='log')        vtLoadLog();
 };
 function vtToolsBadge(){
@@ -2130,7 +2115,7 @@ function vtTrendDraw(){
   document.getElementById('vt-tr-table').innerHTML='<table><thead><tr><th>Date</th><th>Infected</th><th>Suspicious</th><th>Clean</th><th>Cleaned</th></tr></thead><tbody>'
     +days.slice().reverse().map(d=>'<tr><td>'+trDate(d.date,1)+(d.demo?' (demo)':'')+'</td><td>'+d.infected+'</td><td>'+d.suspicious+'</td><td>'+d.clean+'</td><td>'+(d.cleaned||0)+'</td></tr>').join('')+'</tbody></table>';
 }
-window.addEventListener('resize',()=>{if(document.getElementById('vtool-trend')?.classList.contains('active'))vtTrendDraw();});
+window.addEventListener('resize',()=>{if(document.getElementById('vtpanel-trend')?.classList.contains('active'))vtTrendDraw();});
 
 // ── Filter ────────────────────────────────────────────────────
 window.vtSetFilter=function(f){
@@ -3781,7 +3766,7 @@ window.vtAvastLive=async function(domain,force){
     vtFsRefresh(domain);
   }
   if(fsOpen[domain]==='vt') vtLoadSiteHist(domain);
-  if(document.getElementById('vtool-trend')?.classList.contains('active')) vtLoadTrend();
+  if(document.getElementById('vtpanel-trend')?.classList.contains('active')) vtLoadTrend();
 };
 function vtSiteHistHTML(domain){
   const list=siteHist[domain];

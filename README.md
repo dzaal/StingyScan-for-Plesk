@@ -92,7 +92,8 @@ Stingy Scanner was built to fix that:
 - **Optional AVG / Avast Web Shield** classification (experimental), asked live (see [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental)).
 - **Update check:** when a newer version is on GitHub, a yellow banner appears with the release notes and, for the administrator, an **Install** button that upgrades the extension in one click.
 - **Nightly background scan** (03:00, server time), scheduled automatically through Plesk's own scheduler.
-- **Tools tab:** Pwned Admins, Admin changes, Orphan databases, Statistics and the Scan log are grouped in a **Tools** tab, each as a card with a live badge. The Tools tab itself shows a red badge when admin changes need review.
+- **Tools tab:** Pwned Admins, Admin changes, Orphan databases and the Scan log are grouped in a **Tools** tab, each as a card with a live badge. The Tools tab itself shows a red badge when admin changes need review.
+- **Statistics tab:** a trend graph of infected, suspicious and cleaned sites per day over the last 1, 2 or 3 months, for the whole server, per reseller or per customer (see [Statistics](#statistics)).
 - **Helps you solve it, not just report it.** Click the score of an infected or suspicious site to see which vendors flag it, with a link per vendor to ask for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 - **E-mail notifications:** one summary e-mail with status changes and the full list of infected sites (see [Notifications](#notifications)).
 - **Works for every Plesk user level:** administrator, reseller and client (see [Users and roles](#users-and-roles)).
@@ -350,7 +351,7 @@ Mail is sent with the server's own mail system (PHP `mail()` via sendmail), from
 
 ## Statistics
 
-**Tools → Statistics** shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
+The **Statistics** tab shows how infections develop, per day, over the last **1, 2 or 3 months**. The administrator sees the whole server; a **reseller** sees only their own customers and sites, and a **customer** only their own sites:
 
 - **Infected** and **suspicious** sites per day, as lines.
 - **Sites cleaned per day**: sites that were infected or suspicious and are clean again, as bars.

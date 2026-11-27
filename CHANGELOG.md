@@ -3,8 +3,11 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.18.1 — 2026-11-27
+- Statistics stays as its own tab (reverted from Tools card in 2.18.0).
+
 ## 2.18.0 — 2026-11-27
-- **Tools tab:** Pwned Admins, Admin changes, Orphan databases, Statistics and the Scan log moved from separate tabs into a single **Tools** tab. The Tools tab opens to a card grid — each tool has an icon, a short description and a live badge showing the number of items that need attention. Clicking a card opens that tool with a **← Tools** back link. The Tools tab itself shows a red badge when admin changes are waiting to be reviewed.
+- **Tools tab:** Pwned Admins, Admin changes, Orphan databases and the Scan log moved from separate tabs into a single **Tools** tab. Statistics stays as its own tab. The Tools tab opens to a card grid — each tool has an icon, a short description and a live badge showing the number of items that need attention. Clicking a card opens that tool with a **← Tools** back link. The Tools tab itself shows a red badge when admin changes are waiting to be reviewed.
 - **Dashboard:** When admin changes need review, a compact alert bar links directly to Tools → Admin changes. The *Orphan DBs* filter button in the site list toolbar now navigates to Tools → Orphan databases instead of hiding the site table.
 
 ## 2.17.1 — 2026-11-26

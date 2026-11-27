@@ -16,7 +16,7 @@ class VtPanelNotify
         'suspicious'   => ['title' => 'site became suspicious',        'category' => 'Warning',     'area' => 'Security'],
         'clean'        => ['title' => 'site is clean again',           'category' => 'Information', 'area' => 'Security'],
         'admin_change' => ['title' => 'admin rights changed on a site','category' => 'Warning',     'area' => 'Accounts'],
-        'test'         => ['title' => 'test notification',             'category' => 'Information', 'area' => 'Security'],
+        'test'         => ['title' => 'test notification',             'category' => 'Alert',       'area' => 'Security'], // an Alert, like an infected site, so it shows the same way
     ];
     const DEFAULT = ['infected', 'suspicious', 'admin_change'];
     private const QUEUE = 'vt_panel_queue.json';

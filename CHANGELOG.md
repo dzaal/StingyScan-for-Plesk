@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.4 — 2026-11-27
+- Plesk notifications: **Send a test notification** now sends an *Alert*, the same category as a site that became infected, so the test shows the way a real alert does. README: the category of each kind.
+
 ## 2.19.3 — 2026-11-27
 - **Plesk notifications (the bell):** Stingy Scanner can show its news in Plesk's own notifications, with its logo: a site that became **infected** or **suspicious**, a site that is **clean again**, and **admin rights changed** on a site (Tools → Admin changes). Choose the kinds in *Settings → Notifications → Plesk notifications* (default: infected, suspicious and admin changes); Plesk can also switch each kind off under *Tools & Settings → Notifications → Panel*. Several status changes become one notification per kind, within 5 minutes; a click opens Stingy Scanner. *Send a test notification* checks it. For the administrator (Plesk shows panel notifications to administrators).
 - **Settings → Access for resellers and customers** (administrator): switch Stingy Scanner off for resellers and/or customers. The entry disappears from their Plesk menu, the page refuses them, and they get no e-mails from it; the sites are still scanned for you.

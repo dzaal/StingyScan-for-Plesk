@@ -301,6 +301,7 @@ The **Settings** tab starts with an **index**: one column per group, with a link
   - How long clean and infected results are cached.
 - **Google Safe Browsing** (administrator): on/off, API key with green check, calls today, requests per minute, and how to get a key with direct links to the Google Cloud Console. See [Google Safe Browsing](#google-safe-browsing-optional).
 - **AVG & Avast – Experimental** (administrator): **AVG Web Shield** and **Avast Web Shield**, each with its own switch, calls today and requests per minute. See [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental).
+- **Review requests**: who signs a review request to a vendor (name, company, e-mail address), used on the forms that allow it and in the ready-made texts. See [Tools → Vendor requests](#tools--vendor-requests).
 
 **Sites**
 - **Sites to scan**: all hosted websites, or WordPress sites only.
@@ -312,8 +313,9 @@ The **Settings** tab starts with an **index**: one column per group, with a link
 - **File scanners** (*Internal serverside file scanners*): ClamAV, Maldet and Imunify, see [File scanners](#file-scanners-clamav-maldet-imunify).
 - **Quarantine** (administrator): how long quarantined files are kept, and delete them all.
 
-**E-mail**
-- **Notifications**: see [Notifications](#notifications).
+**Notifications**
+- **E-mail notifications**: the summary e-mail when a site's status changes, see [Notifications](#notifications).
+- **Plesk notifications** (administrator): which kinds go to the bell at the top of Plesk, how each one shows (Alert, Warning, Information) and a Test per kind, see [Notifications](#notifications).
 - **E-mail sender** (administrator): see [E-mail sender](#e-mail-sender).
 
 **Maintenance**

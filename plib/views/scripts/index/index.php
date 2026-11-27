@@ -1296,6 +1296,17 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
+    <div class="vt-card" id="vt-set-review" data-toc="Review requests">
+      <h3>Review requests to vendors</h3>
+      <div class="hint" style="margin-bottom:10px">Who signs a review request. Filled in on the vendor forms that allow it (AVG, Fortinet) and used in the ready-made texts behind <strong>📋 text</strong> next to every <em>request a review</em>. Only sent when you open a vendor's form and send it yourself.</div>
+      <div class="vt-settings-numbers">
+        <div class="vt-field"><label for="vt-rv-name">Your name</label><input type="text" id="vt-rv-name" maxlength="100" placeholder="First and last name"></div>
+        <div class="vt-field"><label for="vt-rv-company">Company</label><input type="text" id="vt-rv-company" maxlength="100" placeholder="Your hosting company or agency"></div>
+        <div class="vt-field"><label for="vt-rv-email">E-mail address</label><input type="email" id="vt-rv-email" maxlength="200" placeholder="the notification address"></div>
+      </div>
+      <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button></div>
+    </div>
+
     <div class="vt-set-group" id="vt-grp-sites" data-toc-group="Sites"><h2>Sites</h2><span>Which sites are watched, and their admin accounts</span></div>
     <div class="vt-card" id="vt-set-access" style="display:none" data-toc="Access for resellers and customers">
       <h3>Access for resellers and customers</h3>
@@ -1398,9 +1409,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
-    <div class="vt-set-group" id="vt-grp-mail" data-toc-group="E-mail"><h2>E-mail</h2><span>What is sent, and from which address</span></div>
-    <div class="vt-card" id="vt-set-notify" data-toc="Notifications">
-      <h3>Notifications</h3>
+    <div class="vt-set-group" id="vt-grp-mail" data-toc-group="Notifications"><h2>Notifications</h2><span>E-mail and Plesk notifications, and the address e-mail is sent from</span></div>
+    <div class="vt-card" id="vt-set-notify" data-toc="E-mail notifications">
+      <h3>E-mail notifications</h3>
       <label class="vt-radio"><input type="checkbox" id="vt-n-enabled" onchange="vtNotifyUi()">
         <span><strong>E-mail me when a site's status changes</strong><br><span class="hint">One summary with the changes and all infected sites</span></span></label>
       <div id="vt-n-opts">
@@ -1422,8 +1433,14 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <button class="vt-btn ghost" type="button" onclick="vtTestNotify()">Send test e-mail</button>
         <span class="vt-smsg" id="vt-n-msg"></span>
       </div>
-      <div id="vt-pn-box" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-        <div class="vt-n-label"><strong>Plesk notifications</strong> <span class="hint">(the bell at the top of Plesk, for the administrator)</span></div>
+      <div class="vt-save-row">
+        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
+        <span class="vt-smsg" id="vt-smsg2"></span>
+      </div>
+    </div>
+
+    <div class="vt-card" id="vt-pn-box" style="display:none" data-toc="Plesk notifications">
+      <div class="vt-settings-title"><h3>Plesk notifications</h3><span class="hint">The bell at the top of Plesk, for the administrator</span></div>
         <div class="vt-pn-grid">
           <span class="vt-pn-h">Send</span><span class="vt-pn-h">Shown in Plesk as</span><span></span>
 <?php foreach (['infected' => ['A site became infected', 'dot-r'], 'suspicious' => ['A site became suspicious', 'dot-y'], 'clean' => ['A site is clean again', 'dot-g'], 'admin_change' => ['Admin rights changed on a site', '']] as $pk => [$pl, $pd]): ?>
@@ -1435,20 +1452,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 <?php endforeach; ?>
         </div>
         <div class="hint" style="margin:8px 0 0">Plesk shows each notification as a pop-up at the bottom and keeps it under the bell. An <strong>Alert</strong> (red) stays on screen until you close it; a <strong>Warning</strong> (orange) and <strong>Information</strong> (green) close by themselves. <strong>Test</strong> sends one notification of that kind in the chosen style and saves the style. Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
-      </div>
-      <div class="vt-save-row">
-        <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>
-        <span class="vt-smsg" id="vt-smsg2"></span>
-      </div>
-    </div>
-
-    <div class="vt-card" id="vt-set-review" data-toc="Review requests">
-      <h3>Review requests to vendors</h3>
-      <div class="hint" style="margin-bottom:10px">Who signs a review request. Filled in on the vendor forms that allow it (AVG, Fortinet) and used in the ready-made texts behind <strong>📋 text</strong> next to every <em>request a review</em>. Only sent when you open a vendor's form and send it yourself.</div>
-      <div class="vt-settings-numbers">
-        <div class="vt-field"><label for="vt-rv-name">Your name</label><input type="text" id="vt-rv-name" maxlength="100" placeholder="First and last name"></div>
-        <div class="vt-field"><label for="vt-rv-company">Company</label><input type="text" id="vt-rv-company" maxlength="100" placeholder="Your hosting company or agency"></div>
-        <div class="vt-field"><label for="vt-rv-email">E-mail address</label><input type="email" id="vt-rv-email" maxlength="200" placeholder="the notification address"></div>
       </div>
       <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button></div>
     </div>

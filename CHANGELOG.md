@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.15 — 2026-11-28
+- Settings: the group *E-mail* is now **Notifications**, with three sections: **E-mail notifications**, **Plesk notifications** (now a section of its own) and **E-mail sender**. **Review requests** moved to *Reputation services*, under the services whose vendors you ask for a review.
+
 ## 2.19.14 — 2026-11-28
 - Settings → Plesk notifications: the style choices now say what they do in Plesk: **Alert** is red and stays on screen until you close it; **Warning** (orange) and **Information** (green, not blue as 2.19.12 said) close by themselves.
 

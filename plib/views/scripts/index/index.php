@@ -217,7 +217,25 @@ th.vt-sortable{cursor:pointer;user-select:none}th.vt-sortable:hover{color:var(--
 .vt-vnd-head{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--gray-bg);border-bottom:1px solid var(--border);flex-wrap:wrap;row-gap:6px}
 .vt-vnd-name{font-weight:700;font-size:15px;color:var(--heading)}
 /* The sites under a vendor are indented, so the vendor name stands out */
-.vt-vnd-group>.vt-why-tbl,.vt-vnd-group>.vt-vnd-tip{margin-left:28px;width:calc(100% - 28px)}
+.vt-vnd-group>.vt-why-tbl,.vt-vnd-group>.vt-vnd-tip,.vt-vnd-group>.vt-vnd-how{margin-left:28px;width:calc(100% - 28px)}
+.vt-vnd-how{font-size:12.5px;line-height:1.5;padding:8px 14px 8px 0;border-bottom:1px solid var(--border);box-sizing:border-box}
+.vt-vnd-how-h{font-weight:700;color:var(--heading);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.vt-vnd-prog{font-weight:600;font-size:11px;color:var(--muted);background:var(--gray-bg);border:1px solid var(--border);border-radius:9px;padding:0 8px}
+.vt-vnd-how ol{margin:4px 0 0 18px;padding:0}
+.vt-alert-id{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;margin-left:6px;white-space:nowrap}
+.vt-alert-id label{display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+.vt-alert-id input{width:130px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;font:12px ui-monospace,monospace;background:var(--surface);color:var(--text)}
+.vt-alert-ok{color:#15803d;font-weight:600}
+.vt-vnd-cp{display:inline-flex;vertical-align:middle;margin-left:4px;color:var(--muted);opacity:.7}
+.vt-vnd-cp:hover{opacity:1;color:var(--blue)}.vt-vnd-cp svg{width:13px;height:13px}.vt-vnd-cp.done{color:#16a34a;opacity:1}
+.vt-rt-btn{font-size:11.5px;margin-left:6px;cursor:pointer;white-space:nowrap;color:var(--blue)}
+.vt-rt-panel{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.vt-rt-box{background:var(--surface,#fff);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.25);padding:16px 18px;width:min(640px,100%);max-height:90vh;overflow:auto}
+.vt-rt-head{display:flex;align-items:center;gap:8px}
+.vt-rt-x{cursor:pointer;font-size:16px;color:var(--muted)}
+.vt-rt-txt{width:100%;box-sizing:border-box;font:13px/1.5 inherit;padding:8px 10px;border:1px solid var(--border);border-radius:6px;resize:vertical;background:var(--surface);color:var(--text)}
+.vt-rt-acts{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vt-vnd-how li{margin:2px 0}
 .vt-vnd-group>.vt-why-tbl{border-left:3px solid var(--border)}
 /* Find box above a tool (Vendors, Scan log) */
 .vt-tool-find{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap}
@@ -330,6 +348,10 @@ mark.vt-hit{background:#fde68a;color:inherit;padding:0 1px;border-radius:2px}
 .vt-q-steps span.bad{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
 .vt-q-pbar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;max-width:260px}
 .vt-q-pbar div{height:100%;background:var(--blue);transition:width .4s}
+/* Unknown duration (ClamAV scans one file and reports nothing until it is done): a moving stripe, no fake percentage */
+.vt-q-pbar.indet div{width:30%!important;animation:vtIndet 1.2s ease-in-out infinite}
+@keyframes vtIndet{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+.vt-q-stats{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45}
 .vt-q-item.vt-q-fs .vt-q-pbar div{background:#f59e0b}
 .vt-q-right{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
 .vt-q-skip{margin-top:4px}.vt-q-skip:hover{color:var(--red)!important;border-color:var(--red)!important;background:transparent!important}
@@ -427,22 +449,20 @@ tr.vt-grp-c.closed .vt-grp-caret{transform:rotate(-90deg)}
 .vt-seg button{all:unset;cursor:pointer;font-size:12px;padding:5px 12px;color:var(--text);border-left:1px solid var(--border)}
 .vt-seg button:first-child{border-left:0}
 .vt-seg button.on{background:#2563eb;color:#fff}
-/* Group segment with the "collapsed" checkbox inside it */
-.vt-seg-grp{display:inline-flex;align-items:center}
-.vt-seg-grp.on{background:#2563eb;color:#fff}
-.vt-seg-grp.on>button{color:#fff}
-.vt-seg-grp>button{padding-right:6px}
-.vt-seg-col{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:0 10px 0 2px;cursor:pointer;user-select:none;opacity:.9}
-.vt-seg-col input{margin:0;width:13px;height:13px;cursor:pointer}
-.vt-seg-grp:not(.on) .vt-seg-col{opacity:.45}
+
 .vt-tr-tiles{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
 .vt-tr-tile{border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:150px}
 .vt-tr-tile .l{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .vt-tr-tile .v{font-size:22px;font-weight:800;margin-top:2px}
 .vt-tr-tile .d{font-size:12px;color:var(--muted)}
 .vt-tr-tile .d.up{color:#b91c1c}.vt-tr-tile .d.down{color:#15803d}
-.vt-tr-legend{display:flex;gap:16px;font-size:12px;color:var(--text);margin-bottom:4px}
-.vt-tr-legend i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.vt-tr-legend{display:flex;gap:8px;font-size:12px;color:var(--text);margin-bottom:4px;flex-wrap:wrap;align-items:center}
+.vt-tr-legend button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--border);border-radius:12px;color:var(--text)}
+.vt-tr-legend button:hover{border-color:#9ca3af}
+.vt-tr-legend button.off{opacity:.45;text-decoration:line-through}
+.vt-tr-legend i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle}
+.vt-tr-legend i.dash{border-top-style:dashed}
+.vt-tr-legend .hint{margin-left:6px}
 .vt-tr-chart{position:relative;width:100%}
 .vt-tr-chart svg{display:block;width:100%;overflow:visible}
 .vt-tr-title{font-size:13px;font-weight:600;margin:16px 0 4px}
@@ -883,9 +903,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </div>
       </div>
       <div class="vt-spacer"></div>
-      <div class="vt-seg" id="vt-view-seg" style="margin-right:4px"><span class="vt-seg-grp on" data-mode="group"><button type="button" onclick="vtSetViewMode('group')">Group</button><label class="vt-seg-col" title="Every customer folded up, except customers with an infected site. Click a customer to open or close it."><input type="checkbox" id="vt-grp-collapse" onchange="vtSetGrpCollapse(this.checked)"> collapsed</label></span><button type="button" data-mode="sort" onclick="vtSetViewMode('sort')">Sort</button></div>
+      <div class="vt-seg" id="vt-view-seg" style="margin-right:4px"><button type="button" data-mode="group" onclick="vtSetViewMode('group')">Grouped</button><button type="button" data-mode="sort" onclick="vtSetViewMode('sort')">Sort</button></div>
       <span class="vt-status-txt" id="vt-scan-status"></span>
     </div>
+    <!-- Grouped view only: fold every customer up -->
+    <div id="vt-grp-opts"><label title="Every customer folded up; its header still shows how many sites are flagged. Click a customer to open or close it."><input type="checkbox" id="vt-grp-collapse" onchange="vtSetGrpCollapse(this.checked)"> Collapsed</label></div>
 
     <div id="vt-load-bar">
       <div id="vt-load-msg">Loading domain list…</div>
@@ -922,7 +944,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </span>
       </h3>
       <div class="vt-tr-tiles" id="vt-tr-tiles"></div>
-      <div class="vt-tr-legend"><span><i style="background:#d03b3b"></i>Infected</span><span><i style="background:#fab219"></i>Suspicious</span></div>
+      <div class="vt-tr-legend" id="vt-tr-legend" role="group" aria-label="Lines in the chart"></div>
       <div class="vt-tr-chart" id="vt-tr-lines"></div>
       <div class="vt-tr-title">Sites cleaned per day <span class="hint">(infected or suspicious, then clean again)</span></div>
       <div class="vt-tr-chart" id="vt-tr-bars"></div>
@@ -942,16 +964,30 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <!-- Persistent tools submenu — visible while inside any tool -->
     <nav class="vt-tools-nav" id="vt-tools-nav" style="display:none">
       <a class="vt-tools-nav-item" id="vtnav-overview" onclick="vtToolSelect(null)">&#8592; All tools</a>
+      <a class="vt-tools-nav-item" id="vtnav-vendors" onclick="vtToolSelect('vendors')">Vendor requests <span class="vt-tools-nav-badge purple" id="vtnb-vendors" style="display:none"></span></a>
       <a class="vt-tools-nav-item" id="vtnav-pwned" onclick="vtToolSelect('pwned')"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>Pwned Admins <span class="vt-tools-nav-badge red" id="vtnb-pwned" style="display:none"></span></a>
       <a class="vt-tools-nav-item" id="vtnav-adminwatch" onclick="vtToolSelect('adminwatch')">Admin changes <span class="vt-tools-nav-badge orange" id="vtnb-adminwatch" style="display:none"></span></a>
-      <a class="vt-tools-nav-item" id="vtnav-orphan" onclick="vtToolSelect('orphan')" style="display:none">Orphan DBs <span class="vt-tools-nav-badge gray" id="vtnb-orphan" style="display:none"></span></a>
-      <a class="vt-tools-nav-item" id="vtnav-vendors" onclick="vtToolSelect('vendors')">Vendors <span class="vt-tools-nav-badge purple" id="vtnb-vendors" style="display:none"></span></a>
+      <a class="vt-tools-nav-item" id="vtnav-orphan" onclick="vtToolSelect('orphan')">Orphan DBs <span class="vt-tools-nav-badge gray" id="vtnb-orphan" style="display:none"></span></a>
       <a class="vt-tools-nav-item" id="vtnav-log" onclick="vtToolSelect('log')">Scan log</a>
     </nav>
 
     <!-- Tool launcher: grid of cards, hidden when a tool is open -->
     <div id="vt-tools-home">
       <div class="vt-tools-grid">
+
+        <!-- Vendor requests -->
+        <div class="vt-tool-card" id="vtcard-vendors" tabindex="0" onclick="vtToolSelect('vendors')" onkeydown="if(event.key==='Enter')vtToolSelect('vendors')">
+          <div class="vt-tool-top">
+            <div class="vt-tool-icon" style="background:#fdf4ff;color:#9333ea">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>
+            </div>
+            <div class="vt-tool-info">
+              <div class="vt-tool-title">Vendor requests <span class="vt-tool-badge purple" id="vttb-vendors" style="display:none"></span></div>
+              <div class="vt-tool-desc">Every security vendor that flags one of your sites, with how to ask each one for a review — request, track and confirm delisting per site</div>
+            </div>
+          </div>
+          <div class="vt-tool-open">Open &rarr;</div>
+        </div>
 
         <!-- Pwned Admins -->
         <div class="vt-tool-card" id="vtcard-pwned" tabindex="0" onclick="vtToolSelect('pwned')" onkeydown="if(event.key==='Enter')vtToolSelect('pwned')"<?= $this->pwnedOn === false ? ' style="display:none"' : '' ?>>
@@ -982,7 +1018,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         </div>
 
         <!-- Orphan databases -->
-        <div class="vt-tool-card" id="vtcard-orphan" tabindex="0" onclick="vtToolSelect('orphan')" onkeydown="if(event.key==='Enter')vtToolSelect('orphan')" style="display:none">
+        <div class="vt-tool-card" id="vtcard-orphan" tabindex="0" onclick="vtToolSelect('orphan')" onkeydown="if(event.key==='Enter')vtToolSelect('orphan')">
           <div class="vt-tool-top">
             <div class="vt-tool-icon" style="background:#f0fdf4;color:#16a34a">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
@@ -990,20 +1026,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
             <div class="vt-tool-info">
               <div class="vt-tool-title">Orphan databases <span class="vt-tool-badge gray" id="vttb-orphan" style="display:none"></span></div>
               <div class="vt-tool-desc">WordPress databases for domains that no longer exist in DNS — back up and remove what is no longer needed</div>
-            </div>
-          </div>
-          <div class="vt-tool-open">Open &rarr;</div>
-        </div>
-
-        <!-- Vendors -->
-        <div class="vt-tool-card" id="vtcard-vendors" tabindex="0" onclick="vtToolSelect('vendors')" onkeydown="if(event.key==='Enter')vtToolSelect('vendors')">
-          <div class="vt-tool-top">
-            <div class="vt-tool-icon" style="background:#fdf4ff;color:#9333ea">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>
-            </div>
-            <div class="vt-tool-info">
-              <div class="vt-tool-title">Vendors <span class="vt-tool-badge purple" id="vttb-vendors" style="display:none"></span></div>
-              <div class="vt-tool-desc">All security vendors that flag one or more of your sites — bulk-copy URLs to request a review for all your sites at once</div>
             </div>
           </div>
           <div class="vt-tool-open">Open &rarr;</div>
@@ -1096,7 +1118,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     <div class="vt-tool-section" id="vtool-vendors">
       <div class="vt-card" style="max-width:100%">
         <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          Vendors <span class="hint" style="font-weight:400" id="vt-vnd-sub"></span>
+          Vendor requests <span class="hint" style="font-weight:400" id="vt-vnd-sub"></span>
           <span style="flex:1"></span>
           <button class="vt-btn ghost" onclick="vtVendorsRender()">Refresh</button>
         </h3>
@@ -1363,6 +1385,17 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
       </div>
     </div>
 
+    <div class="vt-card" id="vt-set-review" data-toc="Review requests">
+      <h3>Review requests to vendors</h3>
+      <div class="hint" style="margin-bottom:10px">Who signs a review request. Filled in on the vendor forms that allow it (AVG, Fortinet) and used in the ready-made texts behind <strong>📋 text</strong> next to every <em>request a review</em>. Only sent when you open a vendor's form and send it yourself.</div>
+      <div class="vt-settings-numbers">
+        <div class="vt-field"><label for="vt-rv-name">Your name</label><input type="text" id="vt-rv-name" maxlength="100" placeholder="First and last name"></div>
+        <div class="vt-field"><label for="vt-rv-company">Company</label><input type="text" id="vt-rv-company" maxlength="100" placeholder="Your hosting company or agency"></div>
+        <div class="vt-field"><label for="vt-rv-email">E-mail address</label><input type="email" id="vt-rv-email" maxlength="200" placeholder="the notification address"></div>
+      </div>
+      <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button></div>
+    </div>
+
     <div class="vt-card" id="vt-ms-card" style="display:none" data-toc="E-mail sender">
       <h3>E-mail sender</h3>
       <div class="hint">The address every e-mail of Stingy Scanner is sent from: the Pwned? warnings to site administrators and the status notifications.
@@ -1532,7 +1565,7 @@ window.addEventListener('resize',vtSyncHeaderH);
 document.addEventListener('DOMContentLoaded',vtSyncHeaderH);
 
 let domains=[], results={}, budget={}, activeFilter='all', gsb={enabled:false};
-let scanners=[], scans={}, fsOpen={}, fsFull={}, reviews={}, histSites=new Set(), siteHist={}, avast={products:[]}, dbScanOk=false; // file scanners: installed list, results per site, open panel per site
+let scanners=[], scans={}, fsOpen={}, fsFull={}, reviews={}, histSites=new Set(), siteHist={}, avast={products:[]}, dbScanOk=false, alertIds={}, myEmail='', reviewFrom={name:'',company:''}; // file scanners: installed list, results per site, open panel per site
 let scanQueue=[], inFlight=0;
 const MAX_C=1;          // one at a time to stay within VT rate limits
 const PUMP_DELAY=15500; // 15.5s between requests = safe for 4 req/min free tier
@@ -1581,11 +1614,12 @@ async function init(){
   ]);
   external=data.external||[]; extSet=new Set(external.map(x=>x.domain)); vtRenderExternal();
   panelUrl=data.panel||{}; domains=data.domains||domains; related=data.related||[]; relSet=new Set(related); orphans=data.orphans||{}; owners=data.owners||{}; results=data.results||{};
-  for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; dbScanOk=!!data.dbscan; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
+  for(const d of related) if(!results[d]) results[d]={status:'unchecked',domain:d}; budget=data.budget||budget; scanners=data.scanners||[]; dbScanOk=!!data.dbscan; fileact=data.fileact||fileact; scans=data.scans||{}; reviews=data.reviews||{}; if(data.vendors?.vendors){ VENDORS=data.vendors.vendors; vendorSrc=data.vendors.source; } alertIds=data.alert_ids||{}; myEmail=data.my_email||''; reviewFrom=data.review_from||reviewFrom; histSites=new Set(data.history||[]); avast=data.avast||{products:[]}; gsb=data.gsb||{enabled:false};
   for(const d in scans) for(const id in scans[d]) if(fsBusy(d,id)) vtFsPoll(d,id);
   vtSet('vt-cnt-all',domains.length);
   vtSyncViewSeg();
   updateBudget(); renderTable(); updateCounts(); vtRenderExternal();
+  vndLoaded=true; vtVendorsRender(); // the scan results are in: draw the vendor list (and its badges) now
   vtLoadProgress(100,'Ready');
 
   if(!cfg.has_key||cfg.api_key_invalid) document.getElementById('vt-api-warning').style.display='flex';
@@ -1698,7 +1732,10 @@ function vtVendorsBuild(){
     const d=results[domain]||{};
     const st=d.status||'';
     const flags=d.flagged_by||[];
-    if(!flags.length&&!['infected','suspicious'].includes(st)) continue;
+    const gThreats=gsb.enabled?(gsb.results?.[domain]?.threats||[]):[];
+    const avHit=(avast.products||[]).some(pr=>(avast.results?.[domain]?.[pr.id]?.findings||[]).length);
+    // Also a site that only Google or AVG / Avast flags (VirusTotal may call it clean)
+    if(!flags.length&&!gThreats.length&&!avHit&&!['infected','suspicious'].includes(st)) continue;
     for(const s of flags){
       const i=s.indexOf(': ');
       const vendor=i>0?s.slice(0,i):s, verdict=i>0?s.slice(i+2):'';
@@ -1706,21 +1743,26 @@ function vtVendorsBuild(){
       map[vendor].push({domain,verdict,status:st});
     }
     // Google Safe Browsing
-    if(gsb.enabled&&(gsb.results?.[domain]?.threats||[]).length){
+    if(gThreats.length){
       if(!map['Google Safe Browsing']) map['Google Safe Browsing']=[];
-      map['Google Safe Browsing'].push({domain,verdict:'unsafe',status:st});
+      map['Google Safe Browsing'].push({domain,verdict:gThreats.join(', '),status:st});
     }
     // AVG / Avast products
     for(const pr of (avast.products||[])){
       if((avast.results?.[domain]?.[pr.id]?.findings||[]).length){
         const vname=pr.name||pr.id;
         if(!map[vname]) map[vname]=[];
-        map[vname].push({domain,verdict:(avast.results[domain][pr.id].findings[0]||'flagged'),status:st});
+        // A finding is {classification: "URL:Botnet", detection: "URF9C…-0200", raw}: show it as in the site list
+        const fs=avast.results[domain][pr.id].findings;
+        const verdict=fs.map(f=>typeof f==='string'?f:String(f.classification||f.raw||'flagged').replace(/^URL:/,'')+(f.detection?' ('+f.detection+')':'')).join(', ');
+        map[vname].push({domain,verdict:verdict||'flagged',status:st});
       }
     }
   }
   return map;
 }
+let vndLoaded=false; // true once the scan results of all sites are loaded
+window.vtVendorsRender=vtVendorsRender; // called from the search box and the Refresh button
 function vtVendorsRender(){
   const box=document.getElementById('vt-vnd-box'), sub=document.getElementById('vt-vnd-sub');
   if(!box) return;
@@ -1736,6 +1778,7 @@ function vtVendorsRender(){
   }
   const totalFlags=Object.values(map).reduce((s,a)=>s+a.length,0);
   if(sub) sub.textContent=vendors.length?vendors.length+' vendor'+(vendors.length===1?'':'s')+', '+totalFlags+' flag'+(totalFlags===1?'':'s'):'no flags';
+  if(!vndLoaded){ box.innerHTML='<p class="hint"><span class="vt-spin"></span> Loading the scan results…</p>'; if(sub) sub.textContent=''; return; }
   if(!vendors.length){ box.innerHTML='<p class="hint">No sites are currently flagged by any vendor.</p>'; return; }
   // Keyword search: every word must match the vendor name or the domain. A vendor that matches shows all its sites.
   const words=(document.getElementById('vt-vnd-q')?.value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1746,25 +1789,26 @@ function vtVendorsRender(){
     const sites=words.length?map[vendor].filter(x=>words.every(w=>vl.includes(w)||x.domain.toLowerCase().includes(w))):map[vendor];
     if(!sites.length) continue;
     nV++; nS+=sites.length;
-    const k=vtFpKey(vendor), tip=k&&VT_FP_TIP[k]?VT_FP_TIP[k]:'';
-    const urls=sites.map(s=>'https://'+s.domain+'/').join('\n');
+    const k=vtFpKey(vendor), tip=k&&VENDORS[k].advice?VENDORS[k].advice:'';
+    vndCopyLists[vendor]=sites.map(s=>s.domain); // the shown sites (search applied): copied one per line
     h+='<div class="vt-vnd-group">';
     // Header row
     h+='<div class="vt-vnd-head">'
       +'<span class="vt-vnd-name">'+vtEsc(vendor)+'</span>'
       +'<span class="vt-vnd-cnt">'+sites.length+' site'+(sites.length===1?'':'s')+'</span>'
       +'<div class="vt-vnd-actions">'
-      +'<button class="vt-vnd-copy" onclick="vtVndCopy(this,\''+vtEsca(urls)+'\')" title="Copy all URLs — one per line">Copy '+(sites.length>1?sites.length+' URLs':'URL')+'</button>'
+      +'<button class="vt-vnd-copy" data-vendor="'+vtEsc(vendor)+'" onclick="vtVndCopy(this)" title="Copy the domain names, one per line">Copy '+(sites.length>1?sites.length+' domain names':'domain name')+'</button>'
       +'</div></div>';
-    // Tip (once, above table)
-    if(tip) h+='<div class="vt-vnd-tip">'+vtEsc(tip)+'</div>';
+    // How to ask this vendor for a review: the steps, the vendor's own requirements, and what to do afterwards
+    h+=vtVndHowTo(vendor,sites,tip);
     // Sites table — same columns as the Why? panel
     h+='<table class="vt-fs-tbl vt-why-tbl"><thead><tr><th style="width:200px">Site</th><th style="width:120px">Verdict</th><th>Ask for a review</th></tr></thead><tbody>';
     for(const {domain,verdict,status} of sites){
       const rev=reviews[domain]?.[vendor];
       const rowCls=rev?' class="asked'+(rev.confirmed_at?' confirmed':'')+'\"':'';
       h+='<tr'+rowCls+'>'
-        +'<td><a class="vt-blue-link" onclick="vtVndOpenSite(\''+vtEsca(domain)+'\')">'+vtEsc(domain)+'</a></td>'
+        +'<td><a class="vt-blue-link" onclick="vtVndOpenSite(\''+vtEsca(domain)+'\')">'+vtEsc(domain)+'</a>'
+        +' <a href="#" class="vt-vnd-cp" data-copy="'+vtEsc(domain)+'" onclick="return vtCopyDomain(this)" title="Copy the domain name" aria-label="Copy the domain name">'+ICO.copy+'</a></td>'
         +'<td>'+vtEsc(verdict||status)+'</td>'
         +'<td>'+vtFpLink(vendor,domain,false)+'</td>'
         +'</tr>';
@@ -1775,6 +1819,26 @@ function vtVendorsRender(){
   if(shownEl) shownEl.textContent=words.length?nV+' vendor'+(nV===1?'':'s')+', '+nS+' site'+(nS===1?'':'s')+' match':'';
   box.innerHTML=nV?h:'<p class="hint">No vendor or site matches \u201c'+vtEsc(words.join(' '))+'\u201d.</p>';
 }
+function vtVndHowTo(vendor,sites,tip){
+  const v=vtVendorOf(vendor), c=v?.form||'', mail=v?.method==='email', n=sites.length;
+  const asked=sites.filter(x=>reviews[x.domain]?.[vendor]).length, done=sites.filter(x=>reviews[x.domain]?.[vendor]?.confirmed_at).length;
+  let how;
+  if(!c) how='<li>No review form is known for this vendor. Look on the vendor\'s website for a <em>false positive</em> or <em>dispute</em> form, or wait: some vendors clear a site by themselves.</li>';
+  else if(mail) how='<li>Click <em>request a review ↗</em> next to a site: an e-mail to <strong>'+vtEsc(String(c).replace(/^mailto:/,'').split('?')[0])+'</strong> opens, already filled in with the site and the VirusTotal link. Check it and send it.</li>';
+  else if(v.method==='prefill') how='<li>Click <em>request a review ↗</em> next to a site: the vendor\'s form opens <strong>already filled in</strong>'
+    +(v.copy==='text'?', and the text for the description box is <strong>copied</strong>: paste it there':'')+'. Check it, '+(v.captcha?'pass the '+vtEsc(v.captcha)+' check ':'')+'and send it.</li>';
+  else if(v.copy==='text') how='<li>Click <em>request a review ↗</em> next to a site: the vendor\'s form opens and the <strong>text for the description</strong> is copied: paste it there'
+    +(v.account?' (log in or sign up first)':'')+'.</li>';
+  else how='<li>Click <em>request a review ↗</em> next to a site: the vendor\'s form opens in a new tab and the site address is <strong>copied to your clipboard</strong>. Paste it into the form'
+    +(n>1?' (or use <strong>Copy '+n+' URLs</strong> above if the form takes several addresses at once)':'')+'.</li>';
+  return '<div class="vt-vnd-how"><div class="vt-vnd-how-h">How to ask '+vtEsc(vendor)+' for a review'
+    +'<span class="vt-vnd-prog">'+asked+' of '+n+' requested'+(done?' · '+done+' delisting confirmed':'')+'</span></div><ol>'
+    +'<li>Make sure the site is clean first (a file scan, the admin accounts): a vendor that finds the problem still there will refuse.</li>'
+    +how
+    +(tip?'<li><strong>What '+vtEsc(vendor)+' asks for:</strong> '+vtEsc(tip)+'</li>':'')
+    +'<li>Stingy Scanner remembers the request (<em>✓ Requested</em>, with date and who). When the vendor answers, click <em>✓ delisting confirmed</em>, or <em>denied</em> with the reason.</li>'
+    +'</ol></div>';
+}
 window.vtVndOpenSite=function(domain){
   // Switch to Overview tab, then open the site's Why? panel
   document.querySelectorAll('.vt-tab').forEach(t=>t.classList.remove('active'));
@@ -1783,12 +1847,15 @@ window.vtVndOpenSite=function(domain){
   document.getElementById('vtpanel-overview')?.classList.add('active');
   setTimeout(()=>vtFsOpen(domain),80);
 };
-window.vtVndCopy=function(btn,urls){
-  navigator.clipboard.writeText(urls).then(()=>{
-    const orig=btn.textContent;
-    btn.textContent='Copied!'; btn.style.background='#dcfce7'; btn.style.color='#166534'; btn.style.borderColor='#4ade80';
-    setTimeout(()=>{btn.textContent=orig; btn.style.cssText='';},2000);
-  }).catch(()=>vtToast('Could not copy to clipboard','error'));
+const vndCopyLists={};
+// Copy the domain names of a vendor, one per line, the same way as a single name (works inside the Plesk frame,
+// where the clipboard API is often not allowed). Before, the list itself broke the button's onclick.
+window.vtVndCopy=function(btn){
+  const list=vndCopyLists[btn.dataset.vendor]||[], text=list.join('\n');
+  const ok=()=>{const orig=btn.textContent; btn.textContent='✓ Copied '+list.length; btn.style.background='#dcfce7'; btn.style.color='#166534'; btn.style.borderColor='#4ade80';
+    setTimeout(()=>{btn.textContent=orig; btn.style.cssText='';},2000);};
+  if(vtCopyNow(text)) ok();
+  else navigator.clipboard?.writeText(text).then(ok,()=>vtToast('Could not copy to the clipboard','err'));
 };
 
 // ── Scan pump ─────────────────────────────────────────────────
@@ -1982,7 +2049,7 @@ function orphEntries(){
 function orphClamHTML(o){
   const c=o.clamav;
   if(!c) return '<span class="vt-clam none">not scanned</span>';
-  const when='<small>'+vtAgo(c.ts)+' · '+vtBytes(c.size)+' dump</small>';
+  const when='<small>'+vtAgo(c.ts)+' · '+(c.tables?c.tables+' tables · ':'')+vtBytes(c.size)+' dump'+(c.secs!=null?' · '+vtSecs(c.secs):'')+'</small>';
   return c.clean?'<span class="vt-clam ok">✓ Nothing found'+when+'</span>'
     :'<span class="vt-clam bad">'+(c.found||[]).length+' found: '+(c.found||[]).map(vtEsc).join(', ')+when+'</span>';
 }
@@ -2003,7 +2070,10 @@ function vtRenderOrphans(){
     let act='';
     if(canDb){
       act+='<button class="vt-row-btn" title="Make a .sql.gz copy in the private folder of the subscription" onclick="vtDumpDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Back up</button>';
-      if(dbScanOk) act+='<button class="vt-row-btn" title="Scan the data with ClamAV: a temporary dump in a root-only folder, deleted right after the scan" onclick="vtScanDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Scan with ClamAV</button>';
+      if(dbScanOk) act+=o.scanning
+        ?'<button class="vt-row-btn" data-dbscan="'+vtEsc(o.db)+'" disabled><span class="vt-spin"></span> Scanning</button>'
+        :'<button class="vt-row-btn" data-dbscan="'+vtEsc(o.db)+'" title="Scan the data with ClamAV: a temporary dump in a root-only folder, deleted right after the scan" onclick="vtScanDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Scan with ClamAV</button>';
+      if(o.scanning) setTimeout(()=>vtDbScanFollow(domain,o.db),0);
     }
     if(o.plesk_url) act+='<a class="vt-row-btn" href="'+vtEsc(o.plesk_url)+'" target="_top" title="Open the Databases page of '+vtEsc(o.webspace)+' in Plesk">Delete in Plesk ↗</a>';
     return '<tr data-domain="'+vtEsc(domain)+'" data-q="'+vtEsc(search)+'">'
@@ -2037,26 +2107,75 @@ window.vtOrphanFilter=function(){
   const el=document.getElementById('vt-orph-shown');
   if(el) el.textContent=(q.length||g)?shown+' of '+all+' shown'+(g?' (also filtered by the site list search: '+g+')':''):'';
 };
+// ClamAV scan of an orphan database: runs in the background on the server; the Scan Monitor follows it every second
+const dbPolls={};
+const vtSecs=n=>{n=Math.max(0,Math.round(+n||0));return n<60?n+' s':Math.floor(n/60)+' min '+(n%60)+' s';};
+function dbScanStats(st){
+  const p=[];
+  if(st.tables) p.push(st.tables+' table'+(st.tables===1?'':'s'));
+  if(st.rows) p.push('≈'+(+st.rows).toLocaleString()+' rows');
+  if(st.db_bytes) p.push(vtBytes(st.db_bytes)+' in the database');
+  if(st.size) p.push(vtBytes(st.size)+' dump'+(st.dump_secs!=null?' in '+vtSecs(st.dump_secs):''));
+  if(st.scan_secs!=null) p.push('scanned by '+(st.engine||'ClamAV')+' in '+vtSecs(st.scan_secs));
+  if(st.signatures) p.push('ClamAV '+st.signatures);
+  return p.join(' · ');
+}
+function vtDbScanFollow(domain,db){
+  const key=domain+'|'+db; if(dbPolls[key]) return;
+  const jid='db:'+db;
+  let j=getFsJob(domain,jid);
+  if(!j){ j=addFsJob(domain,jid); j.label='ClamAV · database'; j.msg='Starting the scan of '+db+'…'; j.indet=true; }
+  renderQueue();
+  const tick=async()=>{
+    const st=await vtFetch('?action=scan-db-status&domain='+encodeURIComponent(domain)+'&db='+encodeURIComponent(db)).catch(()=>null);
+    if(!st||st.status==='none'){ dbPolls[key]=setTimeout(tick,1500); return; }
+    const el=(st.now||Math.floor(Date.now()/1000))-(st.started||0);
+    if(st.status==='running'){
+      j.stats=dbScanStats(st);
+      if(st.phase==='dump'){
+        // Real progress: tables written of all tables (the bytes as a fallback while the first table is dumped)
+        j.indet=false;
+        j.pct=st.tables?Math.round(100*(st.tables_done||0)/st.tables):(st.db_bytes?Math.min(95,Math.round(100*(st.bytes||0)/st.db_bytes)):0);
+        j.msg='Dumping '+db+': table '+Math.min(st.tables||0,(st.tables_done||0))+' of '+(st.tables||'?')+' · '+vtBytes(st.bytes||0)+' written · '+vtSecs(el);
+      }else if(st.phase==='scan'){
+        j.pct=null; j.indet=true;
+        j.msg='ClamAV ('+(st.engine||'')+') is scanning the '+vtBytes(st.size)+' dump · '+vtSecs((st.now||0)-(st.scan_started||st.now||0));
+      }else{ j.indet=true; j.msg='Preparing the scan of '+db+'…'; }
+      renderQueue();
+      dbPolls[key]=setTimeout(tick,1000); return;
+    }
+    delete dbPolls[key];
+    const btn=document.querySelector('#vt-tbody-rel button[data-dbscan="'+CSS.escape(db)+'"]');
+    if(st.status==='done'){
+      for(const o of orphans[domain]||[]) if(o.db===db){ o.clamav={clean:st.clean,found:st.found||[],size:st.size,engine:st.engine,secs:st.secs,ts:st.finished||Math.floor(Date.now()/1000),
+        tables:st.tables,rows:st.rows,dump_secs:st.dump_secs,scan_secs:st.scan_secs}; o.scanning=false; }
+      j.pct=null; j.indet=false; j.stats=dbScanStats(st)+' · dump deleted';
+      updateFsJob(domain,jid,'done',{infected:st.clean?0:(st.found||[]).length,files:1},
+        st.clean?'Nothing found in '+db+' · '+vtSecs(st.secs||el)+' in total':'Found in '+db+': '+(st.found||[]).join(', '));
+      vtToast(st.clean?'ClamAV: nothing found in '+db+' (temporary dump deleted)':'ClamAV found '+(st.found||[]).join(', ')+' in '+db,st.clean?'ok':'err');
+      histSites.add(domain);
+    }else{
+      for(const o of orphans[domain]||[]) if(o.db===db) o.scanning=false;
+      j.pct=null; j.indet=false;
+      updateFsJob(domain,jid,'failed',null,(st.error||'The scan failed')+' ('+db+')');
+      vtToast(st.error||'The scan failed','err');
+    }
+    vtRenderOrphans();
+  };
+  tick();
+}
 window.vtScanDb=async function(domain,db,btn){
   btn.disabled=true; btn.innerHTML='<span class="vt-spin"></span> Scanning';
-  const jid='db:'+db, j=addFsJob(domain,jid);
-  j.label='ClamAV · database'; j.msg='Temporary dump of '+db+', then ClamAV scan…';
-  renderQueue();
+  for(const o of orphans[domain]||[]) if(o.db===db) o.scanning=true;
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
   const res=await fetch(BASE+'?action=scan-db',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},body:new URLSearchParams({domain,db})})
     .then(r=>r.json()).catch(()=>({error:'Network error'}));
-  if(res.ok){
-    for(const o of orphans[domain]||[]) if(o.db===db) o.clamav={clean:res.clean,found:res.found||[],size:res.size,engine:res.engine,secs:res.secs,ts:res.ts||Math.floor(Date.now()/1000)};
-    updateFsJob(domain,jid,'done',{infected:res.clean?0:(res.found||[]).length,files:1},
-      (res.clean?'Nothing found in '+db:'Found in '+db+': '+(res.found||[]).join(', '))+' · '+vtBytes(res.size)+' dump, deleted');
-    vtToast(res.clean?'ClamAV: nothing found in '+db+' (temporary dump deleted)':'ClamAV found '+res.found.join(', ')+' in '+db,res.clean?'ok':'err');
-    histSites.add(domain);
-    vtRenderOrphans();
-  }else{
-    updateFsJob(domain,jid,'failed',null,(res.error||'The scan failed')+' ('+db+')');
+  if(!res.started){
+    for(const o of orphans[domain]||[]) if(o.db===db) o.scanning=false;
     btn.disabled=false; btn.textContent='Scan with ClamAV';
-    vtToast(res.error||'The scan failed','err');
+    vtToast(res.error||'The scan could not start','err'); return;
   }
+  vtDbScanFollow(domain,db);
 };
 window.vtDumpDb=async function(domain,db,btn){
   btn.disabled=true; btn.innerHTML='<span class="vt-spin"></span> Backing up';
@@ -2075,9 +2194,7 @@ function renderTable(){
   vtSet('vt-rel-cnt',related.length); vtSet('vt-cnt-orphan',related.length);
   const ocard=document.getElementById('vtcard-orphan'), obadge=document.getElementById('vttb-orphan');
   const onav=document.getElementById('vtnav-orphan'), onb=document.getElementById('vtnb-orphan');
-  if(ocard) ocard.style.display=related.length?'':'none';
   if(obadge){ obadge.textContent=related.length; obadge.style.display=related.length?'':'none'; }
-  if(onav) onav.style.display=related.length?'':'none';
   if(onb){ onb.textContent=related.length; onb.style.display=related.length?'':'none'; }
   vtRenderOrphans();
   vtApplyFilter();
@@ -2091,6 +2208,7 @@ let sortDir=localStorage.getItem('vt_sort_dir')||'asc';
 function vtSyncViewSeg(){
   document.querySelectorAll('#vt-view-seg [data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===viewMode));
   const cb=document.getElementById('vt-grp-collapse'); if(cb) cb.checked=grpCollapse;
+  const go=document.getElementById('vt-grp-opts'); if(go) go.hidden=viewMode!=='group'; // only in the grouped view
 }
 window.vtSetViewMode=function(m){
   viewMode=m;
@@ -2098,7 +2216,7 @@ window.vtSetViewMode=function(m){
   vtSyncViewSeg();
   renderTable();
 };
-// Group → collapsed: every customer folded up, except customers with an infected site.
+// Grouped → collapsed: every customer folded up; the header of each still shows how many of its sites are flagged.
 // A customer you open or close yourself stays that way until the checkbox changes.
 let grpCollapse=localStorage.getItem('vt_grp_collapsed')==='1', grpManual=new Set();
 window.vtSetGrpCollapse=function(on){
@@ -2169,9 +2287,7 @@ function groupedRowsHTML(){
       const w=o=>o.ct==='admin'||o.ct==='reseller'?0:o.ct==='external'?2:1; return w(A)-w(B)||cmp(A.c,B.c);});
     for(const ck of custKeys){
       const C=R.cust[ck], b=bad(C.list);
-      if(grpCollapse&&!grpManual.has(ck)){
-        if(C.list.some(d=>results[d]?.status==='infected')) grpClosed.delete(ck); else grpClosed.add(ck);
-      }
+      if(grpCollapse&&!grpManual.has(ck)) grpClosed.add(ck); // collapsed: every customer folded up (the header still shows how many are flagged)
       const closed=grpClosed.has(ck);
       const label=C.o.ct==='reseller'?'Own sites of the reseller':C.o.ct==='admin'?'Administrator':C.o.ct==='external'?'External sites <span class="hint">(not hosted on this server)</span>':vtEsc(C.o.c);
       h+='<tr class="vt-grp-c'+(closed?' closed':'')+'" data-res="'+vtEsc(rk)+'" data-gk="'+vtEsc(ck)+'" onclick="vtGrpToggle(this)"><td colspan="5">'
@@ -2193,8 +2309,6 @@ function updateRow(domain,data){
   if(relSet.has(domain)){vtRenderOrphans();return;}
   const row=document.getElementById('vtr-'+rid(domain));
   if(!row){renderTable();return;}
-  // Group → collapsed: a customer whose site just turned infected opens up
-  if(grpCollapse&&viewMode==='group'&&data?.status==='infected'&&grpClosed.has(row.dataset.grp)&&!grpManual.has(row.dataset.grp)){renderTable();return;}
   document.getElementById('vtfs-'+rid(domain))?.remove();
   row.outerHTML=rowHTML(domain,data);
   vtApplyFilter();
@@ -2326,8 +2440,19 @@ function rowHTML(domain,data){
 }
 
 // ── Trend (server totals per day, administrator) ──────────────
-const TR_COL={infected:'#d03b3b',suspicious:'#fab219',cleaned:'#0ca30c',grid:'#e1e0d9',axis:'#c3c2b7',muted:'#898781',surface:'#fcfcfb'};
-let trDays=[], trRange=92;
+const TR_COL={infected:'#d03b3b',suspicious:'#d08a00',clean:'#2f8f5b',cleaned:'#0ca30c',grid:'#e1e0d9',axis:'#c3c2b7',muted:'#898781',surface:'#fcfcfb'};
+let trDays=[], trRange=+localStorage.getItem('vt_tr_range')||61, trPin=null; // 2 months by default
+// Lines in the chart: click one in the legend to hide or show it; the scale follows the visible lines
+const TR_SERIES=[['infected','Infected'],['suspicious','Suspicious'],['clean','Clean sites']];
+let trShow=(()=>{try{return Object.assign({infected:true,suspicious:true,clean:true},JSON.parse(localStorage.getItem('vt_tr_show')||'{}'));}catch(e){return {infected:true,suspicious:true,clean:true};}})();
+let trLog=localStorage.getItem('vt_tr_log')!=='0'; // logarithmic scale by default: the small red line stays readable next to the clean sites
+window.vtTrendLog=function(on){trLog=!!on; localStorage.setItem('vt_tr_log',on?'1':'0'); vtTrendDraw();};
+window.vtTrendToggle=function(k){
+  trShow[k]=!trShow[k];
+  if(!TR_SERIES.some(([x])=>trShow[x])) trShow[k]=true; // never all off
+  localStorage.setItem('vt_tr_show',JSON.stringify(trShow));
+  vtTrendDraw();
+};
 window.vtLoadTrend=async function(){
   const [r,ev]=await Promise.all([
     vtFetch('?action=history').catch(()=>null),
@@ -2339,6 +2464,7 @@ window.vtLoadTrend=async function(){
   vtRenderEvents(ev?.events||[]);
 };
 let evAll=[], evShowAll=false;
+window.vtEvShowAll=function(){evShowAll=true; vtRenderEvents();};
 function vtRenderEvents(events){
   if(events) evAll=events;
   const el=document.getElementById('vt-ev-list');
@@ -2370,18 +2496,22 @@ function vtRenderEvents(events){
       +'<div class="vt-ev-domain"><a href="https://www.virustotal.com/gui/domain/'+vtEsc(e.domain)+'/detection" target="_blank" rel="noopener" title="Open on VirusTotal">'+vtEsc(e.domain)+'</a></div>'
       +'</div>';
   }).join('')
-  +(evAll.length>shown.length?'<button class="vt-btn ghost" style="margin-top:8px" onclick="evShowAll=true;vtRenderEvents()">Show all '+evAll.length+'</button>':'');
+  +(evAll.length>shown.length?'<button class="vt-btn ghost" style="margin-top:8px" onclick="vtEvShowAll()">Show all '+evAll.length+'</button>':'');
 }
 
 window.vtTrendRange=function(n){
-  trRange=n;
+  trRange=n; trPin=null; localStorage.setItem('vt_tr_range',n);
   document.querySelectorAll('#vt-tr-range button').forEach(b=>b.classList.toggle('on',+b.dataset.d===n));
   vtTrendDraw();
 };
 function trNice(max){for(const s of [1,2,5,10,20,25,50,100,200,250,500,1000]){if(max/s<=5)return s;}return Math.ceil(max/5);}
 function trDate(iso,long){const p=iso.split('-');return long?p[2]+'-'+p[1]+'-'+p[0]:p[2]+'-'+p[1];}
 function vtTrendDraw(){
-  const days=trDays.slice(-trRange);
+  // Clean sites in the chart = every site that is not flagged, counted at today's number of sites. Earlier days
+  // may have counted fewer sites (WordPress sites only, or sites not checked yet); the recorded number is in the tooltip.
+  const nowTotal=+(trDays[trDays.length-1]?.total)||0;
+  const days=trDays.slice(-trRange).map(d=>Object.assign({},d,{clean_rec:+d.clean||0,
+    clean:Math.max(0,Math.max(nowTotal,+d.total||0)-(+d.infected||0)-(+d.suspicious||0))}));
   const tiles=document.getElementById('vt-tr-tiles');
   if(!days.length){
     tiles.innerHTML='<span class="hint">No history yet. Totals are saved once a day from now on.</span>';
@@ -2395,7 +2525,7 @@ function vtTrendDraw(){
     '<div class="vt-tr-tile"><div class="l">Infected now</div><div class="v">'+last.infected+'</div>'+delta('infected')+'</div>'
    +'<div class="vt-tr-tile"><div class="l">Suspicious now</div><div class="v">'+last.suspicious+'</div>'+delta('suspicious')+'</div>'
    +'<div class="vt-tr-tile"><div class="l">Cleaned in this period</div><div class="v">'+sum('cleaned')+'</div><div class="d">sites</div></div>'
-   +'<div class="vt-tr-tile"><div class="l">Clean sites now</div><div class="v">'+last.clean+'</div><div class="d">of '+last.total+'</div></div>';
+   +'<div class="vt-tr-tile"><div class="l">Clean sites now</div><div class="v">'+last.clean_rec+'</div><div class="d">of '+last.total+'</div></div>';
   document.getElementById('vt-tr-sub').textContent=trDate(first.date,1)+' to '+trDate(last.date,1);
   const demo=days.filter(d=>d.demo);
   document.getElementById('vt-tr-note').innerHTML=demo.length
@@ -2414,19 +2544,42 @@ function vtTrendDraw(){
         +'<text x="'+(L-6)+'" y="'+(y+4)+'" font-size="11" fill="'+TR_COL.muted+'" text-anchor="end">'+v+'</text>';}
     return {h,top};};
 
-  // Lines: infected and suspicious (one scale)
-  const H1=260, B1=H1-24, max1=Math.max(5,...days.map(d=>Math.max(+d.infected||0,+d.suspicious||0)));
-  const ya=yaxis(max1,B1), y1=v=>B1-(v/ya.top)*(B1-T);
+  // Lines: infected, suspicious and clean sites, one scale. Hidden lines (legend) don't count for the scale.
+  const vis=TR_SERIES.filter(([k])=>trShow[k]).map(([k])=>k);
+  document.getElementById('vt-tr-legend').innerHTML=TR_SERIES.map(([k,name])=>
+    '<button type="button" class="'+(trShow[k]?'':'off')+'" aria-pressed="'+trShow[k]+'" onclick="vtTrendToggle(\''+k+'\')" title="'+(trShow[k]?'Hide':'Show')+' this line">'
+    +'<i class="'+(k==='clean'?'dash':'')+'" style="border-color:'+TR_COL[k]+'"></i>'+name+'</button>').join('')
+    +'<span class="vt-seg" style="margin-left:6px"><button type="button" class="'+(trLog?'on':'')+'" onclick="vtTrendLog(1)" title="Logarithmic scale: small numbers stay readable next to large ones">Log</button><button type="button" class="'+(trLog?'':'on')+'" onclick="vtTrendLog(0)">Linear</button></span>'
+    +'<span class="hint">Click a line name to hide or show it. Click the chart to pin a day.</span>';
+  const H1=260, B1=H1-24, max1=Math.max(5,...days.map(d=>Math.max(0,...vis.map(k=>+d[k]||0))));
+  let ya, y1;
+  if(trLog){
+    const TK=[0,1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000];
+    const top=TK.find(v=>v>=max1)||max1, lt=Math.log10(1+top);
+    y1=v=>B1-(Math.log10(1+Math.max(0,v))/lt)*(B1-T);
+    let h='';
+    for(const v of TK){ if(v>top) break; const y=y1(v);
+      h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="'+(v?TR_COL.grid:TR_COL.axis)+'" stroke-width="1"/>'
+        +'<text x="'+(L-6)+'" y="'+(y+4)+'" font-size="11" fill="'+TR_COL.muted+'" text-anchor="end">'+v+'</text>'; }
+    ya={h,top};
+  }else{
+    ya=yaxis(max1,B1); y1=v=>B1-(v/ya.top)*(B1-T);
+  }
   const path=k=>days.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y1(+d[k]||0).toFixed(1)).join(' ');
   const area=k=>path(k)+' L'+x(n-1).toFixed(1)+' '+B1+' L'+x(0).toFixed(1)+' '+B1+' Z';
-  const endLbl=(k,name)=>'<circle cx="'+x(n-1)+'" cy="'+y1(+last[k]||0)+'" r="4" fill="'+TR_COL[k]+'" stroke="'+TR_COL.surface+'" stroke-width="2"/>'
-     +'<text x="'+(x(n-1)-8)+'" y="'+(y1(+last[k]||0)-9)+'" font-size="11" fill="#333" text-anchor="end">'+name+' '+last[k]+'</text>';
+  // End labels: name and value next to the last point; moved apart when two are close together
+  const ends=vis.map(k=>({k,y:y1(+last[k]||0)})).sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++) if(ends[i].y-ends[i-1].y<14) ends[i].y=ends[i-1].y+14;
+  const endY={}; ends.forEach(e=>endY[e.k]=e.y);
+  const endLbl=(k,name)=>trShow[k]?'<circle cx="'+x(n-1)+'" cy="'+y1(+last[k]||0)+'" r="4" fill="'+TR_COL[k]+'" stroke="'+TR_COL.surface+'" stroke-width="2"/>'
+     +'<text x="'+(x(n-1)-10)+'" y="'+(endY[k]+4)+'" font-size="11" fill="#333" text-anchor="end" paint-order="stroke" stroke="'+TR_COL.surface+'" stroke-width="3">'+name+' '+last[k]+'</text>':'';
+  const line=(k,dash)=>trShow[k]?'<path d="'+path(k)+'" fill="none" stroke="'+TR_COL[k]+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"'+(dash?' stroke-dasharray="6 4"':'')+'/>':'';
   document.getElementById('vt-tr-lines').innerHTML='<svg viewBox="0 0 '+W+' '+H1+'" height="'+H1+'" role="img" aria-label="Infected and suspicious sites per day">'
     +shade(B1)+ya.h+xticks(B1)
-    +'<path d="'+area('infected')+'" fill="'+TR_COL.infected+'" opacity=".1"/>'
-    +'<path d="'+path('suspicious')+'" fill="none" stroke="'+TR_COL.suspicious+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-    +'<path d="'+path('infected')+'" fill="none" stroke="'+TR_COL.infected+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-    +endLbl('suspicious','Suspicious')+endLbl('infected','Infected')
+    +(trShow.infected?'<path d="'+area('infected')+'" fill="'+TR_COL.infected+'" opacity=".1"/>':'')
+    +line('clean',true)+line('suspicious')+line('infected')
+    +endLbl('clean','Clean')+endLbl('suspicious','Suspicious')+endLbl('infected','Infected')
+    +'<g id="vt-tr-dots"></g>'
     +'<line id="vt-tr-x1" y1="'+T+'" y2="'+B1+'" stroke="#9ca3af" stroke-width="1" style="display:none"/>'
     +'<rect x="'+L+'" y="'+T+'" width="'+(W-L-R)+'" height="'+(B1-T)+'" fill="transparent"/></svg>';
 
@@ -2442,26 +2595,38 @@ function vtTrendDraw(){
 
   // Hover: one crosshair over both charts, with a tooltip
   const tip=document.getElementById('vt-tr-tip');
+  const dots=i=>{const g=document.getElementById('vt-tr-dots'); if(!g) return;
+    g.innerHTML=vis.map(k=>'<circle cx="'+x(i)+'" cy="'+y1(+days[i][k]||0)+'" r="4.5" fill="'+TR_COL[k]+'" stroke="'+TR_COL.surface+'" stroke-width="2"/>').join('');};
   document.querySelectorAll('#vt-tr-lines svg,#vt-tr-bars svg').forEach(svg=>{
-    svg.onmousemove=ev=>{
+    svg.style.cursor='crosshair';
+    svg.onclick=ev=>{
       const rc=svg.getBoundingClientRect(), px=(ev.clientX-rc.left)*W/rc.width;
       const i=Math.max(0,Math.min(n-1,Math.round((px-L)/step)));
+      trPin=trPin===i?null:i; svg.onmousemove(ev);
+    };
+    svg.onmousemove=ev=>{
+      const rc=svg.getBoundingClientRect(), px=(ev.clientX-rc.left)*W/rc.width;
+      const i=trPin??Math.max(0,Math.min(n-1,Math.round((px-L)/step)));
       const d=days[i];
+      dots(i);
       ['vt-tr-x1','vt-tr-x2'].forEach(id=>{const l=document.getElementById(id);l.setAttribute('x1',x(i));l.setAttribute('x2',x(i));l.style.display='';});
       tip.innerHTML='<b>'+trDate(d.date,1)+(d.demo?' (demo)':'')+'</b>'
         +'<div class="row"><span><i style="background:'+TR_COL.infected+'"></i>Infected</span><span>'+d.infected+'</span></div>'
         +'<div class="row"><span><i style="background:'+TR_COL.suspicious+'"></i>Suspicious</span><span>'+d.suspicious+'</span></div>'
         +'<div class="row"><span><i style="background:'+TR_COL.cleaned+'"></i>Cleaned</span><span>'+(d.cleaned||0)+'</span></div>'
-        +'<div class="row"><span>Clean sites</span><span>'+d.clean+' of '+d.total+'</span></div>';
+        +'<div class="row"><span><i style="background:'+TR_COL.clean+'"></i>Clean sites</span><span>'+d.clean+'</span></div>'
+        +(d.clean_rec!==d.clean?'<div class="row hint"><span>recorded that day</span><span>'+d.clean_rec+' of '+d.total+'</span></div>':'')
+        +(trPin!==null?'<div class="hint" style="margin-top:4px">Pinned · click again to release</div>':'');
       tip.style.display='block';
       const tx=ev.clientX+14+tip.offsetWidth>innerWidth?ev.clientX-tip.offsetWidth-14:ev.clientX+14;
       tip.style.left=tx+'px'; tip.style.top=(ev.clientY+12)+'px';
     };
-    svg.onmouseleave=()=>{tip.style.display='none';['vt-tr-x1','vt-tr-x2'].forEach(id=>document.getElementById(id).style.display='none');};
+    svg.onmouseleave=()=>{if(trPin!==null) return; tip.style.display='none'; document.getElementById('vt-tr-dots')&&(document.getElementById('vt-tr-dots').innerHTML='');
+      ['vt-tr-x1','vt-tr-x2'].forEach(id=>document.getElementById(id).style.display='none');};
   });
 
-  document.getElementById('vt-tr-table').innerHTML='<table><thead><tr><th>Date</th><th>Infected</th><th>Suspicious</th><th>Clean</th><th>Cleaned</th></tr></thead><tbody>'
-    +days.slice().reverse().map(d=>'<tr><td>'+trDate(d.date,1)+(d.demo?' (demo)':'')+'</td><td>'+d.infected+'</td><td>'+d.suspicious+'</td><td>'+d.clean+'</td><td>'+(d.cleaned||0)+'</td></tr>').join('')+'</tbody></table>';
+  document.getElementById('vt-tr-table').innerHTML='<table><thead><tr><th>Date</th><th>Infected</th><th>Suspicious</th><th>Clean (not flagged)</th><th>Clean recorded</th><th>Sites counted</th><th>Cleaned</th></tr></thead><tbody>'
+    +days.slice().reverse().map(d=>'<tr><td>'+trDate(d.date,1)+(d.demo?' (demo)':'')+'</td><td>'+d.infected+'</td><td>'+d.suspicious+'</td><td>'+d.clean+'</td><td>'+d.clean_rec+'</td><td>'+(d.total||0)+'</td><td>'+(d.cleaned||0)+'</td></tr>').join('')+'</tbody></table>';
 }
 window.addEventListener('resize',()=>{if(document.getElementById('vtpanel-trend')?.classList.contains('active'))vtTrendDraw();});
 
@@ -2915,7 +3080,9 @@ function fsJobHTML(j){
   }
 
   let pbar='';
-  if(prog){
+  if(j.state==='running'&&(j.pct!=null||j.indet)){
+    pbar='<div class="vt-q-pbar'+(j.indet?' indet':'')+'"><div style="width:'+(j.indet?30:Math.max(2,Math.min(100,j.pct)))+'%"></div></div>';
+  }else if(prog){
     pbar='<div class="vt-q-pbar"><div style="width:'+prog.pct+'%"></div></div>';
   }else if(j.state==='running'){
     const pct=Math.min(90,Math.round((Date.now()-j.startedAt)/300000*100));
@@ -2936,7 +3103,7 @@ function fsJobHTML(j){
   return '<div class="vt-q-item vt-q-fs '+j.state+'">'+icon
     +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(j.domain)
     +'<span class="vt-q-kind fs">'+vtEsc(j.label||fsName(j.scanner))+'</span></div>'
-    +'<div class="vt-q-msg">'+vtEsc(msg)+'</div>'+pbar+'</div>'
+    +'<div class="vt-q-msg">'+vtEsc(msg)+'</div>'+pbar+(j.stats?'<div class="vt-q-stats">'+vtEsc(j.stats)+'</div>':'')+'</div>'
     +'<div class="vt-q-right">'+right+'</div></div>';
 }
 
@@ -3087,6 +3254,12 @@ function loadSettingsForm(cfg){
   document.querySelectorAll('input[name=vt-n-ev]').forEach(c=>c.checked=evs.includes(c.value));
   const em=document.getElementById('vt-n-email');
   em.value=cfg.notify_email||'';
+  document.getElementById('vt-rv-name').value=cfg.review_name||'';
+  document.getElementById('vt-rv-company').value=cfg.review_company||'';
+  document.getElementById('vt-rv-email').value=cfg.review_email||'';
+  document.getElementById('vt-rv-email').placeholder=cfg.notify_email||cfg.my_email||'name@example.com';
+  reviewFrom={name:cfg.review_name||'',company:cfg.review_company||''};
+  if(cfg.review_email||cfg.notify_email) myEmail=cfg.review_email||cfg.notify_email;
   em.placeholder=cfg.my_email||'name@example.com';
   vtNotifyUi();
   if(cfg.daily_limit)       document.getElementById('vt-s-daily').value    =cfg.daily_limit;
@@ -3206,6 +3379,7 @@ window.vtMsTest=async function(){
 // ── Quarantine (Settings, administrator) ──────────────────────
 let qInfo=null;
 function vtQSize(b){return b<1024?b+' bytes':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
+window.vtQuarantineCancel=function(){vtRenderQuarantine(qInfo);};
 function vtRenderQuarantine(q){
   qInfo=q;
   const card=document.getElementById('vt-q-card'); card.style.display=q?'':'none'; if(!q) return;
@@ -3221,7 +3395,7 @@ window.vtQAsk=function(){
   document.getElementById('vt-q-del').innerHTML='<div class="vt-fa-q err"><strong>Delete all '+n+' quarantined file'+(n===1?'':'s')+' permanently?</strong> '
     +'They cannot be restored afterwards, not even by Stingy Scanner.</div>'
     +'<button type="button" class="vt-btn danger" onclick="vtQDeleteAll()">Delete permanently</button> '
-    +'<button type="button" class="vt-btn ghost" onclick="vtRenderQuarantine(qInfo)">Cancel</button>';
+    +'<button type="button" class="vt-btn ghost" onclick="vtQuarantineCancel()">Cancel</button>';
 };
 window.vtQDeleteAll=async function(){
   const el=document.getElementById('vt-q-del'); el.innerHTML='<span class="vt-spin"></span> Deleting…';
@@ -3304,7 +3478,18 @@ window.vtDetectScanners=async function(){
   else vtScMsg(false,res.error||'Could not detect');
 };
 
+// Feedback on every Save settings button (each section has one): Saving… → ✓ Saved / ✕ Not saved
+function vtSaveBtns(state,text){
+  document.querySelectorAll('button[onclick="vtSaveSettings()"]').forEach(b=>{
+    if(!b.dataset.label) b.dataset.label=b.textContent;
+    clearTimeout(b._t); b.classList.remove('vt-saved','vt-savefail');
+    if(state==='busy'){b.disabled=true; b.innerHTML='<span class="vt-spin"></span> Saving…'; return;}
+    b.disabled=false; b.textContent=text; b.classList.add(state==='ok'?'vt-saved':'vt-savefail');
+    b._t=setTimeout(()=>{b.textContent=b.dataset.label; b.classList.remove('vt-saved','vt-savefail');},2500);
+  });
+}
 window.vtSaveSettings=async function(){
+  if(document.querySelector('button[onclick="vtSaveSettings()"][disabled]')) return; // already saving
   const key  =document.getElementById('vt-s-apikey').value.trim();
   const daily=parseInt(document.getElementById('vt-s-daily').value)||500;
   const share=(parseInt(document.getElementById('vt-s-share').value)||80)/100;
@@ -3316,7 +3501,8 @@ window.vtSaveSettings=async function(){
   const payload={wordpress_only:wpOnly?'true':'false',wp_rogue_scan:rogueScan?'true':'false',
     wp_user_delete:document.getElementById('vt-s-wp-delete').checked?'true':'false',
     notify_enabled:document.getElementById('vt-n-enabled').checked?'true':'false',
-    notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
+    notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),
+    review_name:document.getElementById('vt-rv-name').value.trim(),review_company:document.getElementById('vt-rv-company').value.trim(),review_email:document.getElementById('vt-rv-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
     const rates={};
     for(const input of document.querySelectorAll('[data-check-rate]')){
@@ -3355,7 +3541,10 @@ window.vtSaveSettings=async function(){
 
   const body=new URLSearchParams(payload);
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  vtSaveBtns('busy');
   const res=await fetch(BASE+'?action=save-settings',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},body}).then(r=>r.json()).catch(()=>({error:'Network error'}));
+  if(res.ok){vtSaveBtns('ok','✓ Saved'); vtToast('Settings saved'+(res.gsb_message?': '+res.gsb_message:''),'ok');}
+  else{vtSaveBtns('err','✕ Not saved'); vtToast(res.error??'Error saving','err');}
   // Two save buttons (top and bottom of Settings): show the message next to both
   const msgs=['vt-smsg','vt-smsg2'].map(id=>document.getElementById(id)).filter(Boolean);
   const msg={set className(v){msgs.forEach(m=>m.className=v);},set textContent(v){msgs.forEach(m=>m.textContent=v);},
@@ -3854,10 +4043,10 @@ function fsBarHTML(domain){
 const VT_FP_LIST='https://docs.virustotal.com/docs/false-positive-contacts';
 const VT_FP={
   abusix:'https://lookup.abusix.com/', adminus:'samples@adminus.net', rising:'fp@rising.com.cn', acronis:'virustotal-falsepositive@acronis.com', ailabs:'aicc@monitorapp.com',
-  alibaba:'virustotal@list.alibaba-inc.com', alienvault:'otx-support@alienvault.com', alphamountain:'https://www.alphamountain.ai/false-positive/',
+  alibaba:'virustotal@list.alibaba-inc.com', alienvault:'otx-support@alienvault.com', alphamountain:'https://alphamountain.freshdesk.com/support/tickets/new',
   alphasoc:'virustotal@alphasoc.com', antiy:'avlsdk_support@antiy.cn', arcsight:'virustotalsupport@opentext.com',
   avira:'https://www.avira.com/en/analysis/submit-url', antivir:'https://www.avira.com/en/analysis/submit-url',
-  avast:'DL-Virus@gendigital.com', avg:'http://www.avg.com/us-en/whitelist', bitdefender:'https://www.bitdefender.com/submit',
+  avast:'DL-Virus@gendigital.com', avg:'https://www.avg.com/en-ww/report-false-positive', bitdefender:'https://www.bitdefender.com/submit',
   bfore:'https://portal.bfore.ai/knowledge-base/kb-tickets/new', blueliv:'klabs_services@outpost24.com', certego:'fp@certego.net', chainpatrol:'dispute@chainpatrol.io',
   chongluadao:'https://chongluadao.vn/en/report/reportmistake', cins:'http://cinsscore.com/#contact', cleanmx:'abuse@clean-mx.de', cluster25:'threatintel@cluster25.io',
   crdf:'https://threatcenter.crdf.fr/false_positive.html', criminalip:'support@aispera.com', crowdstrike:'VTscanner@crowdstrike.com',
@@ -3865,7 +4054,7 @@ const VT_FP={
   desenmascara:'vt-falsepositives@desenmascara.me', dns8:'dns8@layer8.pt', drweb:'vms@drweb.com', elastic:'https://discuss.elastic.co/t/submitting-false-positives/232322',
   emsisoft:'fp@emsisoft.com', estsecurity:'esrc@estsecurity.com', alyac:'esrc@estsecurity.com', emergingthreats:'support@emergingthreats.net', ermes:'support-vt@ermes.company',
   eset:'https://support.eset.com/kb141/?page=content&id=SOLN141', forcepoint:'reviewmysite@forcepoint.com',
-  fortinet:'https://www.fortiguard.com/faq/malurl', gdata:'https://www.gdata.de/help/en/general/GeneralInformation/submitFileAppURL/',
+  fortinet:'https://www.fortiguard.com/faq/malurl', gdata:'https://submit.gdatasoftware.com/privacy',
   googlesafebrowsing:'https://safebrowsing.google.com/safebrowsing/report_error/?hl=en', greensnow:'https://greensnow.co/contact',
   gridinsoft:'https://portal.gridinsoft.com/false-positive', guardpot:'virustotal@guardpot.com', heimdal:'report-vt@heimdalsecurity.com', ikarus:'fp@ikarus.at',
   ipsum:'https://github.com/stamparm/ipsum', k7:'reportfp@labs.k7computing.com', kaspersky:'newvirus@kaspersky.com',
@@ -3890,11 +4079,12 @@ const VT_FP={
 };
 // Short tips per vendor, from their own help pages and what site owners report
 const VT_FP_TIP={
-  alphamountain:'Ticket form; you have to log in or sign up first. Takes up to 24 h to apply after approval.',
+  gdata:'G Data\'s submission site first asks you to agree to its privacy terms and to pass an "I am human" check (do that yourself; it is not remembered for long). The form after it is made for file samples and takes no values from Stingy Scanner: choose "File has been incorrectly classified as malicious", put the site address under "Where did you get this file?", paste the copied text into Comment and add your e-mail. If it insists on a file, use G Data\'s contact form instead.',
+  alphamountain:'Ticket form on alphaMountain\'s Freshdesk; log in or sign up first (your e-mail address is then filled in). The form cannot be filled from here: the text for the description is copied when you click. Subject: False positive: the domain name; Website: the site address. Takes up to 24 h to apply after approval.',
   gridinsoft:'Website form. It works without an account only for an e-mail address that has not been used there before; otherwise create a free Gridinsoft account first. Give the full address and proof the site was cleaned; no passwords or tokens in the URL.',
   sophos:'Choose "Web Address (URL)". No Sophos account needed; usually 24–72 h.',
   bitdefender:'Choose "False positive" and "URL". Mention you own the site and add the VirusTotal link.',
-  fortinet:'Malicious URL Appeal form: the URL, your name, e-mail and company, and a short comment.',
+  fortinet:'Opens the Malicious URL Appeal form with the URL, your name, e-mail and company filled in (Settings → Review requests). The comment box cannot be filled from here: the text for it is copied when you click, so paste it there.',
   chongluadao:'Complaint form for mislabelled sites.',
   trustwave:'Form for VirusTotal detections.',
   bfore:'Ticket form.',
@@ -3904,16 +4094,27 @@ const VT_FP_TIP={
   cyradar:'Form at cyradar.com/reportfp — no separate domain field, put the domain in the Message box.',
   malwareurl:'No form; e-mail with the VirusTotal link.',
   spamhaus:'Check the domain first; removal needs the cause fixed.',
-  avg:'The whitelist form asks for your AVG Browser extension ID. This ID is only shown in the full AVG Browser app — not in a Chrome/Firefox extension. Download and open AVG Browser, go to Settings → Extensions, and copy the ID of the AVG Online Security extension. Paste it into the form together with the site URL.',
-  avast:'The whitelist form is shared with AVG (both are Gen Digital). If the form asks for a browser extension ID, download the full Avast Browser (not the Chrome extension), go to Settings → Extensions, copy the ID of the Avast Online Security extension, and paste it into the form.'
+  avg:'Stingy Scanner opens AVG\'s form already filled in: Website, the site address, your e-mail address, the detection name, the alert ID and a description. You only tick the reCAPTCHA and click Send. The alert ID is on AVG Web Shield\'s block page: open the site in a browser with AVG and Web Shield on (it is blocked, which is safe), copy the ID and enter it in the Alert ID box here first.',
+  avast:'Avast and AVG share the form (both are Gen Digital). If it asks for an alert ID: open the site with Avast Web Shield on, copy the ID from the block page, and mention the detection name shown here.'
 };
+// How to ask each vendor for a review. From vendors.json (the copy in the data folder, else the one in the package),
+// sent with the page data; until then, or without that file, the built-in list above (addresses and advice only).
+function vtBuiltinVendors(){
+  const o={};
+  for(const k in VT_FP){ const c=VT_FP[k]; o[k]={form:c,method:(c.includes('@')&&!/^https?:/i.test(c))?'email':'form',copy:'url'}; if(VT_FP_TIP[k]) o[k].advice=VT_FP_TIP[k]; }
+  return o;
+}
+let VENDORS=vtBuiltinVendors(), vendorSrc='built-in';
 function vtFpKey(vendor){
   const n=String(vendor).toLowerCase().replace(/[^a-z0-9]/g,'');
   let best='';
-  for(const k in VT_FP) if(n.startsWith(k)&&k.length>best.length) best=k;
+  for(const k in VENDORS){
+    for(const m of [k,...(VENDORS[k].match||[])]) if(n.startsWith(m)&&m.length>best.length){ best=k; }
+  }
   return best;
 }
-function vtFpContact(vendor){const k=vtFpKey(vendor);return k?VT_FP[k]:'';}
+function vtFpContact(vendor){const k=vtFpKey(vendor);return k?VENDORS[k].form:'';}
+function vtVendorOf(vendor){const k=vtFpKey(vendor);return k?Object.assign({key:k},VENDORS[k]):null;}
 function vtRevDone(domain,vendor){
   const r=reviews[domain]?.[vendor]; if(!r) return '';
   const d=new Date(r.ts*1000), p=n=>String(n).padStart(2,'0');
@@ -3963,14 +4164,22 @@ window.vtCopyReviewUrl=function(url){
     if(previous&&previous.focus) previous.focus({preventScroll:true});
     return copied;
   };
-  const done=()=>vtToast('Site URL copied: '+url,'ok');
-  const failed=()=>vtToast('Could not copy automatically. Site URL: '+url,'info');
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    try{
-      navigator.clipboard.writeText(url).then(done,()=>{fallback()?done():failed();});
-    }catch(e){fallback()?done():failed();}
-  }else{fallback()?done():failed();}
+  const done=()=>vtToast('Site address copied: '+url,'ok');
+  const failed=()=>vtToast('Could not copy automatically. Site address: '+url,'info');
+  // First the old way, still inside the click: the clipboard API is often refused inside the Plesk frame,
+  // and once it has refused, the click no longer counts and the old way fails too
+  if(fallback()) return done();
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,failed);
+  else failed();
 };
+// Copy text without a message; true when it worked
+function vtCopyText(text){
+  const t=document.createElement('textarea'); t.value=text; t.setAttribute('readonly',''); t.style.cssText='position:fixed;top:0;left:-9999px';
+  const prev=document.activeElement; document.body.appendChild(t); t.select();
+  let ok=false; try{ok=document.execCommand('copy');}catch(e){} t.remove(); if(prev&&prev.focus) prev.focus({preventScroll:true});
+  if(!ok&&navigator.clipboard?.writeText){ navigator.clipboard.writeText(text).catch(()=>{}); }
+  return ok;
+}
 window.vtReviewMark=async function(domain,vendor,remove,via,to,deniedReason){
   const denied=typeof deniedReason==='string';
   if(!remove&&!denied) vtCopyReviewUrl('https://'+domain+'/');
@@ -3987,14 +4196,133 @@ window.vtReviewMark=async function(domain,vendor,remove,via,to,deniedReason){
   }catch(e){vtToast('Could not save the review request','error');}
   vtFsRefresh(domain); vtLoadSiteHist(domain); if(currentTool==='vendors') vtVendorsRender();
 };
+// ── Ready-made texts for review requests ─────────────────────
+// A vendor's form always has a free text box. 📋 text copies a polite, factual request to paste there; every click gives
+// another wording. It says the site was checked and cleaned: only send it when that is true.
+const RT_PICK=a=>a[Math.floor(Math.random()*a.length)];
+const rvCompany=()=>reviewFrom.company||(String(myEmail).split('@')[1]||''); // Company in Settings, else the domain of your e-mail address
+function vtVerdictOf(domain,vendor){
+  const k=vtFpKey(vendor);
+  if(k==='avg'||k==='avast'){
+    const pid=k==='avg'?147:146, f=(avast.results?.[domain]?.[pid]?.findings||[])[0];
+    if(f) return String(f.classification||'').replace(/^URL:/,'').toLowerCase()+(f.detection?' ('+f.detection+')':'');
+  }
+  const hit=(results[domain]?.flagged_by||[]).find(x=>String(x).toLowerCase().startsWith(String(vendor).toLowerCase()+':'));
+  return hit?String(hit).slice(String(hit).indexOf(': ')+2):'malicious';
+}
+function vtReviewText(domain,vendor){
+  const url='https://'+domain+'/', v=vendor, cls=vtVerdictOf(domain,vendor);
+  const art=/^[aeiou]/i.test(cls)?'an':'a';
+  const hello=RT_PICK(['Hello '+v+' team,','Dear '+v+' team,','Hello,','Dear Sir or Madam,']);
+  const intro=RT_PICK([
+    v+' currently lists '+url+' as '+cls+'. I manage this website'+(rvCompany()?' at '+rvCompany():'')+'.',
+    'I am '+(rvCompany()?'with '+rvCompany()+', ':'')+'responsible for the website '+url+', which '+v+' classifies as '+cls+'.',
+    'Our website '+url+' is flagged by '+v+' as '+art+' '+cls+' site.',
+    'The website '+url+', which I look after'+(rvCompany()?' for '+rvCompany():'')+', is marked as '+cls+' by '+v+'.']);
+  const steps=[
+    'we checked the website files with a malware scanner and removed what was found',
+    'the software of the site (CMS, plugins and theme) has been updated',
+    'the passwords of all administrator accounts were changed and unknown admin accounts removed',
+    'the server keeps checking the site for malware and for its reputation every day'];
+  const pick=steps.sort(()=>Math.random()-.5).slice(0,RT_PICK([2,3]));
+  const list=pick.slice(0,-1).join(', ')+' and '+pick[pick.length-1];
+  const done=RT_PICK([
+    'The site has been cleaned: '+list+'.',
+    'We have cleaned and secured the site. In short: '+pick.join('; ')+'.',
+    'Since the warning, '+list+'.']);
+  const proof=RT_PICK(['VirusTotal report: https://www.virustotal.com/gui/domain/'+domain+'/detection',
+    'You can see the current results on VirusTotal: https://www.virustotal.com/gui/domain/'+domain+'/detection']);
+  const ask=RT_PICK([
+    'Could you please review the site and remove the detection?',
+    'We kindly ask you to re-evaluate the site and update its classification.',
+    'Please review the domain and remove it from your list if you agree that it is safe.',
+    'Would you be so kind as to check it again and lift the block?']);
+  const bye=RT_PICK(['Thank you for your help.','Thanks in advance.','Many thanks for looking into this.']);
+  const sign=[reviewFrom.name,rvCompany(),myEmail].filter(Boolean).join('\n');
+  return hello+'\n\n'+intro+' '+done+'\n\n'+proof+'\n\n'+ask+' '+bye+(sign?'\n\nKind regards,\n'+sign:'');
+}
+window.vtCopyReviewText=function(domain,vendor){
+  const ok=vtCopyText(vtReviewText(domain,vendor));
+  vtToast(ok?'Text for the '+vendor+' form copied: paste it into the description box.':'Click 📋 text to see the text and copy it.',ok?'ok':'info');
+};
+window.vtReviewTextPanel=function(domain,vendor){
+  document.getElementById('vt-rt-panel')?.remove();
+  const d=document.createElement('div'); d.id='vt-rt-panel'; d.className='vt-rt-panel'; d.setAttribute('role','dialog'); d.setAttribute('aria-label','Text for the review request');
+  d.innerHTML='<div class="vt-rt-box"><div class="vt-rt-head"><strong>Text for '+vtEsc(vendor)+'</strong> <span class="hint">'+vtEsc(domain)+'</span><span style="flex:1"></span><a class="vt-rt-x" title="Close">✕</a></div>'
+    +'<div class="hint" style="margin:4px 0 8px">Paste this into the form\'s description or comment box. Check it first: it says the site was checked and cleaned. You can edit it here.</div>'
+    +'<textarea class="vt-rt-txt" rows="12"></textarea>'
+    +'<div class="vt-rt-acts"><button type="button" class="vt-btn primary vt-rt-copy">Copy text</button> <button type="button" class="vt-btn ghost vt-rt-new">Another wording</button> <span class="vt-rt-msg hint"></span></div></div>';
+  document.body.appendChild(d);
+  const ta=d.querySelector('textarea'), msg=d.querySelector('.vt-rt-msg');
+  ta.value=vtReviewText(domain,vendor);
+  const close=()=>d.remove();
+  d.querySelector('.vt-rt-x').onclick=close;
+  d.onclick=e=>{if(e.target===d) close();};
+  d.querySelector('.vt-rt-new').onclick=()=>{ta.value=vtReviewText(domain,vendor); msg.textContent='';};
+  d.querySelector('.vt-rt-copy').onclick=()=>{
+    ta.focus(); ta.select();
+    let ok=false; try{ok=document.execCommand('copy');}catch(e){}
+    if(!ok&&navigator.clipboard?.writeText) navigator.clipboard.writeText(ta.value).then(()=>{msg.textContent='✓ Copied';},()=>{msg.textContent='Select the text and press Ctrl+C';});
+    else msg.textContent=ok?'✓ Copied':'Select the text and press Ctrl+C';
+  };
+  document.addEventListener('keydown',function esc(e){if(e.key==='Escape'){close();document.removeEventListener('keydown',esc);}});
+  ta.focus();
+};
+function vtTextBtn(domain,vendor){
+  return ' <a class="vt-rt-btn" onclick="event.stopPropagation();vtReviewTextPanel(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\')" title="Show a ready-made text for the form\'s description box, to copy or edit">📋 text</a>';
+}
+// Fortinet's appeal form fills URL, name, e-mail and company from the address (not the comment: that one comes from 📋)
+// The vendor's form address; for a form that takes its fields from the address ("fill" in vendors.json) with those filled in
+function vtDetectionOf(domain,key){
+  const pid=key==='avg'?147:key==='avast'?146:0, f=pid?(avast.results?.[domain]?.[pid]?.findings||[])[0]:null;
+  return f?String(f.detection||'').slice(0,30):'';
+}
+function vtVendorUrl(v,domain,vendor){
+  if(!v.fill) return v.form;
+  const vars={site:'https://'+domain+'/',domain,my_email:myEmail||'',my_name:reviewFrom.name||'',my_company:rvCompany(),
+    detection:vtDetectionOf(domain,v.key),classification:vtVerdictOf(domain,vendor),alert_id:alertIds[domain]?.[v.key]||''};
+  const q=new URLSearchParams();
+  for(const [field,tpl] of Object.entries(v.fill)){
+    const val=String(tpl).replace(/\{(\w+)\}/g,(m,x)=>x==='text'?vtReviewText(domain,vendor):(vars[x]??''));
+    if(val.trim()) q.set(field,val);
+  }
+  const qs=q.toString();
+  return qs?v.form+(v.form.includes('?')?'&':'?')+qs:v.form;
+}
+// AVG (the direct AVG check in a site's details) uses the same entry
+function vtAvgFormUrl(domain){
+  const v=vtVendorOf('AVG');
+  return v?vtVendorUrl(v,domain,'AVG'):'https://www.avg.com/en-ww/report-false-positive';
+}
+function vtAlertIdHTML(domain){
+  const v=alertIds[domain]?.avg||'';
+  return '<span class="vt-alert-id"><label>Alert ID <input type="text" maxlength="20" value="'+vtEsc(v)+'" placeholder="from the block page" '
+    +'onchange="vtSetAlertId(\''+vtEsca(domain)+'\',this)" onclick="event.stopPropagation()"></label>'+(v?' <span class="vt-alert-ok">✓ saved</span>':'')+'</span>';
+}
+window.vtSetAlertId=async function(domain,inp){
+  const v=inp.value.trim();
+  const fpToken=document.getElementById('forgery_protection_token')?.content||'';
+  const r=await fetch(BASE+'?action=alert-id',{method:'POST',headers:{'X-Forgery-Protection-Token':fpToken},body:new URLSearchParams({domain,vendor:'avg',alert_id:v})})
+    .then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(!r.ok){ vtToast(r.error||'Could not save the alert ID','err'); return; }
+  alertIds[domain]=r.alert_ids||{}; if(!Object.keys(alertIds[domain]).length) delete alertIds[domain];
+  vtToast(v?'Alert ID saved: the AVG form opens with it filled in':'Alert ID removed','ok');
+  if(fsOpen[domain]==='vt') vtFsRefresh(domain);
+  if(currentTool==='vendors') vtVendorsRender();
+};
 function vtFpLink(vendor,domain,showTip=true){
-  const k=vtFpKey(vendor), c=k?VT_FP[k]:'', tip=showTip&&k&&VT_FP_TIP[k]?'<div class="vt-why-tip">'+vtEsc(VT_FP_TIP[k])+'</div>':'';
-  const via=c.includes('@')?'email':'form';
-  const mark=' onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',0,\''+via+'\',\''+vtEsca(c)+'\')"', done=vtRevDone(domain,vendor);
-  if(!c) return '<a data-site-url="'+vtEsc('https://'+domain+'/')+'" onclick="vtCopyReviewUrl(this.dataset.siteUrl)" href="'+VT_FP_LIST+'" target="_blank" rel="noopener">find the contact</a>';
-  if(c.includes('@')) return '<a'+mark+' href="mailto:'+vtEsc(c)+'?subject='+encodeURIComponent('Review request: '+domain+' has been cleaned')
-    +'&body='+encodeURIComponent('Hello,\n\nThe website '+domain+' is flagged by your service on VirusTotal:\nhttps://www.virustotal.com/gui/domain/'+domain+'/detection\n\nThe site has been cleaned and secured. Could you review it and remove it from your list?\n\nThank you.')+'">'+vtEsc(c)+'</a>'+done+tip;
-  return '<a'+mark+' href="'+vtEsc(c)+'" target="_blank" rel="noopener">request a review ↗</a>'+done+tip;
+  const v=vtVendorOf(vendor), tip=showTip&&v?.advice?'<div class="vt-why-tip">'+vtEsc(v.advice)+'</div>':'';
+  const done=vtRevDone(domain,vendor);
+  if(!v||!v.form) return '<a data-site-url="'+vtEsc('https://'+domain+'/')+'" onclick="vtCopyReviewUrl(this.dataset.siteUrl)" href="'+VT_FP_LIST+'" target="_blank" rel="noopener">find the contact</a>';
+  const mark=(via,to)=>'vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\',0,\''+via+'\',\''+vtEsca(to)+'\')';
+  if(v.method==='email') return '<a onclick="'+mark('email',v.form)+'" href="mailto:'+vtEsc(v.form)+'?subject='+encodeURIComponent('Review request: '+domain+' has been cleaned')
+    +'&body='+encodeURIComponent(vtReviewText(domain,vendor))+'">'+vtEsc(v.form)+'</a>'+done+vtTextBtn(domain,vendor)+tip;
+  // A form: opened (filled in when it allows that); the site address or the ready-made text goes on the clipboard
+  const copyText=v.copy==='text'?';setTimeout(()=>vtCopyReviewText(\''+vtEsca(domain)+'\',\''+vtEsca(vendor)+'\'),80)':'';
+  const title=v.method==='prefill'?'Opens the form with your details filled in'+(v.copy==='text'?'; the text for the description is copied':'')
+    :v.copy==='text'?'Opens the vendor\'s form; the text for the description is copied':'Opens the vendor\'s form; the site address is copied';
+  return '<a onclick="'+mark('form',v.form)+copyText+'" href="'+vtEsc(vtVendorUrl(v,domain,vendor))+'" target="_blank" rel="noopener" title="'+vtEsc(title)+'">request a review ↗</a>'
+    +done+vtTextBtn(domain,vendor)+(v.alert_id?' '+vtAlertIdHTML(domain):'')+tip;
 }
 function vtWhyRowHTML(domain,st){
   const d=results[domain]||{}, e=vtEsca(domain);
@@ -4009,7 +4337,12 @@ function vtWhyRowHTML(domain,st){
   // Only for a red or orange site: for a clean one the explanation is not needed
   if(['infected','suspicious'].includes(st)||list.length) h+='<div class="vt-why-note"><strong>Already cleaned the site, and it is still red or orange?</strong> That is normal for a while. '
     +'This status comes from VirusTotal, not from the files on the server. Each vendor below keeps its own blocklist and updates it on its own schedule: '
-    +'some within hours, others only after days or weeks, and some only when you ask.</div>';
+    +'some within hours, others only after days or weeks, and some only when you ask.</div>'
+    +'<div class="vt-why-note"><strong>Turned red, or worse, while nothing changed on the site?</strong> The overall verdict is VirusTotal&rsquo;s, not Stingy Scanner&rsquo;s: '
+    +'one vendor that calls the site <em>malicious</em> makes it <strong>infected</strong> (red); vendors that only call it <em>suspicious</em> make it orange. '
+    +'VirusTotal regularly <strong>adds new vendors</strong>, and a newly added vendor that already had the site on its blocklist can turn it from suspicious to infected overnight, '
+    +'without a new infection. Compare the vendors below with the site&rsquo;s history: a vendor that appears there for the first time may simply be new on VirusTotal. '
+    +'Check the site anyway (file scan, admin accounts), and ask that vendor for a review if the site is clean.</div>';
   if(list.length||avast.products?.length||gsb.enabled){
     // First the vendors of VirusTotal, below them the extra services switched on in Settings
     const extra=vtGsbRow(domain)+vtAvastRow(domain), tot=d.total?' of '+d.total:'';
@@ -4128,7 +4461,13 @@ function vtAvastRow1(domain,pr){
     else if(!r.findings?.length) verdict='<span class="vt-sh-pill good">No classification received</span>'+meta;
     else{
       verdict=r.findings.map(f=>'<span class="vt-sh-pill bad">'+vtEsc(f.classification)+'</span> <code>'+vtEsc(f.detection||f.raw)+'</code>').join('<br>')+meta;
-      action='<a onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(pr.name)+'\',0,\'form\',\''+vtEsca(pr.form)+'\')" href="'+vtEsc(pr.form)+'" target="_blank" rel="noopener">report a false positive ↗</a>'
+      action=pr.id===147
+        ?'<a onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(pr.name)+'\',0,\'form\',\''+vtEsca(pr.form)+'\')" href="'+vtEsc(vtAvgFormUrl(domain))+'" target="_blank" rel="noopener" title="Opens AVG\'s form filled in; tick the reCAPTCHA and click Send">report a false positive ↗</a>'
+          +vtRevDone(domain,pr.name)+' '+vtAlertIdHTML(domain)
+          +'<div class="vt-why-tip">Opens AVG\'s form <strong>already filled in</strong>: Website, the site address, your e-mail address, the detection name'
+          +(alertIds[domain]?.avg?', the alert ID':'')+' and a description. Only tick the reCAPTCHA and click <strong>Send</strong>. '
+          +(alertIds[domain]?.avg?'':'Enter the <strong>Alert ID</strong> first: it is on AVG Web Shield\'s block page when you open the site on a computer with AVG (blocked, so safe). ')+'</div>'
+        :'<a onclick="vtReviewMark(\''+vtEsca(domain)+'\',\''+vtEsca(pr.name)+'\',0,\'form\',\''+vtEsca(pr.form)+'\')" href="'+vtEsc(pr.form)+'" target="_blank" rel="noopener">report a false positive ↗</a>'
         +vtRevDone(domain,pr.name)+'<div class="vt-why-tip">Official '+n+' form; choose <strong>URL</strong> and enter the site address. '
         +'The form asks for an <strong>Alert ID</strong>: that is not the code above, it only appears in the warning popup of the '+n+' app on a computer that blocks the site. '
         +'Leave it empty if the form allows it, or open the site on a PC with '+n+' installed and copy the Alert ID from the popup. '
@@ -4431,6 +4770,7 @@ function fsProgress(r){
   return {pct,files,left};
 }
 function vtFsRefresh(domain){updateRow(domain,results[domain]||null);}
+window.vtFsRefresh=vtFsRefresh;
 window.vtFsClose=function(domain){delete fsOpen[domain];vtFsRefresh(domain);};
 window.vtFsClick=function(domain,id){
   if(fsOpen[domain]===id){vtWhyClick(domain);return;}  // click again: back to the details
@@ -4544,6 +4884,7 @@ function vtWpUsersRefresh(domain){
   if(fsOpen[domain]==='vt') updateRow(domain,results[domain]||null);
 }
 
+window.vtWpUsersLoad=(...a)=>vtWpUsersLoad(...a);
 async function vtWpUsersLoad(domain,force){
   if(!scIsAdmin||extSet.has(domain)) return;
   if(!force&&wpUsersData[domain]&&wpUsersData[domain]!=='loading') return;
@@ -4784,6 +5125,12 @@ function awExplainHTML(x,ev){
   }
   return h;
 }
+// The search box is drawn again on every keystroke: keep the cursor in it
+window.vtAwSetSearch=function(v){
+  awSearch=v; vtAwRender();
+  const i=document.querySelector('#vt-aw-box .vt-aw-search'); if(i){i.focus(); i.setSelectionRange(v.length,v.length);}
+};
+window.vtAwSetFilter=function(v){awFilter=v; vtAwRender();};
 function vtAwRender(){
   const box=document.getElementById('vt-aw-box');
   if(!aw){
@@ -4822,9 +5169,9 @@ function vtAwRender(){
   );
   // Toolbar
   let h='<div class="vt-aw-toolbar">'
-    +'<input class="vt-aw-search" type="search" placeholder="Search domain, account\u2026" value="'+vtEsc(awSearch)+'" oninput="awSearch=this.value;vtAwRender()">'
+    +'<input class="vt-aw-search" type="search" placeholder="Search domain, account\u2026" value="'+vtEsc(awSearch)+'" oninput="vtAwSetSearch(this.value)">'
     +'<div style="display:flex;gap:4px">'
-    +['all','pending','approved'].map(v=>'<button type="button" class="vt-btn'+(awFilter===v?' active':' ghost')+'" style="font-size:12px;padding:3px 8px" onclick="awFilter=\''+v+'\';vtAwRender()">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>').join('')
+    +['all','pending','approved'].map(v=>'<button type="button" class="vt-btn'+(awFilter===v?' active':' ghost')+'" style="font-size:12px;padding:3px 8px" onclick="vtAwSetFilter(\''+v+'\')">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>').join('')
     +'</div>'
     +(aw.can_scan?'<button type="button" class="vt-btn ghost" onclick="vtAwScan(this)">Scan now</button>':'')
     +'<span class="hint" style="margin-left:auto">Last scan: '+awTime(aw.last)+'</span>'

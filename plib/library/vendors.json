@@ -1,0 +1,572 @@
+{
+  "_about": "How Stingy Reputation Scanner asks each security vendor for a review (false positive). One entry per vendor; the key is the vendor name in lower case without spaces or punctuation (it matches the start of the name VirusTotal uses). form: the false positive form, or an e-mail address. method: form (open it; copy decides what goes on the clipboard), prefill (the form takes the fields in \"fill\" from its address), email (a ready e-mail opens). fill: form field name -> value, with {site} {domain} {my_email} {my_name} {my_company} {detection} {classification} {alert_id} {text}; empty values are left out. copy: url (the site address), text (the ready-made description), none. advice: shown under the link. alert_id: show the Alert ID box. captcha, account, tested: what we know about the form. A copy of this file in the extension's data folder (/usr/local/psa/var/modules/stingyscan/data/vendors.json) is used instead of this one.",
+  "updated": "2026-11-27",
+  "vendors": {
+    "abusix": {
+      "form": "https://lookup.abusix.com/",
+      "method": "form",
+      "copy": "url"
+    },
+    "acronis": {
+      "form": "virustotal-falsepositive@acronis.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "adminus": {
+      "form": "samples@adminus.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "ailabs": {
+      "form": "aicc@monitorapp.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "alibaba": {
+      "form": "virustotal@list.alibaba-inc.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "alienvault": {
+      "form": "otx-support@alienvault.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "alphamountain": {
+      "form": "https://alphamountain.freshdesk.com/support/tickets/new",
+      "method": "form",
+      "copy": "text",
+      "advice": "Ticket form on alphaMountain's Freshdesk; log in or sign up first (your e-mail address is then filled in). The form cannot be filled from here: the text for the description is copied when you click. Subject: False positive: the domain name; Website: the site address. Takes up to 24 h to apply after approval.",
+      "account": true,
+      "tested": "2026-11-27"
+    },
+    "alphasoc": {
+      "form": "virustotal@alphasoc.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "alyac": {
+      "form": "esrc@estsecurity.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "antivir": {
+      "form": "https://www.avira.com/en/analysis/submit-url",
+      "method": "form",
+      "copy": "url"
+    },
+    "antiy": {
+      "form": "avlsdk_support@antiy.cn",
+      "method": "email",
+      "copy": "url"
+    },
+    "arcsight": {
+      "form": "virustotalsupport@opentext.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "avast": {
+      "form": "DL-Virus@gendigital.com",
+      "method": "email",
+      "copy": "url",
+      "advice": "Avast and AVG share the form (both are Gen Digital). If it asks for an alert ID: open the site with Avast Web Shield on, copy the ID from the block page, and mention the detection name shown here."
+    },
+    "avg": {
+      "form": "https://www.avg.com/en-ww/report-false-positive",
+      "method": "prefill",
+      "copy": "none",
+      "advice": "Stingy Scanner opens AVG's form already filled in: Website, the site address, your e-mail address, the detection name, the alert ID and a description. You only tick the reCAPTCHA and click Send. The alert ID is on AVG Web Shield's block page: open the site in a browser with AVG and Web Shield on (it is blocked, which is safe), copy the ID and enter it in the Alert ID box here first.",
+      "alert_id": true,
+      "captcha": "reCAPTCHA",
+      "tested": "2026-11-27",
+      "fill": {
+        "choice": "website",
+        "url": "{site}",
+        "email": "{my_email}",
+        "detection_name": "{detection}",
+        "alert_id": "{alert_id}",
+        "description": "{text}"
+      }
+    },
+    "avira": {
+      "form": "https://www.avira.com/en/analysis/submit-url",
+      "method": "form",
+      "copy": "url"
+    },
+    "bfore": {
+      "form": "https://portal.bfore.ai/knowledge-base/kb-tickets/new",
+      "method": "form",
+      "copy": "url",
+      "advice": "Ticket form."
+    },
+    "bitdefender": {
+      "form": "https://www.bitdefender.com/submit",
+      "method": "form",
+      "copy": "url",
+      "advice": "Choose \"False positive\" and \"URL\". Mention you own the site and add the VirusTotal link."
+    },
+    "blueliv": {
+      "form": "klabs_services@outpost24.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "certego": {
+      "form": "fp@certego.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "chainpatrol": {
+      "form": "dispute@chainpatrol.io",
+      "method": "email",
+      "copy": "url"
+    },
+    "chongluadao": {
+      "form": "https://chongluadao.vn/en/report/reportmistake",
+      "method": "form",
+      "copy": "url",
+      "advice": "Complaint form for mislabelled sites."
+    },
+    "cins": {
+      "form": "http://cinsscore.com/#contact",
+      "method": "form",
+      "copy": "url"
+    },
+    "cleanmx": {
+      "form": "abuse@clean-mx.de",
+      "method": "email",
+      "copy": "url"
+    },
+    "cluster25": {
+      "form": "threatintel@cluster25.io",
+      "method": "email",
+      "copy": "url"
+    },
+    "comodo": {
+      "form": "support@xcitium.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "crdf": {
+      "form": "https://threatcenter.crdf.fr/false_positive.html",
+      "method": "form",
+      "copy": "url",
+      "advice": "False positive form at threatcenter.crdf.fr — paste each URL on a separate line; multiple URLs in one submission are accepted."
+    },
+    "criminalip": {
+      "form": "support@aispera.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "crowdstrike": {
+      "form": "VTscanner@crowdstrike.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "csis": {
+      "form": "abuse-reporting@csis.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "cyble": {
+      "form": "cyblevt_patnership@cyble.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "cyradar": {
+      "form": "https://cyradar.com/reportfp/",
+      "method": "form",
+      "copy": "url",
+      "advice": "Form at cyradar.com/reportfp — no separate domain field, put the domain in the Message box."
+    },
+    "desenmascara": {
+      "form": "vt-falsepositives@desenmascara.me",
+      "method": "email",
+      "copy": "url"
+    },
+    "dns8": {
+      "form": "dns8@layer8.pt",
+      "method": "email",
+      "copy": "url"
+    },
+    "drweb": {
+      "form": "vms@drweb.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "elastic": {
+      "form": "https://discuss.elastic.co/t/submitting-false-positives/232322",
+      "method": "form",
+      "copy": "url"
+    },
+    "emergingthreats": {
+      "form": "support@emergingthreats.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "emsisoft": {
+      "form": "fp@emsisoft.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "ermes": {
+      "form": "support-vt@ermes.company",
+      "method": "email",
+      "copy": "url"
+    },
+    "eset": {
+      "form": "https://support.eset.com/kb141/?page=content&id=SOLN141",
+      "method": "form",
+      "copy": "url"
+    },
+    "estsecurity": {
+      "form": "esrc@estsecurity.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "forcepoint": {
+      "form": "reviewmysite@forcepoint.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "fortinet": {
+      "form": "https://www.fortiguard.com/faq/malurl",
+      "method": "prefill",
+      "copy": "text",
+      "advice": "Opens the Malicious URL Appeal form with the URL, your name, e-mail and company filled in (Settings → Review requests). The comment box cannot be filled from here: the text for it is copied when you click, so paste it there.",
+      "tested": "2026-11-27",
+      "fill": {
+        "url": "{site}",
+        "name": "{my_name}",
+        "email": "{my_email}",
+        "company": "{my_company}"
+      }
+    },
+    "gdata": {
+      "form": "https://submit.gdatasoftware.com/url",
+      "method": "form",
+      "copy": "text",
+      "captcha": "Friendly Captcha",
+      "tested": "2026-11-27",
+      "advice": "G Data first asks you to agree to its privacy terms and to pass an \"I am human\" check (do that yourself; it is not remembered for long). Then fill in the URL form: the site address, tick the first option (false positive), choose \"Website\" in the list and enter https://virustotal.com in the text field, and submit."
+    },
+    "googlesafebrowsing": {
+      "form": "https://safebrowsing.google.com/safebrowsing/report_error/?hl=en",
+      "method": "form",
+      "copy": "url",
+      "advice": "Site owners can also ask for a review in Google Search Console."
+    },
+    "greensnow": {
+      "form": "https://greensnow.co/contact",
+      "method": "form",
+      "copy": "url"
+    },
+    "gridinsoft": {
+      "form": "https://portal.gridinsoft.com/false-positive",
+      "method": "form",
+      "copy": "text",
+      "advice": "Website form. It works without an account only for an e-mail address that has not been used there before; otherwise create a free Gridinsoft account first. Give the full address and proof the site was cleaned; no passwords or tokens in the URL.",
+      "captcha": "Cloudflare Turnstile",
+      "tested": "2026-11-27"
+    },
+    "guardpot": {
+      "form": "virustotal@guardpot.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "heimdal": {
+      "form": "report-vt@heimdalsecurity.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "ikarus": {
+      "form": "fp@ikarus.at",
+      "method": "email",
+      "copy": "url"
+    },
+    "ipsum": {
+      "form": "https://github.com/stamparm/ipsum",
+      "method": "form",
+      "copy": "url"
+    },
+    "k7": {
+      "form": "reportfp@labs.k7computing.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "kaspersky": {
+      "form": "newvirus@kaspersky.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "levelblue": {
+      "form": "LevelBlueVirusTotalEscalations@levelblue.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "lionic": {
+      "form": "https://www.lionic.com/supports/report-false-positive/",
+      "method": "form",
+      "copy": "url"
+    },
+    "lumu": {
+      "form": "vt@lumu.io",
+      "method": "email",
+      "copy": "url"
+    },
+    "malbeacon": {
+      "form": "vtreport@malbeacon.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "malwarebytes": {
+      "form": "https://forums.malwarebytes.com/forum/122-false-positives/",
+      "method": "form",
+      "copy": "url"
+    },
+    "malwarepatrol": {
+      "form": "fp@malwarepatrol.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "malwareurl": {
+      "form": "team@malwareurl.com",
+      "method": "email",
+      "copy": "url",
+      "advice": "No form; e-mail with the VirusTotal link."
+    },
+    "mcafee": {
+      "form": "https://www.mcafee.com/support/s/article/000001921",
+      "method": "form",
+      "copy": "url"
+    },
+    "microsoft": {
+      "form": "https://www.microsoft.com/en-us/wdsi/filesubmission",
+      "method": "form",
+      "copy": "url"
+    },
+    "mimecast": {
+      "form": "bep-soc@mimecast.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "netcraft": {
+      "form": "https://report.netcraft.com/report/mistake",
+      "method": "form",
+      "copy": "url"
+    },
+    "openphish": {
+      "form": "support@openphish.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "paloalto": {
+      "form": "vt-pan-false-positive@paloaltonetworks.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "panda": {
+      "form": "falsepositives@pandasecurity.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "phishingdatabase": {
+      "form": "https://github.com/phishing-Database/Phishing.Database/?tab=readme-ov-file#requests--support",
+      "method": "form",
+      "copy": "url"
+    },
+    "phishlabs": {
+      "form": "info@phishlabs.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "phishtank": {
+      "form": "https://www.phishtank.com/contact.php",
+      "method": "form",
+      "copy": "url"
+    },
+    "prebytes": {
+      "form": "https://www.support.prebytes.com/helpcenter/removals/",
+      "method": "form",
+      "copy": "url"
+    },
+    "quickheal": {
+      "form": "viruslab@quickheal.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "quttera": {
+      "form": "support@quttera.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "rising": {
+      "form": "fp@rising.com.cn",
+      "method": "email",
+      "copy": "url"
+    },
+    "safetoopen": {
+      "form": "virustotal@safetoopen.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "sansec": {
+      "form": "virustotal@sansec.io",
+      "method": "email",
+      "copy": "url"
+    },
+    "scantitan": {
+      "form": "fp@scantitan.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "scumware": {
+      "form": "https://www.scumware.org/removals.php",
+      "method": "form",
+      "copy": "url"
+    },
+    "seclookup": {
+      "form": "info@seclookup.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "securolytics": {
+      "form": "https://tickets.securolytics.io/portal/en/kb/securolytics-1",
+      "method": "form",
+      "copy": "url"
+    },
+    "sentinelone": {
+      "form": "report@sentinelone.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "skyhigh": {
+      "form": "gatewayantimalwarefpsubmission@skyhighsecurity.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "socradar": {
+      "form": "vt@socradar.io",
+      "method": "email",
+      "copy": "url",
+      "advice": "No form; e-mail with the VirusTotal link. Site owners report this works."
+    },
+    "sophos": {
+      "form": "https://support.sophos.com/support/s/filesubmission",
+      "method": "form",
+      "copy": "url",
+      "advice": "Choose \"Web Address (URL)\". No Sophos account needed; usually 24–72 h."
+    },
+    "spam404": {
+      "form": "https://www.spam404.com/revision-request-domain.html",
+      "method": "form",
+      "copy": "url"
+    },
+    "spamhaus": {
+      "form": "https://www.spamhaus.org/dbl/removal/form/",
+      "method": "form",
+      "copy": "url",
+      "advice": "Check the domain first; removal needs the cause fixed."
+    },
+    "stopforumspam": {
+      "form": "https://www.stopforumspam.com/removal",
+      "method": "form",
+      "copy": "url"
+    },
+    "sucuri": {
+      "form": "soc@sucuri.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "symantec": {
+      "form": "https://symsubmit.symantec.com",
+      "method": "form",
+      "copy": "url"
+    },
+    "tencent": {
+      "form": "TAVfp@tencent.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "trellix": {
+      "form": "datasubmission@trellix.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "trendmicro": {
+      "form": "https://www.trendmicro.com/en_us/about/legal/detection-reevaluation.html",
+      "method": "form",
+      "copy": "url"
+    },
+    "trustwave": {
+      "form": "https://support.trustwave.com/virustotal-detection-review/",
+      "method": "form",
+      "copy": "url",
+      "advice": "Form for VirusTotal detections."
+    },
+    "urlhaus": {
+      "form": "vt-fp@abuse.ch",
+      "method": "email",
+      "copy": "url"
+    },
+    "urlquery": {
+      "form": "contact@urlquery.net",
+      "method": "email",
+      "copy": "url"
+    },
+    "viettel": {
+      "form": "cyberthreat@viettel.com.vn",
+      "method": "email",
+      "copy": "url"
+    },
+    "vipre": {
+      "form": "https://helpdesk.vipre.com/hc/en-us/requests/new",
+      "method": "form",
+      "copy": "url"
+    },
+    "virusdie": {
+      "form": "partners@virusdie.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "webroot": {
+      "form": "https://support.threatintel.opentext.com/tools/change-request.php",
+      "method": "form",
+      "copy": "url"
+    },
+    "xcitium": {
+      "form": "support@xcitium.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "yandex": {
+      "form": "yandex-antivir@support.yandex.ru",
+      "method": "email",
+      "copy": "url"
+    },
+    "yandexsafebrowsing": {
+      "form": "sbapi@support.yandex.ru",
+      "method": "email",
+      "copy": "url"
+    },
+    "zerofox": {
+      "form": "ask@zerofox.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "zillya": {
+      "form": "support@zillya.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "zonealarm": {
+      "form": "zonealarm_VT_reports@checkpoint.com",
+      "method": "email",
+      "copy": "url"
+    },
+    "zoner": {
+      "form": "false@zonerantivirus.com",
+      "method": "email",
+      "copy": "url"
+    }
+  }
+}

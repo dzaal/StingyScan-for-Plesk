@@ -268,6 +268,11 @@ class IndexController extends pm_Controller_Action
             'fileact'  => ['admin' => $this->role() === 'admin', 'qdays' => (int)(new VtSettings('admin'))->get('quarantine_days', 30),
                            'imunify' => (bool)array_filter(self::scanners(), fn($s) => $s['id'] === 'imunify' && !empty($s['installed']) && !empty($s['cleanup']))],
             'reviews' => VtReviews::forDomains(array_merge($domains, $related)),
+            'alert_ids' => VtReviews::alertIds(array_merge($domains, $related)),
+            'vendors'   => self::vendorData(), // how to ask each vendor for a review (vendors.json)
+            // your own address, filled in on a vendor's false positive form (AVG) when you open it
+            'my_email' => (string)($this->settings->get('review_email') ?: $this->settings->get('notify_email') ?: (VtNotifier::emailOfLogin($this->resolveUserId()) ?? '')),
+            'review_from' => ['name' => (string)$this->settings->get('review_name', ''), 'company' => (string)$this->settings->get('review_company', '')],
             'history'  => array_values(array_intersect(VtSiteLog::domains(), array_merge($domains, $related))),
             'avast'    => self::avastInfo($domains),
             'gsb'      => VtSafeBrowsing::enabled() ? ['enabled' => true, 'fresh' => VtSafeBrowsing::FRESH, 'review' => VtSafeBrowsing::REVIEW_URL,
@@ -321,6 +326,53 @@ class IndexController extends pm_Controller_Action
             && !(preg_match('#^https?://#i', $to) && filter_var($to, FILTER_VALIDATE_URL))) $to = '';
         VtSiteLog::review($domain, $vendor, (string)$this->_getParam('via', 'form'), $to, $by, $remove, $reason);
         $this->respond(['ok' => true, 'reviews' => VtReviews::mark($domain, $vendor, $by, $remove)]);
+    }
+
+    /**
+     * How to ask each security vendor for a review: vendors.json. A copy in the data folder is used when it is there
+     * (so a changed vendor form can be fixed on the server), otherwise the one in the package, otherwise null (the page
+     * then uses its built-in list). Only known fields and plain values pass; the page escapes everything it shows.
+     */
+    private static function vendorData(): ?array
+    {
+        foreach (['data' => VtDataDir::path('vendors.json'), 'package' => dirname(__DIR__) . '/library/vendors.json'] as $src => $f) {
+            if (!is_file($f) || is_link($f)) continue;
+            $d = json_decode((string)@file_get_contents($f), true);
+            if (!is_array($d) || !is_array($d['vendors'] ?? null)) continue;
+            $out = [];
+            foreach ($d['vendors'] as $k => $v) {
+                if (!is_string($k) || !preg_match('/^[a-z0-9]{2,40}$/', $k) || !is_array($v)) continue;
+                $form = (string)($v['form'] ?? '');
+                if (!filter_var($form, FILTER_VALIDATE_EMAIL) && !(preg_match('#^https?://#i', $form) && filter_var($form, FILTER_VALIDATE_URL))) continue;
+                $e = ['form' => $form,
+                      'method' => in_array($v['method'] ?? '', ['form', 'prefill', 'email'], true) ? $v['method'] : (strpos($form, '@') !== false && stripos($form, 'http') !== 0 ? 'email' : 'form'),
+                      'copy' => in_array($v['copy'] ?? '', ['url', 'text', 'none'], true) ? $v['copy'] : 'url'];
+                if (is_array($v['fill'] ?? null)) {
+                    foreach ($v['fill'] as $field => $tpl) {
+                        if (is_string($field) && preg_match('/^[\w\[\]\-]{1,60}$/', $field) && is_scalar($tpl)) $e['fill'][$field] = mb_substr((string)$tpl, 0, 500);
+                    }
+                }
+                foreach (['advice' => 1000, 'captcha' => 40, 'tested' => 20] as $f2 => $max) if (is_string($v[$f2] ?? null)) $e[$f2] = mb_substr($v[$f2], 0, $max);
+                foreach (['alert_id', 'account'] as $f2) if (!empty($v[$f2])) $e[$f2] = true;
+                if (is_array($v['match'] ?? null)) $e['match'] = array_values(array_filter($v['match'], fn($m) => is_string($m) && preg_match('/^[a-z0-9]{2,40}$/', $m)));
+                $out[$k] = $e;
+            }
+            if ($out) return ['source' => $src, 'updated' => (string)($d['updated'] ?? ''), 'vendors' => $out];
+        }
+        return null;
+    }
+
+    /** Store the alert ID that a vendor's block page shows for a site (AVG Web Shield); empty removes it */
+    public function alertIdAction(): void
+    {
+        if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
+        $domain = $this->sanitize($this->_getParam('domain', ''));
+        $vendor = strtolower(trim((string)$this->_getParam('vendor', '')));
+        $id     = trim((string)$this->_getParam('alert_id', ''));
+        if (!$domain || !in_array($vendor, ['avg', 'avast'], true)) { $this->respond(['error' => 'invalid']); return; }
+        if (!$this->mayCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
+        if (!preg_match('/^[A-Za-z0-9\-]{0,20}$/', $id)) { $this->respond(['error' => 'An alert ID has up to 20 letters, digits or dashes']); return; }
+        $this->respond(['ok' => true, 'alert_ids' => VtReviews::setAlertId($domain, $vendor, $id)]);
     }
 
     /** Record that a vendor confirmed the delisting after a review request (or undo that confirmation) */
@@ -940,7 +992,7 @@ class IndexController extends pm_Controller_Action
         $raw = $this->getRequest()->getRawBody();
         $input = ($raw && $raw[0] === '{') ? (json_decode($raw, true) ?? []) : $this->getRequest()->getPost();
 
-        $allowed = ['api_key', 'wordpress_only', 'wp_rogue_scan', 'wp_user_delete', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days'];
+        $allowed = ['api_key', 'wordpress_only', 'wp_rogue_scan', 'wp_user_delete', 'notify_enabled', 'notify_events', 'notify_email', 'daily_limit', 'auto_scan_share', 'clean_ttl_days', 'infected_ttl_days', 'review_name', 'review_company', 'review_email'];
         $save    = [];
         foreach ($allowed as $k) {
             if (!isset($input[$k])) continue;
@@ -957,6 +1009,12 @@ class IndexController extends pm_Controller_Action
                     $this->respond(['error' => 'Please enter a valid e-mail address']); return;
                 }
                 $save[$k] = $v;
+            } elseif ($k === 'review_email') {
+                $v = trim((string)$input[$k]);
+                if ($v !== '' && !filter_var($v, FILTER_VALIDATE_EMAIL)) { $this->respond(['error' => 'Review requests: please enter a valid e-mail address']); return; }
+                $save[$k] = $v;
+            } elseif ($k === 'review_name' || $k === 'review_company') {
+                $save[$k] = trim(mb_substr(preg_replace('/[\x00-\x1f<>]/', '', (string)$input[$k]), 0, 100));
             } elseif ($k === 'wordpress_only' || $k === 'notify_enabled' || $k === 'wp_rogue_scan' || $k === 'wp_user_delete') {
                 $save[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
             } elseif (in_array($k, ['daily_limit', 'clean_ttl_days', 'infected_ttl_days'])) {
@@ -1500,6 +1558,8 @@ class IndexController extends pm_Controller_Action
                 'plesk_url' => $ws ? '/admin/subscription/login/id/' . $ws . '?pageUrl=/smb/database/list/domainId/' . $ws : '',
                 // last ClamAV scan of what a scan covers here: the whole database, or only the old tables
                 'clamav'    => $scans[self::dbScanKey($s['db'], ($configs !== null && !$same && $usedBy) ? $s['prefix'] : '')] ?? null,
+                // a scan that runs now, or finished while nobody had the page open: the page follows it (and records it)
+                'scanning'  => self::dbScanPending($s['db'], ($configs !== null && !$same && $usedBy) ? $s['prefix'] : ''),
             ];
         }
         return $out;
@@ -1532,41 +1592,87 @@ class IndexController extends pm_Controller_Action
 
     /**
      * ClamAV scan of an orphan database (administrator only). The root helper makes a temporary dump in its
-     * root-only folder, scans it and deletes it again; only the result is kept (vt_dbscans.json, per database).
+     * root-only folder, scans it and deletes it again, in the background; the page follows it with
+     * scan-db-status. Only the result is kept (vt_dbscans.json, per database).
      */
     public function scanDbAction(): void
     {
         if (!$this->getRequest()->isPost()) { $this->respond(['error' => 'POST required']); return; }
-        if ($this->role() !== 'admin') { $this->respond(['error' => 'Only the administrator can scan databases']); return; }
-        $host = $this->sanitize($this->_getParam('domain', ''));
-        $db   = (string)$this->_getParam('db', '');
-        $item = null;
-        foreach (self::orphanInfo(PleskDomains::relatedForCurrentUser())[$host] ?? [] as $o) {
-            if ($o['db'] === $db) $item = $o;
-        }
-        if (!$item || !in_array($item['kind'], ['database', 'tables'], true)) { $this->respond(['error' => 'Not an orphan database']); return; }
-        @set_time_limit(1000);
+        $item = $this->dbScanItem($host);
+        if (is_string($item)) { $this->respond(['error' => $item]); return; }
         $prefix = $item['kind'] === 'tables' ? $item['prefix'] : '';
         try {
-            $res = pm_ApiCli::callSbin('site-scan', ['dbscan', $item['db'], $prefix !== '' ? $prefix : '-'], pm_ApiCli::RESULT_FULL);
+            $res = pm_ApiCli::callSbin('site-scan', ['dbscan', $item['db'], $prefix !== '' ? $prefix : '-', $host, '--start'], pm_ApiCli::RESULT_FULL);
             $out = json_decode(trim((string)($res['stdout'] ?? '')), true);
         } catch (\Throwable $e) {
-            $out = ['error' => 'The scan failed: ' . $e->getMessage()];
+            $out = ['error' => 'The scan could not start: ' . $e->getMessage()];
         }
-        if (!is_array($out)) $out = ['error' => 'The scan failed'];
-        $what = $item['db'] . ($prefix !== '' ? ' (tables ' . $prefix . '*)' : '');
-        $by   = $this->resolveUserId();
-        if (!empty($out['ok'])) {
-            $out['ts'] = time();
-            self::saveDbScan(self::dbScanKey($item['db'], $prefix), $out);
-            $this->appendLog('[db] ClamAV scan of ' . $what . " for $host: " . ($out['clean'] ? 'clean' : 'FOUND ' . implode(', ', $out['found']))
-                . ' (' . round(((int)$out['size']) / 1048576, 1) . ' MB dump, ' . ($out['engine'] ?? '') . ', ' . (int)($out['secs'] ?? 0) . ' s; dump deleted) by ' . $by);
-            VtSiteLog::dbScan($host, $item['db'], $prefix, (bool)$out['clean'], (array)$out['found'], (int)$out['size'], $by);
-        } else {
-            $this->appendLog('[db] ClamAV scan of ' . $what . " for $host failed: " . ($out['error'] ?? 'unknown error') . ' by ' . $by);
-            VtSiteLog::dbScan($host, $item['db'], $prefix, null, [], 0, $by, (string)($out['error'] ?? 'unknown error'));
+        $this->respond(is_array($out) ? $out : ['error' => 'The scan could not start']);
+    }
+
+    /** Progress of a database scan; the first time it is finished, the result is recorded (log, history, ClamAV column) */
+    public function scanDbStatusAction(): void
+    {
+        $item = $this->dbScanItem($host);
+        if (is_string($item)) { $this->respond(['error' => $item]); return; }
+        $prefix = $item['kind'] === 'tables' ? $item['prefix'] : '';
+        $st = json_decode((string)@file_get_contents(VtDataDir::path('vt_dbscan_' . $item['db'] . '__' . $prefix . '.json')), true);
+        if (!is_array($st)) { $this->respond(['status' => 'none']); return; }
+        $id = (string)($st['id'] ?? '');
+        if (($st['status'] ?? '') === 'running' && time() - (int)($st['now'] ?? $st['started'] ?? 0) > 1200) {
+            $st = ['status' => 'error', 'error' => 'The scan stopped without a result', 'id' => $id];  // helper died
         }
-        $this->respond($out);
+        if (in_array($st['status'] ?? '', ['done', 'error'], true) && $id !== '' && self::dbScanFirstTime($id)) {
+            $what = $item['db'] . ($prefix !== '' ? ' (tables ' . $prefix . '*)' : '');
+            $by   = $this->resolveUserId();
+            if (($st['status'] ?? '') === 'done') {
+                $st['ts'] = (int)($st['finished'] ?? time());
+                self::saveDbScan(self::dbScanKey($item['db'], $prefix), $st);
+                $this->appendLog('[db] ClamAV scan of ' . $what . " for $host: " . ($st['clean'] ? 'clean' : 'FOUND ' . implode(', ', (array)$st['found']))
+                    . ' (' . (int)($st['tables'] ?? 0) . ' tables, ' . round(((int)($st['size'] ?? 0)) / 1048576, 1) . ' MB dump in ' . (int)($st['dump_secs'] ?? 0)
+                    . ' s, scanned by ' . ($st['engine'] ?? '') . ' in ' . (int)($st['scan_secs'] ?? 0) . ' s; dump deleted) by ' . $by);
+                VtSiteLog::dbScan($host, $item['db'], $prefix, (bool)$st['clean'], (array)$st['found'], (int)($st['size'] ?? 0), $by);
+            } else {
+                $this->appendLog('[db] ClamAV scan of ' . $what . " for $host failed: " . ($st['error'] ?? 'unknown error') . ' by ' . $by);
+                VtSiteLog::dbScan($host, $item['db'], $prefix, null, [], 0, $by, (string)($st['error'] ?? 'unknown error'));
+            }
+        }
+        $this->respond($st);
+    }
+
+    /** The orphan database of a scan request (administrator only), or an error text. Sets $host. */
+    private function dbScanItem(?string &$host)
+    {
+        if ($this->role() !== 'admin') return 'Only the administrator can scan databases';
+        $host = $this->sanitize($this->_getParam('domain', ''));
+        $db   = (string)$this->_getParam('db', '');
+        foreach (self::orphanInfo(PleskDomains::relatedForCurrentUser())[$host] ?? [] as $o) {
+            if ($o['db'] === $db && in_array($o['kind'], ['database', 'tables'], true)) return $o;
+        }
+        return 'Not an orphan database';
+    }
+
+    private static function dbScanPending(string $db, string $prefix): bool
+    {
+        $st = json_decode((string)@file_get_contents(VtDataDir::path('vt_dbscan_' . $db . '__' . $prefix . '.json')), true);
+        if (!is_array($st) || empty($st['id'])) return false;
+        if (($st['status'] ?? '') === 'running') return time() - (int)($st['now'] ?? $st['started'] ?? 0) < 1200;
+        $ids = json_decode((string)@file_get_contents(VtDataDir::path('vt_dbscans_logged.json')), true);
+        return !in_array($st['id'], is_array($ids) ? $ids : [], true);
+    }
+
+    /** True once per scan id: so a finished scan is logged once, however often the page asks */
+    private static function dbScanFirstTime(string $id): bool
+    {
+        $f  = VtDataDir::path('vt_dbscans_logged.json');
+        $fp = @fopen($f . '.lock', 'c');
+        if ($fp) flock($fp, LOCK_EX);
+        $ids = json_decode((string)@file_get_contents($f), true);
+        $ids = is_array($ids) ? $ids : [];
+        $new = !in_array($id, $ids, true);
+        if ($new) { $ids = array_slice(array_merge($ids, [$id]), -100); @file_put_contents($f, json_encode($ids)); }
+        if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
+        return $new;
     }
 
     private static function dbScanKey(string $db, string $prefix): string { return $db . ($prefix !== '' ? '|' . $prefix : ''); }
@@ -1584,7 +1690,7 @@ class IndexController extends pm_Controller_Action
         $fp = @fopen($f . '.lock', 'c');
         if ($fp) flock($fp, LOCK_EX);
         $all = self::loadDbScans();
-        $all[$key] = array_intersect_key($r, array_flip(['clean', 'found', 'size', 'engine', 'secs', 'ts']));
+        $all[$key] = array_intersect_key($r, array_flip(['clean', 'found', 'size', 'engine', 'secs', 'ts', 'tables', 'rows', 'dump_secs', 'scan_secs', 'signatures']));
         if (@file_put_contents($f . '.tmp', json_encode($all)) !== false) @rename($f . '.tmp', $f);
         if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
     }

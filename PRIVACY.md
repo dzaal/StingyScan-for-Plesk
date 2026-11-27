@@ -39,6 +39,8 @@ Each service is only contacted when it is switched on in Settings (VirusTotal ne
 | GitHub | A request for the latest release number (no data about your server). | Update check. **GitHub edition only.** |
 | Digizaal (stats.digizaal.nl) | See *Installation statistics* below. | **GitHub edition only**, and only when you switch it on. |
 
+**Review requests.** When you click *request a review* for a vendor, Stingy Scanner opens the vendor's own form or an e-mail in your browser; you send it yourself. For **AVG** and **Fortinet** the form opens already filled in: the site address and **your e-mail address** (Settings → Review requests, the notification address, or your Plesk address), and for Fortinet also your **name and company** (Settings → Review requests); for AVG also the detection name, the alert ID you entered and a ready-made description. These are put in the address of the form, so the vendor receives them when the page opens. *📋 text* only copies a text to your clipboard. Nothing is sent to a vendor without that click.
+
 E-mail notifications and the Pwned warning e-mails are sent by your own server's mail system to the addresses you choose.
 
 The administrator e-mail addresses sent to a breach service are personal data of those administrators. If you switch the breach check on, make sure you have a basis for it under the GDPR (usually the legitimate interest of keeping the websites you host secure) and tell your customers in your own privacy statement.

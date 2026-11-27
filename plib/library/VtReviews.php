@@ -52,6 +52,33 @@ class VtReviews
         return $all[$domain] ?? [];
     }
 
+    /**
+     * Alert IDs from a vendor's block page (AVG Web Shield), per site: { domain: { avg: "b77f0e8e8af0" } }.
+     * Kept so the vendor's false positive form can be opened already filled in.
+     */
+    private const ALERT_FILE = 'vt_alert_ids.json';
+
+    public static function alertIds(array $domains): array
+    {
+        $d = json_decode((string)@file_get_contents(VtDataDir::path(self::ALERT_FILE)), true);
+        return array_intersect_key(is_array($d) ? $d : [], array_flip($domains));
+    }
+
+    /** Store (or with '' remove) the alert ID of a site; returns that site's alert IDs */
+    public static function setAlertId(string $domain, string $vendor, string $id): array
+    {
+        $f  = VtDataDir::path(self::ALERT_FILE);
+        $fp = @fopen($f . '.lock', 'c');
+        if ($fp) flock($fp, LOCK_EX);
+        $all = json_decode((string)@file_get_contents($f), true);
+        $all = is_array($all) ? $all : [];
+        if ($id === '') { unset($all[$domain][$vendor]); if (empty($all[$domain])) unset($all[$domain]); }
+        else $all[$domain][$vendor] = $id;
+        if (@file_put_contents($f . '.tmp', json_encode($all)) !== false) @rename($f . '.tmp', $f);
+        if ($fp) { flock($fp, LOCK_UN); fclose($fp); }
+        return $all[$domain] ?? [];
+    }
+
     private static function load(): array
     {
         $d = json_decode((string)@file_get_contents(VtDataDir::path(self::FILE)), true);

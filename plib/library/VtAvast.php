@@ -24,7 +24,7 @@ class VtAvast
 {
     const ENDPOINT = 'https://urlite.ff.avast.com/v1/urlinfo';
     const PRODUCTS = [146 => 'Avast', 147 => 'AVG'];
-    const FP_FORMS = [146 => 'https://www.avast.com/report-false-positive', 147 => 'https://www.avg.com/en-us/report-false-positive'];
+    const FP_FORMS = [146 => 'https://www.avast.com/report-false-positive', 147 => 'https://www.avg.com/en-ww/report-false-positive'];
     const MIN_GAP_MS = 1000;
 
     /** "voorelkdier.nl" -> "https://voorelkdier.nl/"; a full URL keeps its path */

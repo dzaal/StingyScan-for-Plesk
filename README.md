@@ -92,7 +92,8 @@ Stingy Scanner was built to fix that:
 - **Optional AVG / Avast Web Shield** classification (experimental), asked live (see [AVG / Avast Web Shield](#avg--avast-web-shield-optional-experimental)).
 - **Update check:** when a newer version is on GitHub, a yellow banner appears with the release notes and, for the administrator, an **Install** button that upgrades the extension in one click.
 - **Nightly background scan** (03:00, server time), scheduled automatically through Plesk's own scheduler.
-- **Tools tab:** Pwned Admins, Admin changes, Orphan databases and the Scan log are grouped in a **Tools** tab, each as a card with a live badge. The Tools tab itself shows a red badge when admin changes need review.
+- **Tools tab:** **Vendor requests**, Pwned Admins, Admin changes, Orphan databases and the Scan log are grouped in a **Tools** tab, each as a card with a live badge, with a navigation strip to jump between them. The Tools tab itself shows a red badge when admin changes need review.
+- **Tools → Vendor requests:** every security vendor that flags one of your sites, with the sites under it and how to ask that vendor for a review: forms opened already filled in where the vendor allows it (AVG, Fortinet), ready-made texts for the description box, and per site *✓ Requested*, *denied* and *✓ delisting confirmed*. See [Vendor requests](#tools--vendor-requests).
 - **Statistics tab:** a trend graph of infected, suspicious and cleaned sites per day over the last 1, 2 or 3 months, for the whole server, per reseller or per customer (see [Statistics](#statistics)).
 - **Helps you solve it, not just report it.** Click the score of an infected or suspicious site to see which vendors flag it, with a link per vendor to ask for a review (see [Cleaned, but still red?](#cleaned-but-still-red)).
 - **E-mail notifications:** one summary e-mail with status changes and the full list of infected sites (see [Notifications](#notifications)).
@@ -378,7 +379,7 @@ Options: `--resellers` also fills every reseller's history, `--customers` every 
 
 ## Orphan databases
 
-The **Orphan DBs** button next to the status filters (shown only when there are any) opens **Tools → Orphan databases**, a list of WordPress databases on the server for a hostname under one of your domains that doesn't exist in DNS: usually old copies, test or staging sites (`staging.`, `test.`, `2025.`, …) whose database was never removed.
+**Tools → Orphan databases** is a list of WordPress databases on the server for a hostname under one of your domains that doesn't exist in DNS: usually old copies, test or staging sites (`staging.`, `test.`, `2025.`, …) whose database was never removed.
 
 Nobody can visit them, but VirusTotal often still has them on file, sometimes as infected, and an old copy that is never updated is an easy target. Per hostname you see:
 
@@ -404,10 +405,12 @@ A red or orange site raises two questions for the webmaster: *who* says the site
 
 The status in Stingy Scanner comes from **VirusTotal**, not from the files on your server. VirusTotal shows what dozens of security vendors think of a site, and **each vendor keeps its own blocklist** and updates it on its own schedule. So after you clean a site, it can stay *infected* or *suspicious* in the dashboard for a while: sometimes hours, often days, sometimes weeks, and some vendors only remove a site when you ask.
 
+The overall verdict is VirusTotal's too, not Stingy Scanner's: a single vendor that calls the site *malicious* makes it **infected** (red); vendors that only call it *suspicious* make it orange. VirusTotal regularly **adds new vendors**, and a newly added vendor that already had the site on its blocklist can turn a site from *suspicious* to *infected* overnight, without anything changing on the site. The *Why?* panel says so; compare the vendors with the site's history (a vendor that appears for the first time may simply be new on VirusTotal), check the site anyway, and ask that vendor for a review if it is clean.
+
 Click a flagged site's row, or its **score** (for example *8/92 · Why?*). A second line opens with:
 
 - **The vendors that flag the site** and what they call it (for example *Fortinet: malware*).
-- **A review link per vendor**: a form or e-mail address where you can report that the site is clean. The contacts come from [VirusTotal's list of vendor contacts](https://docs.virustotal.com/docs/false-positive-contacts); where a vendor has its own form for websites, that form is used instead (for example [alphaMountain](https://www.alphamountain.ai/false-positive/) and [Gridinsoft](https://portal.gridinsoft.com/false-positive)). For a vendor that is not in the list, the link goes to VirusTotal's list. Opening a review link **copies the site address to your clipboard**, so you can paste it straight into the vendor's form; a note above the table explains this.
+- **A review link per vendor**: a form or e-mail address where you can report that the site is clean. The contacts come from [VirusTotal's list of vendor contacts](https://docs.virustotal.com/docs/false-positive-contacts); where a vendor has its own form for websites, that form is used instead (for example [alphaMountain](https://alphamountain.freshdesk.com/support/tickets/new) and [Gridinsoft](https://portal.gridinsoft.com/false-positive)). For a vendor that is not in the list, the link goes to VirusTotal's list. Opening a review link **copies the site address to your clipboard**, so you can paste it straight into the vendor's form; a note above the table explains this.
 - **Which vendors you already asked.** A click on a review link is remembered per site and per vendor, with the date and time and who clicked (*✓ Requested 21-11-2026 (22:58) by admin · denied · undo*). When a vendor turns the request down (for example because the site was added to its list less than a day ago), click **denied** and optionally give the reason: the note disappears so you can ask again later, and the history keeps *Review denied* with the reason. *Undo* is for a click made by mistake. It is saved on the server (`vt_reviews.json`), so everyone who manages the site sees it. The header shows at how many of the flagging vendors a review was requested.
 - **The history of the site**, newest first: when it was first detected (score and vendors), when each vendor started or stopped flagging it, its status changes, and every review request: which vendor, via website form or by e-mail (and to which address), and by whom. Clean sites that have a history get a **History** button on their score. Saved in `vt_sitelog.json`; the first detection of each site is filled in once from the scan logs.
 - **The steps to get delisted:**
@@ -441,6 +444,40 @@ Click a flagged site's row, or its **score** (for example *8/92 · Why?*). A sec
 For vendors with only an e-mail address, the link in the extension opens an e-mail with the subject and a short message already filled in, including the VirusTotal link. If a vendor has confirmed the removal but VirusTotal still shows it after reanalyzing, you can send that confirmation to VirusTotal through its [false positive page](https://docs.virustotal.com/docs/false-positive).
 
 The extension does not send review requests itself: each vendor has its own form or address, and a request should come from someone who can vouch that the site is clean.
+
+### Tools → Vendor requests
+
+The *Why?* panel works per site. **Tools → Vendor requests** turns it around: per **vendor**, every site it flags, so you can work through one vendor's form for all its sites at once. Vendors with the most flagged sites come first; Google Safe Browsing and AVG / Avast are included when they are switched on.
+
+- **Search** on vendor name and domain (every word must match), to find a site quickly when a vendor answers.
+- **Per vendor** a short step list: make sure the site is clean, how to ask (a form, a ready e-mail, or no known form), what this vendor asks for, and what to click when it answers. The heading shows the progress, for example *2 of 5 requested · 1 delisting confirmed*.
+- **Per site** the vendor's verdict, *request a review ↗*, *✓ Requested* with date and who, *denied* (with the reason) and **✓ delisting confirmed** when the vendor has removed the site (the row turns green and the confirmation goes into the site's history). Click a site name to open its *Why?* panel.
+- **Forms filled in for you** where the vendor allows it: **AVG** (everything, including the [alert ID](#faq) you enter once per site from AVG Web Shield's block page, and the description) and **Fortinet** (the URL, your name, e-mail and company). You only pass the vendor's CAPTCHA and click Send; Stingy Scanner never sends a form.
+- **📋 text** next to every link: a polite, factual request for the form's description box (the site, the vendor's classification, the VirusTotal link and your signature from *Settings → Review requests*), to edit and copy; *Another wording* gives a new version. For Fortinet, alphaMountain, Gridinsoft and G Data the text is also copied when you click *request a review*.
+- **Copy** buttons: one per domain name, and **Copy N domain names** for all shown sites of a vendor, one per line (for forms that take several addresses at once, such as CRDF).
+
+What Stingy Scanner knows about each vendor's form is in [`vendors.json`](#vendor-data-vendorsjson).
+
+### Vendor data (`vendors.json`)
+
+How Stingy Scanner asks each vendor for a review is kept in one file, [`plib/library/vendors.json`](plib/library/vendors.json): per vendor its false positive form (or e-mail address), how the request goes, which form fields it fills in, what goes on the clipboard, and advice. For example Fortinet:
+
+```json
+"fortinet": {
+  "form": "https://www.fortiguard.com/faq/malurl",
+  "method": "prefill",
+  "fill": { "url": "{site}", "name": "{my_name}", "email": "{my_email}", "company": "{my_company}" },
+  "copy": "text",
+  "tested": "2026-11-27"
+}
+```
+
+- **method**: `form` (open the form), `prefill` (the form takes the fields in `fill` from its address: AVG, Fortinet), `email` (a ready e-mail opens).
+- **fill**: form field name → value, with `{site}`, `{domain}`, `{my_email}`, `{my_name}`, `{my_company}` (Settings → Review requests; without a company, the domain of your e-mail address), `{detection}`, `{classification}`, `{alert_id}` and `{text}` (the ready-made description). Empty values are left out.
+- **copy**: what goes on the clipboard when you click *request a review*: `url` (the site address), `text` (the ready-made description) or `none`.
+- **advice**, **captcha**, **account**, **alert_id**, **tested**: shown with the link, or what we know about the form.
+
+**Your own version:** a copy at `/usr/local/psa/var/modules/stingyscan/data/vendors.json` is used instead of the one in the package, when it is there and valid; so a changed vendor form can be fixed on your server right away. Without either file the page falls back to its built-in list of addresses. Found a form that changed, or one that can be filled in? Please [open an issue](https://github.com/dzaal/StingyScan-for-Plesk/issues) with the address and the field names.
 
 ## Google Safe Browsing (optional)
 
@@ -605,6 +642,29 @@ rm -rf /usr/local/psa/var/modules/stingyscan
 ```
 
 ---
+
+## FAQ
+
+**Who decides whether a site is infected or suspicious?**
+VirusTotal, not Stingy Scanner. Stingy Scanner shows VirusTotal's verdict: a single vendor that calls the site *malicious* makes it **infected** (red); vendors that only call it *suspicious* make it **suspicious** (orange); otherwise it is **clean**. The file scanners (ClamAV, Maldet, Imunify) are separate: they look at the files on the server and never change this status. Google Safe Browsing and AVG / Avast show their own result next to it.
+
+**A site went from suspicious to infected, but nothing changed on the site. Why?**
+Most likely VirusTotal **added a new vendor** that already had the site on its blocklist. One vendor calling a site *malicious* is enough to make it infected, so a new vendor can turn a site red overnight without a new infection. Open the site's *Why?* panel and compare the vendors with the site's history: a vendor that appears for the first time may simply be new on VirusTotal. Check the site anyway (a file scan, the admin accounts), and if it is clean, ask that vendor for a review.
+
+**I cleaned the site. Why is it still red or orange?**
+Each vendor updates its own blocklist on its own schedule: some within hours, others after days or weeks, and some only when you ask. See [Cleaned, but still red?](#cleaned-but-still-red) for how to ask each vendor for a review.
+
+**AVG asks for an "alert ID" when I report a false positive. Where do I find it?**
+Only in AVG's own Web Shield: open the site with AVG installed and Web Shield on; the block page shows the ID. It is not derived from the address or the detection name (`URF…`) that Stingy Scanner shows, so the extension cannot work it out for you. Web Shield blocks the page, so opening it this way is safe.
+
+**Does Stingy Scanner change or delete anything by itself?**
+No. Cleaning, quarantine, password resets and deleting an account only happen when you click them (and some only after a second click or a setting). Database backups are copies; Stingy Scanner never deletes a database or a backup. The only thing it deletes is its own temporary dump after a ClamAV scan of an orphan database.
+
+**Why are orphan databases not checked by VirusTotal?**
+Their hostnames no longer exist in DNS, so nobody can visit them and a VirusTotal check would only use quota that the real sites need. You can scan their data with ClamAV in Tools → Orphan databases.
+
+**The *Clean sites* line in Statistics is higher than the number recorded that day. Why?**
+The chart counts every site that is not flagged, at today's number of sites. Earlier days may have counted fewer sites (for example only the WordPress sites, or sites that were not checked yet). The tooltip and the table also show the number recorded that day.
 
 ## Troubleshooting
 

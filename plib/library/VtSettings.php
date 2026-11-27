@@ -65,6 +65,13 @@ class VtSettings
         'gsb_enabled'        => false,  // Google Safe Browsing (admin only, server-wide)
         'gsb_api_key'        => '',     // the administrator's Google API key; never sent to the browser
         'avast_products'     => null,   // Avast / AVG classification: [] = off, [146] Avast, [147] AVG, or both (admin only, server-wide)
+        'admin_trusted'      => [],     // trusted admin addresses and @domains: their admin changes are approved, they are left out of Pwned Admins (admin only)
+        'admin_watch_mail'   => true,   // e-mail the administrator when admin rights change (admin only)
+        'wp_rogue_scan'      => true,   // list and score the WordPress admin accounts of a site (Settings → WordPress admin accounts)
+        'wp_user_delete'     => false,  // show a Delete button for WordPress admin accounts (off by default)
+        'review_name'        => '',     // review requests to vendors: your name, company and e-mail address, filled in on
+        'review_company'     => '',     //   the forms that allow it (AVG, Fortinet) and used in the ready-made texts
+        'review_email'       => '',     //   ('' = the notification address, or your Plesk address)
     ];
 
     private array $data;

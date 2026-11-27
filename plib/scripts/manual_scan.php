@@ -100,6 +100,8 @@ $delay = (int)ceil(60 / VtSettings::VT_FREE_PER_MIN);
 
 $logFile = VtDataDir::path('cron_admin.log');
 $processed = [];
+// However this run ends, the page must not keep showing a domain as "being checked by the server"
+register_shutdown_function(function () { try { VtManualQueue::setCurrent(null); } catch (\Throwable $e) {} });
 
 foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
 
@@ -108,6 +110,7 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
     // A page may have picked it up again, or finished it, while this run was busy
     if (!in_array($domain, VtManualQueue::takeable(), true)) continue;
 
+    VtManualQueue::setCurrent($domain, 'submit');
     $sub = $api->reanalyze($domain);
 
     if ($sub['status'] === 'quota_exceeded') {
@@ -117,10 +120,13 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
     if ($sub['status'] === 'ratelimit') {
         $wait = $sub['wait'] ?? 60;
         log_msg("[manual] Rate limit on reanalyze for $domain — waiting {$wait}s…");
+        VtManualQueue::setCurrent($domain, 'ratewait');
         sleep($wait);
+        VtManualQueue::setCurrent($domain, 'submit');
         $sub = $api->reanalyze($domain);
         if ($sub['status'] !== 'queued') {
             log_msg("[manual] Still failed after wait: $domain ({$sub['status']})");
+            VtManualQueue::setCurrent(null);
             continue;
         }
     }
@@ -128,16 +134,19 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
         // Not a temporary problem: take it off the queue instead of retrying every 5 minutes
         log_msg("[manual] Reanalyze failed: $domain ({$sub['status']}), removed from the queue");
         VtManualQueue::complete([$domain]);
+        VtManualQueue::setCurrent(null);
         continue;
     }
 
     $cache->charge(true); // counts as a manual call
 
     // 2. Wait for VirusTotal to finish the analysis (~30s)
+    VtManualQueue::setCurrent($domain, 'analysing');
     sleep(30);
 
     // 3. Fetch the fresh report
     sleep($delay);
+    VtManualQueue::setCurrent($domain, 'fetch');
     $fresh = $api->getReport($domain);
 
     if ($fresh['status'] === 'quota_exceeded') {
@@ -148,7 +157,9 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
     if ($fresh['status'] === 'ratelimit') {
         $wait = $fresh['wait'] ?? 60;
         log_msg("[manual] Rate limit on fetch for $domain — waiting {$wait}s…");
+        VtManualQueue::setCurrent($domain, 'ratewait');
         sleep($wait);
+        VtManualQueue::setCurrent($domain, 'fetch');
         $fresh = $api->getReport($domain);
     }
 
@@ -166,11 +177,13 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
         log_msg("[manual] $status $domain");
     }
 
+    // Done right away (not at the end of the run), so the page shows each result as soon as it is in
+    VtManualQueue::complete([$domain]);
+    VtManualQueue::setCurrent(null);
     $processed[] = $domain;
 }
 
 if ($processed) {
-    VtManualQueue::complete($processed);
     log_msg("[manual] Completed " . count($processed) . " domain(s): " . implode(', ', $processed));
 
     // Flush notification summaries if any status changes occurred

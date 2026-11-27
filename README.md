@@ -667,6 +667,26 @@ No. Cleaning, quarantine, password resets and deleting an account only happen wh
 **Why are orphan databases not checked by VirusTotal?**
 Their hostnames no longer exist in DNS, so nobody can visit them and a VirusTotal check would only use quota that the real sites need. You can scan their data with ClamAV in Tools → Orphan databases.
 
+**Which sites are checked, and when?**
+Three things start a VirusTotal check:
+- **The nightly scan** (03:00, server time) checks the sites whose cached result has expired: clean sites after 30 days, infected or suspicious sites after 1 day (Settings → VirusTotal). It uses the *background* part of the daily budget and continues the next night where it stopped, so with many sites every site still gets its turn.
+- **Rescan** on a row, or a rescan of a whole category from the arrow next to a filter button: only the sites you pick. These use the part of the budget *reserved for manual scans*.
+- **The dashboard itself** looks up, once, a site that has no result yet (a new site). Only while the page is open.
+
+Which sites take part at all is set in Settings → *Sites to scan* (all hosted websites, or WordPress sites only), plus any external sites you added. Orphan databases are never checked by VirusTotal.
+
+**I started a rescan of 20 sites and went to another page. Does it keep going?**
+Yes. Every rescan is also put in a queue on the server. While the page is open, the page checks the sites itself, one at a time, at VirusTotal's pace (4 requests per minute). When you leave, the server takes over what is left after 3 minutes: its queue processor runs every 5 minutes and checks up to 6 sites per run (about a minute per site). Closing the browser works the same way. The site that was being checked when you left is checked again from the start.
+
+**When I come back, where do I see them?**
+In the **Scan Monitor**, marked **Server**: the site the server is checking now (with its step: asking VirusTotal for a new analysis, VirusTotal analysing, fetching the report), then the waiting ones with their place in line and when the next server run starts. In the table those rows show *In queue #n (server)* or *Server: checking*. Finished sites appear in the monitor as done and their row updates; the page looks every 15 seconds. The queue stays with the server: the page does not take the sites back.
+
+**Can I stop or change what is queued?**
+**Skip** takes one site out of the queue (in the browser or on the server); **Cancel waiting** in the Scan Monitor takes out every site the page has not started yet. A site that is being checked right now finishes. The order is the order in which you started them.
+
+**Why does a rescan wait so long?**
+VirusTotal's free API allows 4 requests per minute and a rescan needs at least two (ask for a new analysis, fetch the report), with about 30 seconds for VirusTotal to analyse in between. Rescans also stop for the day when the *manual* part of the daily budget is used up (Settings → VirusTotal); the nightly scan keeps its own part.
+
 **The *Clean sites* line in Statistics is higher than the number recorded that day. Why?**
 The chart counts every site that is not flagged, at today's number of sites. Earlier days may have counted fewer sites (for example only the WordPress sites, or sites that were not checked yet). The tooltip and the table also show the number recorded that day.
 

@@ -1584,6 +1584,15 @@ document.addEventListener('DOMContentLoaded',vtSyncHeaderH);
 let domains=[], results={}, budget={}, activeFilter='all', gsb={enabled:false};
 let scanners=[], scans={}, fsOpen={}, fsFull={}, reviews={}, histSites=new Set(), siteHist={}, avast={products:[]}, dbScanOk=false, alertIds={}, myEmail='', reviewFrom={name:'',company:''}; // file scanners: installed list, results per site, open panel per site
 let scanQueue=[], inFlight=0;
+// Server-side rescan queue (declared early: rowHTML reads it)
+let serverQueue=[], serverQueueAt={}, serverQueuePoll=null, srvSkipped={};
+// What the server's queue processor (cron) is doing: the domain it checks now, when it may take each waiting one, its next run
+let serverCurrent=null, serverTakeAt={}, serverNextRun=0, serverClockSkew=0;
+const SRV_STEP={submit:'asking VirusTotal for a new analysis',analysing:'VirusTotal is analysing the site',
+  fetch:'fetching the fresh report',ratewait:'waiting for VirusTotal\'s rate limit'};
+const srvNow=()=>Date.now()/1000+serverClockSkew; // the server's clock, in seconds
+function srvBusy(d){ return serverCurrent?.domain===d; }
+function srvPos(d){ return serverQueue.filter(x=>!srvBusy(x)).indexOf(d)+1; }
 const MAX_C=1;          // one at a time to stay within VT rate limits
 const PUMP_DELAY=15500; // 15.5s between requests = safe for 4 req/min free tier
 const MAX_PUMP=10;      // max domains to auto-scan per page load (cron handles bulk)
@@ -2353,6 +2362,10 @@ function rowHTML(domain,data){
     badge=job.state==='queued'
       ?'<span class="vt-badge pending"><span class="vt-dot dot-b"></span>In queue #'+queuePos(job)+'</span>'
       :'<span class="vt-badge scanning"><span class="vt-spin"></span> '+JOB_SHORT[job.state]+'</span>';
+  }else if(serverQueue.includes(domain)){
+    badge=srvBusy(domain)
+      ?'<span class="vt-badge scanning" title="The server is checking this site now"><span class="vt-spin"></span> Server: checking</span>'
+      :'<span class="vt-badge pending" title="Waiting in the server\'s queue: it checks these while no page is open"><span class="vt-dot dot-b"></span>In queue #'+srvPos(domain)+' (server)</span>';
   }else if(isScanning){
     badge='<span class="vt-badge '+st+'"><span class="vt-spin"></span> '+(LABELS[st]??st)+'</span>';
   }else{
@@ -2436,6 +2449,8 @@ function rowHTML(domain,data){
   let actionBtn;
   if(job){
     actionBtn='<button class="vt-row-btn" disabled>'+(job.state==='queued'?'Queued':'<span class="vt-spin"></span> Busy')+'</button>';
+  }else if(serverQueue.includes(domain)){
+    actionBtn='<button class="vt-row-btn" disabled>'+(srvBusy(domain)?'<span class="vt-spin"></span> Busy':'Queued')+'</button>';
   }else if(isScanning){
     const lbl=st==='waiting'?'VT processing...':'Scanning...';
     actionBtn='<button class="vt-row-btn" disabled><span class="vt-spin"></span> '+lbl+'</button>';
@@ -2868,11 +2883,16 @@ window.vtQSkipSrv=function(domain){
   vtServerPost('dequeue-rescan',domain);
   srvSkipped[domain]=Date.now(); // a queue poll already on its way may still list it
   serverQueue=serverQueue.filter(d=>d!==domain);
+  updateRow(domain,results[domain]||null);
   renderQueue(); vtToast(domain+' taken out of the queue','info');
 };
 
 window.vtCancelWaiting=function(){
   jobs.filter(j=>j.state==='queued').forEach(j=>{ j.cancelled=true; finishJob(j,'failed','Cancelled'); });
+  // and the sites waiting on the server (the one it checks right now finishes)
+  const srv=serverQueue.filter(d=>!srvBusy(d)&&!activeJob(d));
+  srv.forEach(d=>{ vtServerPost('dequeue-rescan',d); srvSkipped[d]=Date.now(); });
+  if(srv.length){ serverQueue=serverQueue.filter(d=>!srv.includes(d)); srv.forEach(d=>updateRow(d,results[d]||null)); renderQueue(); }
 };
 
 window.vtClearFinished=function(){
@@ -2991,7 +3011,6 @@ function applyQueueCollapse(){
 // ── Server-side manual queue ───────────────────────────────────
 // Domains pushed to the server on Rescan, so the cron can finish them if the
 // browser navigates away before the in-browser job completes.
-let serverQueue=[], serverQueueAt={}, serverQueuePoll=null, srvSkipped={};
 
 function vtServerPost(action,domain){
   const fpToken=document.getElementById('forgery_protection_token')?.content||'';
@@ -3009,9 +3028,17 @@ async function vtPollServerQueue(){
     }
     const data=await vtFetch('?action=queue-status');
     const inBrowser=new Set(jobs.filter(j=>ACTIVE.has(j.state)).map(j=>j.domain));
-    const prev=serverQueue.slice();
+    const prev=serverQueue.slice(), prevCur=serverCurrent?.domain||'';
     serverQueue=(data.pending||[]).filter(d=>!inBrowser.has(d)&&!(Date.now()-(srvSkipped[d]||0)<60000));
     serverQueueAt=data.queued_at||{};
+    serverTakeAt=data.takeable_at||{}; serverNextRun=data.next_run||0;
+    if(data.now) serverClockSkew=data.now-Date.now()/1000;
+    serverCurrent=(data.current&&serverQueue.includes(data.current.domain))?data.current:null;
+    if(serverQueue.length) startQTicker(); // countdowns in the monitor
+    // Rows of the sites that joined, left or changed state in the server queue
+    new Set([...prev,...serverQueue,prevCur,serverCurrent?.domain||'']).forEach(d=>{
+      if(d&&document.getElementById('vtr-'+rid(d))) updateRow(d,results[d]||null);
+    });
 
     // Domains that cron processed: show them in the monitor as done jobs
     const cronDone=new Set(jobs.filter(j=>j.kind==='cron').map(j=>j.domain));
@@ -3042,18 +3069,31 @@ async function vtPollServerQueue(){
 
 function startServerQueuePoll(){
   if(serverQueuePoll) return;
-  serverQueuePoll=setInterval(vtPollServerQueue,30000);
+  serverQueuePoll=setInterval(vtPollServerQueue,15000);
 }
 
 function serverJobHTML(domain){
-  const qAt=serverQueueAt[domain]||0;
-  const ago=qAt?fmtSecs(Date.now()-qAt*1000)+' ago':'';
+  const now=srvNow();
+  if(srvBusy(domain)){
+    const c=serverCurrent, step=SRV_STEP[c.step]||'checking';
+    const stepNo={submit:1,ratewait:1,analysing:2,fetch:3}[c.step]||1;
+    return '<div class="vt-q-item vt-q-srv running">'
+      +'<div class="vt-q-icon"><span class="vt-spin"></span></div>'
+      +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(domain)
+      +'<span class="vt-q-kind srv">Server</span></div>'
+      +'<div class="vt-q-msg">The server is checking it: '+step+' — step '+stepNo+' of 3</div></div>'
+      +'<div class="vt-q-right"><div>'+fmtSecs(Math.max(0,now-(c.started||now))*1000)+'</div></div></div>';
+  }
+  const takeAt=serverTakeAt[domain]||0, pos=srvPos(domain);
+  let when;
+  if(takeAt>now) when='handed to the server in '+fmtSecs((takeAt-now)*1000)+' (a page had not finished it)';
+  else if(serverCurrent) when='after the site the server is checking now';
+  else when='next server run in '+fmtSecs(Math.max(0,serverNextRun-now)*1000);
   return '<div class="vt-q-item vt-q-srv queued">'
-    +'<div class="vt-q-icon">⏳</div>'
+    +'<div class="vt-q-icon">#'+pos+'</div>'
     +'<div class="vt-q-main"><div class="vt-q-dom">'+vtEsc(domain)
     +'<span class="vt-q-kind srv">Server</span></div>'
-    +'<div class="vt-q-msg">Queued on server'+(ago?' — '+ago:'')
-    +' — cron will process this within 5 minutes</div></div>'
+    +'<div class="vt-q-msg">Waiting on the server — '+when+'</div></div>'
     +'<div class="vt-q-right">'+'<button type="button" class="vt-row-btn vt-q-skip" data-d="'+vtEsc(domain)+'" title="Take this entry out of the queue" onclick="event.stopPropagation();vtQSkipSrv(this.dataset.d)">Skip</button>'+'</div></div>';
 }
 
@@ -3178,7 +3218,8 @@ function renderQueue(){
   const allFinished=[...finished,...fsDone,...pwDone].sort((a,b)=>b.endedAt-a.endedAt).slice(0,8);
   // Server-queue: domains pushed to server but not in any active in-browser job
   const inBrowserDomains=new Set([...jobs.filter(j=>ACTIVE.has(j.state)).map(j=>j.domain),...(pumpCurrent?[pumpCurrent]:[])]);
-  const srvItems=serverQueue.filter(d=>!inBrowserDomains.has(d));
+  const srvItems=serverQueue.filter(d=>!inBrowserDomains.has(d)).sort((a,b)=>srvBusy(b)-srvBusy(a)); // the one the server checks now first
+  const srvRunning=srvItems.filter(srvBusy).length, srvWaiting=srvItems.length-srvRunning;
   const hasActive=pumpCurrent||running.length||waiting.length||fsActive.length||srvItems.length||pwActive.length;
 
   // Active queue first, then a divider, then recently completed
@@ -3212,12 +3253,12 @@ function renderQueue(){
 
   const left=waiting.length+scanQueue.length;
   const parts=[];
-  if(running.length||pumpCurrent||fsActive.length||pwActive.length) parts.push('checking '+(running.length+fsActive.length+pwActive.length+(pumpCurrent?1:0)));
-  if(left) parts.push(left+' waiting');
-  if(srvItems.length) parts.push(srvItems.length+' on server');
+  const checking=running.length+fsActive.length+pwActive.length+(pumpCurrent?1:0)+srvRunning;
+  if(checking) parts.push('checking '+checking);
+  if(left+srvWaiting) parts.push((left+srvWaiting)+' queued'+(srvWaiting?' ('+(left?srvWaiting+' ':'')+'on server)':''));
   if(allFinished.length) parts.push(allFinished.length+' done');
   vtSet('vt-q-sum',parts.join(' · '));
-  document.getElementById('vt-q-cancel').style.display=waiting.length?'':'none';
+  document.getElementById('vt-q-cancel').style.display=(waiting.length||srvWaiting)?'':'none';
 }
 
 window.vtRefreshDomains=async function(){

@@ -6,7 +6,8 @@ require_once __DIR__ . '/VtDataDir.php';
  *
  * Stored in vt_manual_queue.json as:
  *   { "pending": ["domain.com", ...], "queued_at": {"domain.com": ts}, "alive_at": {"domain.com": ts},
- *     "completed": [...], "completed_at": {...} }
+ *     "completed": [...], "completed_at": {...},
+ *     "current": {"domain": "domain.com", "step": "submit|analysing|fetch|ratewait", "started": ts, "since": ts} }
  *
  * Flow:
  *   Browser  → POST enqueue-rescan   → enqueue()      (Rescan clicked; the browser also runs it itself)
@@ -87,6 +88,25 @@ class VtManualQueue
             $q['completed'] = array_values(array_filter($q['completed'], fn($d) => ($q['completed_at'][$d] ?? 0) > $cutoff));
             foreach (array_keys($q['completed_at']) as $d) {
                 if (($q['completed_at'][$d] ?? 0) <= $cutoff) unset($q['completed_at'][$d]);
+            }
+            return $q;
+        });
+    }
+
+    /**
+     * The domain cron is working on now and its step, so the page can show it in the Scan Monitor;
+     * null when cron is between domains or done.
+     */
+    public static function setCurrent(?string $domain, string $step = ''): void
+    {
+        self::update(function (array $q) use ($domain, $step) {
+            if ($domain === null) {
+                unset($q['current']);
+            } else {
+                $now  = time();
+                $same = is_array($q['current'] ?? null) && ($q['current']['domain'] ?? '') === $domain;
+                $q['current'] = ['domain' => $domain, 'step' => $step, 'since' => $now,
+                                 'started' => $same ? (int)($q['current']['started'] ?? $now) : $now];
             }
             return $q;
         });

@@ -831,9 +831,20 @@ class IndexController extends pm_Controller_Action
         $mine = array_flip(PleskDomains::forCurrentUser($this->wpOnly()));
         $pend = array_values(array_filter($q['pending']   ?? [], fn($d) => isset($mine[$d])));
         $done = array_values(array_filter($q['completed'] ?? [], fn($d) => isset($mine[$d])));
+        $now  = time();
+        // The domain the server is checking now (ignored when cron stopped reporting: it died or was killed)
+        $cur  = $q['current'] ?? null;
+        $cur  = (is_array($cur) && isset($mine[$cur['domain'] ?? '']) && $now - (int)($cur['since'] ?? 0) < 600) ? $cur : null;
+        // When cron may take each one: once no open page has reported it for ORPHAN_AFTER seconds
+        $takeAt = [];
+        foreach ($pend as $d) $takeAt[$d] = max((int)($q['queued_at'][$d] ?? 0), (int)($q['alive_at'][$d] ?? 0)) + VtManualQueue::ORPHAN_AFTER;
         $this->respond([
             'pending'      => $pend,
             'queued_at'    => array_intersect_key($q['queued_at']    ?? [], array_flip($pend)),
+            'takeable_at'  => $takeAt,
+            'current'      => $cur,
+            'now'          => $now,
+            'next_run'     => (int)(floor($now / 300) + 1) * 300, // the queue processor runs every 5 minutes
             'completed'    => $done,
             'completed_at' => array_intersect_key($q['completed_at'] ?? [], array_flip($done)),
         ]);

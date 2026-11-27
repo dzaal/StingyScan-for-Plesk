@@ -3,6 +3,12 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.9 — 2026-11-28
+- Scan Monitor: rescans the server finishes after you left the page now show what the server is doing: the site it checks now with its step (asking VirusTotal, VirusTotal analysing, fetching the report) and how long it takes, then the waiting sites with their place in line and when the next server run starts (or when a site left behind by a page is handed to the server). The summary counts them as *checking* and *queued*.
+- Dashboard: those sites show *In queue #n (server)* or *Server: checking* in the table, with the Rescan button disabled, like rescans in the page.
+- The server marks each site as done as soon as it has its result (not at the end of its run of up to 6 sites), and the page looks every 15 seconds instead of 30.
+- README: FAQ on which sites are checked when, what happens to a rescan when you leave the page, and how to stop queued rescans.
+
 ## 2.19.8 — 2026-11-27
 - **Fix:** Tools → Vendor requests: the **📋 text** popup fell behind Plesk's menu bars and its **Copy text** button was invisible (the popup sat outside the page's styles). It now opens on top, centred, with a visible **Copy text** button and a **Close** button.
 

@@ -570,7 +570,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-pn-style{font:inherit;font-size:13px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);border-left-width:4px}
 .vt-pn-style[data-v="Alert"]{border-left-color:#dc2626}
 .vt-pn-style[data-v="Warning"]{border-left-color:#d97706}
-.vt-pn-style[data-v="Information"]{border-left-color:#2563eb}
+.vt-pn-style[data-v="Information"]{border-left-color:#16a34a}
 .vt-pn-test{padding:3px 12px;font-size:12px}
 @media(max-width:700px){.vt-pn-grid{grid-template-columns:1fr auto}.vt-pn-grid .vt-check{grid-column:1/-1}.vt-pn-h{display:none}}
 #vt-n-opts.off{opacity:.45;pointer-events:none}
@@ -1429,12 +1429,12 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 <?php foreach (['infected' => ['A site became infected', 'dot-r'], 'suspicious' => ['A site became suspicious', 'dot-y'], 'clean' => ['A site is clean again', 'dot-g'], 'admin_change' => ['Admin rights changed on a site', '']] as $pk => [$pl, $pd]): ?>
           <label class="vt-check"><input type="checkbox" name="vt-pn" value="<?= $pk ?>"> <?= $pd ? '<span class="vt-dot ' . $pd . '"></span> ' : '' ?><?= $pl ?></label>
           <select class="vt-pn-style" data-k="<?= $pk ?>" aria-label="How &quot;<?= $pl ?>&quot; shows in Plesk" onchange="vtPnStyleUi(this)">
-            <option value="Alert">Alert (red)</option><option value="Warning">Warning (orange)</option><option value="Information">Information (blue)</option>
+            <option value="Alert">Alert: red, stays until closed</option><option value="Warning">Warning: orange, closes by itself</option><option value="Information">Information: green, closes by itself</option>
           </select>
           <button class="vt-btn ghost vt-pn-test" type="button" onclick="vtPanelTest(this,'<?= $pk ?>')" title="Send a test of this kind, in the style chosen here (the style is saved)">Test</button>
 <?php endforeach; ?>
         </div>
-        <div class="hint" style="margin:8px 0 0">Plesk has three styles: <strong>Alert</strong> (red; stays until you close it), <strong>Warning</strong> (orange) and <strong>Information</strong> (blue). It has no green "success" style. <strong>Test</strong> sends one notification of that kind in the chosen style and saves the style. Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
+        <div class="hint" style="margin:8px 0 0">Plesk shows each notification as a pop-up at the bottom and keeps it under the bell. An <strong>Alert</strong> (red) stays on screen until you close it; a <strong>Warning</strong> (orange) and <strong>Information</strong> (green) close by themselves. <strong>Test</strong> sends one notification of that kind in the chosen style and saves the style. Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
       </div>
       <div class="vt-save-row">
         <button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button>

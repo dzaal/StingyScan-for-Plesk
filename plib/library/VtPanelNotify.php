@@ -19,7 +19,7 @@ class VtPanelNotify
         'test'         => ['title' => 'test notification',             'category' => 'Alert',       'area' => 'Security'], // an Alert, like an infected site, so it shows the same way
     ];
     const DEFAULT = ['infected', 'suspicious', 'admin_change'];
-    /** How a kind shows in the bell, chosen per kind in Settings: Plesk's categories (red, orange, blue). Plesk has no "success". */
+    /** How a kind shows in Plesk, chosen per kind in Settings: Alert (red pop-up that stays until closed), Warning (orange) and Information (green), which close by themselves */
     const STYLES = ['Alert', 'Warning', 'Information'];
     private const QUEUE = 'vt_panel_queue.json';
 

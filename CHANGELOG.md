@@ -4,6 +4,9 @@ Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT 
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
 ## 2.19.4 — 2026-11-27
+- **Fix:** Dashboard: with *Collapsed* ticked, switching to *Sort* showed no sites (the folded-up customers kept their sites hidden, without headers to open them). Folding up now only applies in the *Grouped* view; *Sort* always shows every site, and *Collapsed* is hidden there.
+- Dashboard: the search box has an **✕** to clear it, like the search in Tools → Vendor requests.
+- Tools: new monochrome icons on the cards of Vendor requests, Pwned Admins, Admin changes, Orphan databases and Scan log.
 - Plesk notifications: **Send a test notification** now sends an *Alert*, the same category as a site that became infected, so the test shows the way a real alert does. README: the category of each kind.
 
 ## 2.19.3 — 2026-11-27

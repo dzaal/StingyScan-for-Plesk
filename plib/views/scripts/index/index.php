@@ -670,11 +670,11 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-tool-back a:hover{text-decoration:underline}
 .vt-tool-back h2{margin:0;font-size:18px;font-weight:700;color:var(--heading)}
 /* Show/hide tool sections */
-.vt-tool-section{display:none}.vt-tool-section.active{display:flex;gap:20px;align-items:flex-start}
-.vt-tool-hero{flex-shrink:0;width:8em;height:8em;padding-top:4px}
+.vt-tool-section{display:none}.vt-tool-section.active{display:block}
+h3.vt-tool-h{display:flex!important;align-items:center;gap:12px 14px;flex-wrap:wrap}
+.vt-tool-hero{flex-shrink:0;display:inline-flex;width:8em;height:8em}
 .vt-tool-hero svg{width:8em;height:8em;stroke-width:1.5}
-.vt-tool-body{flex:1;min-width:0}
-@media(max-width:800px){.vt-tool-section.active{display:block}.vt-tool-hero{width:4em;height:4em;margin-bottom:8px}.vt-tool-hero svg{width:4em;height:4em}}
+@media(max-width:800px){.vt-tool-hero,.vt-tool-hero svg{width:4em;height:4em}}
 
 /* Settings: no text lighter than rgb(32,32,32) */
 #vtpanel-settings{--muted:#202020;color:#202020}
@@ -1119,6 +1119,7 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
     </div>
 
     <div class="vt-tool-section" id="vtool-adminwatch">
+      <h3 style="margin:0 0 12px">Admin changes <span class="hint" style="font-weight:400">New or changed admin accounts since the last hourly scan</span></h3>
       <div id="vt-aw-box"></div>
     </div>
 
@@ -1775,16 +1776,20 @@ window.vtShowTab=function(name){
 
 // ── Tools ──────────────────────────────────────────────────────
 let currentTool=null;
-// Each tool's page shows the icon of its card in Tools, large, in a column on the left
+// Each tool's page shows the icon of its card in Tools, large, left of the page title. Some pages draw
+// their title later (Admin changes), so it is added again whenever a title without it appears.
 (function vtToolHeroes(){
   document.querySelectorAll('.vt-tool-section').forEach(sec=>{
     const name=sec.id.replace(/^vtool-/,''), ico=document.querySelector('#vtcard-'+name+' .vt-tool-icon');
-    if(!ico||sec.querySelector(':scope>.vt-tool-hero')) return;
-    const body=document.createElement('div'); body.className='vt-tool-body';
-    while(sec.firstChild) body.appendChild(sec.firstChild); // the page's own content keeps its elements and ids
-    const hero=document.createElement('div'); hero.className='vt-tool-hero'; hero.setAttribute('aria-hidden','true');
-    hero.style.color=ico.style.color; hero.innerHTML=ico.innerHTML;
-    sec.append(hero,body);
+    if(!ico) return;
+    const put=()=>{
+      const h=sec.querySelector('h3'); if(!h||h.querySelector(':scope>.vt-tool-hero')) return;
+      const hero=document.createElement('span'); hero.className='vt-tool-hero'; hero.setAttribute('aria-hidden','true');
+      hero.style.color=ico.style.color; hero.innerHTML=ico.innerHTML;
+      h.classList.add('vt-tool-h'); h.prepend(hero);
+    };
+    put();
+    new MutationObserver(put).observe(sec,{childList:true,subtree:true});
   });
 })();
 window.vtToolSelect=function(name){

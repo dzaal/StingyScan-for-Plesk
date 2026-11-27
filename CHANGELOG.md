@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.17 — 2026-11-28
+- Tools: the large icon of each tool now sits left of the page title, instead of in a column that pushed the whole page to the right. *Admin changes* got a page title too.
+
 ## 2.19.16 — 2026-11-28
 - Tools: each tool's page (Vendor requests, Pwned Admins, Admin changes, Orphan databases, Scan log) shows the icon of its card, large (8em) and in the card's colour, in a column to the left of the page. On narrow screens it is smaller and above the page.
 

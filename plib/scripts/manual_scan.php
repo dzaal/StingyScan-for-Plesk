@@ -55,13 +55,6 @@ try {
 $runLock = @fopen(VtDataDir::path('vt_manual_scan.lock'), 'c');
 if (!$runLock || !flock($runLock, LOCK_EX | LOCK_NB)) exit(0);
 
-$settings = new VtSettings();
-$apiKey   = $settings->get('api_key');
-
-if (!$apiKey) {
-    exit(0); // No key: nothing to do, no noise
-}
-
 // Status changes from rescans in the page: to the Plesk notifications (the bell)
 try { VtPanelNotify::flush(); } catch (\Throwable $e) {}
 
@@ -82,18 +75,25 @@ if ($orphan) {
     if (empty($pending)) exit(0);
 }
 
-$api    = new VtApi($apiKey);
-$cache  = new VtCache($settings);
-$budget = $cache->budgetInfo();
-
-// Each domain requires 2 API calls (reanalyze + fetch). Stay within manual budget.
-$manualLeft = max(0, $budget['manual_max'] - $budget['manual_used']);
+// Each rescan runs on the key and the manual budget of whoever started it: their own key, or the administrator's
+// when the administrator shares it (VtSettings::keyFor). Without a key it is taken off the queue.
+$ctx = [];
+$ctxFor = function (string $owner) use (&$ctx) {
+    if (!array_key_exists($owner, $ctx)) {
+        [$key] = VtSettings::keyFor($owner);
+        if ($key === '') {
+            $ctx[$owner] = null;
+        } else {
+            $cache = new VtCache(new VtSettings($owner));
+            $b = $cache->budgetInfo();
+            // Each domain requires 2 API calls (reanalyze + fetch): stay within this user's manual budget
+            $ctx[$owner] = ['api' => new VtApi($key), 'cache' => $cache, 'left' => max(0, $b['manual_max'] - $b['manual_used'])];
+        }
+    }
+    return $ctx[$owner];
+};
 // Cap at 6 domains per 5-minute window (= 12 calls, well within 4 req/min if spaced)
-$maxDomains = min(count($pending), (int)floor($manualLeft / 2), 6);
-
-if ($maxDomains <= 0) {
-    exit(0);
-}
+$maxDomains = min(count($pending), 6);
 
 // VT free tier: 4 req/min → 15s between calls
 $delay = (int)ceil(60 / VtSettings::VT_FREE_PER_MIN);
@@ -110,12 +110,24 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
     // A page may have picked it up again, or finished it, while this run was busy
     if (!in_array($domain, VtManualQueue::takeable(), true)) continue;
 
+    $owner = VtManualQueue::ownerOf($domain);
+    $c = $ctxFor($owner);
+    if ($c === null) {
+        log_msg("[manual] No VirusTotal API key for $owner (own key needed: the administrator's key is not shared): $domain removed from the queue");
+        VtManualQueue::complete([$domain]);
+        continue;
+    }
+    if ($c['left'] < 2) continue; // this user's manual budget is used up today: it waits in the queue
+    $api = $c['api']; $cache = $c['cache'];
+
     VtManualQueue::setCurrent($domain, 'submit');
     $sub = $api->reanalyze($domain);
 
     if ($sub['status'] === 'quota_exceeded') {
-        log_msg("[manual] Daily VT quota exhausted. Stopping.");
-        break;
+        log_msg("[manual] Daily VT quota exhausted for the key of $owner. Their rescans wait.");
+        $ctx[$owner]['left'] = 0;
+        VtManualQueue::setCurrent(null);
+        continue;
     }
     if ($sub['status'] === 'ratelimit') {
         $wait = $sub['wait'] ?? 60;
@@ -139,6 +151,7 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
     }
 
     $cache->charge(true); // counts as a manual call
+    $ctx[$owner]['left'] -= 2;
 
     // 2. Wait for VirusTotal to finish the analysis (~30s)
     VtManualQueue::setCurrent($domain, 'analysing');
@@ -151,8 +164,10 @@ foreach (array_slice($pending, 0, $maxDomains) as $i => $domain) {
 
     if ($fresh['status'] === 'quota_exceeded') {
         $cache->set($domain, $fresh, true);
-        log_msg("[manual] Quota exhausted while fetching $domain. Stopping.");
-        break;
+        log_msg("[manual] Quota exhausted while fetching $domain (key of $owner).");
+        $ctx[$owner]['left'] = 0;
+        VtManualQueue::setCurrent(null);
+        continue;
     }
     if ($fresh['status'] === 'ratelimit') {
         $wait = $fresh['wait'] ?? 60;

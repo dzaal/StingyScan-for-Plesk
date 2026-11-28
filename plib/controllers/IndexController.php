@@ -61,17 +61,8 @@ class IndexController extends pm_Controller_Action
         }
         $userId         = $this->resolveUserId();
         $this->settings = new VtSettings($userId);
-        // Use own API key; fall back to admin's key if the user hasn't configured one
-        $ownKey = $this->settings->get('api_key') ?: '';
-        if ($ownKey) {
-            $this->effectiveApiKey = $ownKey;
-        } elseif ($userId !== 'admin') {
-            $adminKey = (new VtSettings('admin'))->get('api_key') ?: '';
-            if ($adminKey) {
-                $this->effectiveApiKey = $adminKey;
-                $this->usingAdminKey   = true;
-            }
-        }
+        // Own API key; without one, the administrator's key only when the administrator shares it (Settings → VirusTotal)
+        [$this->effectiveApiKey, $this->usingAdminKey] = VtSettings::keyFor($userId);
         $this->api   = new VtApi($this->effectiveApiKey);
         $this->cache = new VtCache($this->settings);
         // Use .php view extension (not .phtml)
@@ -264,7 +255,7 @@ class IndexController extends pm_Controller_Action
             'external' => $this->externalList(),
             'owners'  => $owners,
             'panel'   => PleskDomains::panelUrls($domains, $this->role()),
-            'orphans' => $this->role() === 'admin' ? self::orphanInfo($related) : [],
+            'orphans' => self::orphanInfo($related, $this->role()), // resellers and customers: only databases in their own subscriptions
             'results' => $results,
             'budget'  => $budgetInfo,
             'scans'    => self::scanResults($domains),
@@ -805,7 +796,7 @@ class IndexController extends pm_Controller_Action
         $domain = $this->sanitize($this->_getParam('domain', ''));
         if (!$domain) { $this->respond(['error' => 'invalid']); return; }
         if (!$this->mayVtCheck($domain)) { $this->respond(['error' => 'forbidden']); return; }
-        VtManualQueue::enqueue([$domain]);
+        VtManualQueue::enqueue([$domain], $this->settings->getUserId()); // the server finishes it with this user's key and budget
         $this->respond(['ok' => true]);
     }
 
@@ -1023,7 +1014,7 @@ class IndexController extends pm_Controller_Action
         $s['avast_calls']      = VtAvast::callsToday();
         if ($this->role() === 'admin') $s['log_rotation'] = VtLogRotate::settings() + VtLogRotate::info();
         if ($this->role() === 'admin') $s['panel'] = ['kinds' => VtPanelNotify::kinds(), 'styles' => VtPanelNotify::styles(), 'available' => VtPanelNotify::available()];
-        if ($this->role() === 'admin') $s['access'] = ['resellers' => VtSettings::roleAllowed('reseller'), 'clients' => VtSettings::roleAllowed('client')];
+        if ($this->role() === 'admin') $s['access'] = ['resellers' => VtSettings::roleAllowed('reseller'), 'clients' => VtSettings::roleAllowed('client'), 'share_key' => VtSettings::sharesApiKey()];
         if ($this->role() === 'admin') $s['quarantine'] = self::quarantineInfo();
         if ($this->role() === 'admin') $s['pwned'] = $this->pwnedSummary(); // Settings → Breach data
         if ($this->role() === 'admin' && !VtEdition::CATALOG) $s['stats'] = VtStats::localInfo(); // computed here; the collector is never asked
@@ -1046,6 +1037,8 @@ class IndexController extends pm_Controller_Action
         $s['check_rates']      = VtCheckRateLimiter::rates();
         unset($s['scanners_disabled']);
         $s['using_admin_key']  = false; // Never expose admin key fallback to non-admin users
+        // A reseller or customer without a key of their own, while the administrator does not share theirs: they must add one
+        $s['needs_own_key']    = $this->role() !== 'admin' && empty($ownKey) && !VtSettings::sharesApiKey();
         // Quick auth check using the effective key (own or admin fallback)
         if ($this->effectiveApiKey) {
             $testResult = $this->api->getReport('virustotal.com');
@@ -1144,9 +1137,9 @@ class IndexController extends pm_Controller_Action
             else (new VtSettings('admin'))->set('stats_share', $on);
             if ($on !== VtStats::enabled()) $this->appendLog('[stats] installation statistics ' . ($on ? 'switched on' : 'switched off'));
         }
-        if ($this->role() === 'admin' && (isset($input['show_resellers']) || isset($input['show_clients']))) {
+        if ($this->role() === 'admin' && (isset($input['show_resellers']) || isset($input['show_clients']) || isset($input['share_api_key']))) {
             $acc = [];
-            foreach (['show_resellers', 'show_clients'] as $k) if (isset($input[$k])) $acc[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
+            foreach (['show_resellers', 'show_clients', 'share_api_key'] as $k) if (isset($input[$k])) $acc[$k] = filter_var($input[$k], FILTER_VALIDATE_BOOLEAN);
             if ($this->settings->getUserId() === 'admin') $save += $acc;
             else (new VtSettings('admin'))->setAll($acc);
         }
@@ -1627,10 +1620,12 @@ class IndexController extends pm_Controller_Action
      * a live site still uses them. kind: 'database' = no install uses this database,
      * 'tables' = old tables inside a database a live site uses, 'inuse' = an install uses exactly these.
      */
-    private static function orphanInfo(array $related): array
+    private static function orphanInfo(array $related, string $role = 'admin'): array
     {
         if (!$related) return [];
         $want    = array_flip($related);
+        // A reseller or customer sees a database only when it is in one of their own subscriptions (never another customer's)
+        $mine    = $role === 'admin' ? null : array_flip(array_map('strtolower', PleskDomains::hostedForCurrentUser(false)));
         $configs = self::wpConfigs();
         $dbs     = PleskDomains::pleskDatabases();
         $scans   = self::loadDbScans();
@@ -1644,6 +1639,7 @@ class IndexController extends pm_Controller_Action
                 if ($c['prefix'] === $s['prefix']) $same = true;
             }
             $p  = $dbs[$s['db']] ?? null;
+            if ($mine !== null && (!$p || !isset($mine[strtolower((string)($p['webspace_name'] ?? ''))]))) continue;
             $ws = $p['webspace'] ?? 0;
             $out[$s['host']][] = [
                 'db' => $s['db'], 'prefix' => $s['prefix'], 'tables' => $s['tables'], 'size' => $s['size'],
@@ -1651,7 +1647,9 @@ class IndexController extends pm_Controller_Action
                 'used_by'   => array_values(array_unique($usedBy)),
                 'webspace'  => $p['webspace_name'] ?? '',
                 'in_plesk'  => (bool)$p,
-                'plesk_url' => $ws ? '/admin/subscription/login/id/' . $ws . '?pageUrl=/smb/database/list/domainId/' . $ws : '',
+                'plesk_url' => !$ws ? '' : ($role === 'client' ? '/smb/database/list/domainId/' . $ws
+                                                               : '/admin/subscription/login/id/' . $ws . '?pageUrl=/smb/database/list/domainId/' . $ws),
+                'manage'    => $role === 'admin', // back up and ClamAV scan run as root: administrator only
                 // last ClamAV scan of what a scan covers here: the whole database, or only the old tables
                 'clamav'    => $scans[self::dbScanKey($s['db'], ($configs !== null && !$same && $usedBy) ? $s['prefix'] : '')] ?? null,
                 // a scan that runs now, or finished while nobody had the page open: the page follows it (and records it)

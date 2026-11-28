@@ -294,7 +294,7 @@ Remove a site in Settings → Add custom not hosted domains, or with **Remove fr
 The **Settings** tab starts with an **index**: one column per group, with a link to each section (only the sections you can use are listed). Every group heading and every section has an **↑ Index** link back to it. The sections, grouped (text in Settings is never lighter than rgb(32, 32, 32), for easy reading):
 
 **Reputation services**
-- **VirusTotal**: the API key, with a green check *API key active* when VirusTotal accepts it (a red cross when it doesn't).
+- **VirusTotal**: the API key, with a green check *API key active* when VirusTotal accepts it (a red cross when it doesn't). Administrator: **Resellers and customers may use my API key** (see [Users and roles](#users-and-roles)).
   - **Daily API budget**: the number of VirusTotal calls made today, large, split into background scan and manual rescans.
   - **Max calls / day** (default 500, the free tier).
   - A slider with a thin black line: left of it is the **background scan**, right of it is **reserved for manual scans (%)**. Each part is coloured and shows in orange how much of it was used today.
@@ -334,7 +334,9 @@ Stingy Scanner works at all three Plesk user levels: **administrator**, **resell
 | **Reseller** | Their own sites and those of their customers |
 | **Client** | Only their own sites |
 
-Every user has their own settings: API key, budget, sites to scan and notifications. Users without an API key of their own automatically use the administrator's key.
+Every user has their own settings: API key, budget, sites to scan and notifications. Whether resellers and customers without a key of their own may use the administrator's VirusTotal key is up to the administrator: **Settings → VirusTotal → Resellers and customers may use my API key** (on by default). When it is off, each reseller and customer adds their own key in their Settings (free at virustotal.com); until then they cannot check or rescan sites, and a rescan they leave to the server is never done with the administrator's key. A rescan the server finishes always uses the key and the daily budget of the person who started it. The nightly scan of the whole server is the administrator's and uses the administrator's key.
+
+**Orphan databases** for resellers and customers: they see the details (database, tables, size, why it is orphaned, the last ClamAV result and a link to the Databases page in Plesk) of the orphan databases in their own subscriptions only, never another customer's. *Back up* and *Scan with ClamAV* run as root and stay with the administrator.
 
 The administrator can switch Stingy Scanner off for resellers and/or customers in **Settings → Access for resellers and customers**: the entry disappears from their Plesk menu, the page refuses them and they get no e-mails from it. The sites are still scanned; only the administrator sees the results.
 

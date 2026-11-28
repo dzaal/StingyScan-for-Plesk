@@ -3,6 +3,11 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.20.0 — 2026-11-28
+- **Settings → VirusTotal → Resellers and customers may use my API key** (administrator, on by default). Off: a reseller or customer without a key of their own cannot use the administrator's key; they see a note to add their own key in their Settings.
+- Rescans the server finishes (after you left the page) now use the key and the daily manual budget of the person who started them, not always the administrator's. Without a key (and no shared key) the rescan is taken off the queue, with a line in the log.
+- **Fix:** Tools → Orphan databases: resellers and customers saw *No database details (administrator only)*. They now see the details of the orphan databases in their own subscriptions (database, tables, size, why orphaned, last ClamAV result, a link to the Databases page in Plesk); never another customer's. Back up and Scan with ClamAV stay with the administrator.
+
 ## 2.19.19 — 2026-11-28
 - **Fix:** Settings: *E-mail sender* and the *Maintenance* group (Talk to mama, Log rotation) showed on the About tab instead of in Settings, and were missing from the Settings index (since 2.19.15, when Plesk notifications became a section of its own and closed the Settings page too early).
 

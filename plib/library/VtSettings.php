@@ -72,7 +72,8 @@ class VtSettings
         'show_resellers'     => true,   // resellers see Stingy Scanner (menu entry, page, e-mails) (admin only, server-wide)
         'show_clients'       => true,   // customers see Stingy Scanner (admin only, server-wide)
         'panel_notify'       => null,
-        'panel_style'        => [],     // style per kind in the bell: kind => Alert | Warning | Information (admin only)   // kinds sent to the Plesk notifications (bell): null = infected, suspicious, admin_change (admin only)
+        'panel_style'        => [],
+        'share_api_key'      => true,   // admin only: resellers and customers without their own key may use the administrator's VirusTotal key     // style per kind in the bell: kind => Alert | Warning | Information (admin only)   // kinds sent to the Plesk notifications (bell): null = infected, suspicious, admin_change (admin only)
         'review_name'        => '',     // review requests to vendors: your name, company and e-mail address, filled in on
         'review_company'     => '',     //   the forms that allow it (AVG, Fortinet) and used in the ready-made texts
         'review_email'       => '',     //   ('' = the notification address, or your Plesk address)
@@ -194,6 +195,25 @@ class VtSettings
         $file = self::settingsFile($this->userId);
         file_put_contents($file, json_encode($this->data, JSON_PRETTY_PRINT));
         @chmod($file, 0600); // contains the API key — panel user only
+    }
+
+    /** Whether resellers and customers without their own key may use the administrator's VirusTotal key (Settings → VirusTotal) */
+    public static function sharesApiKey(): bool
+    {
+        return (bool)(new self('admin'))->get('share_api_key', true);
+    }
+
+    /**
+     * The VirusTotal key a user works with: their own, else the administrator's when the administrator shares it.
+     * @return array{0:string,1:bool} [key ('' = none), whether it is the administrator's key lent to them]
+     */
+    public static function keyFor(string $userId): array
+    {
+        $own = (string)((new self($userId))->get('api_key') ?: '');
+        if ($own !== '' || $userId === 'admin') return [$own, false];
+        if (!self::sharesApiKey()) return ['', false];
+        $adm = (string)((new self('admin'))->get('api_key') ?: '');
+        return [$adm, $adm !== ''];
     }
 
     /** Whether a role may use Stingy Scanner (Settings → Access, by the administrator): admin always */

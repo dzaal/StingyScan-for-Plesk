@@ -1201,6 +1201,9 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
         <label for="vt-s-apikey">API Key</label>
         <input type="text" id="vt-s-apikey" placeholder="Paste your VirusTotal API key here..." autocomplete="off" spellcheck="false">
         <div class="hint">Get your free key at virustotal.com &rarr; Profile &rarr; API key</div>
+        <div class="vt-alert warn" id="vt-own-key-note" style="display:none;margin-top:8px">Your hosting provider does not share their VirusTotal API key: add a key of your own here (free at virustotal.com) to check your sites.</div>
+        <label class="vt-radio" id="vt-share-key-row" style="display:none;margin-top:10px"><input type="checkbox" id="vt-share-key">
+          <span><strong>Resellers and customers may use my API key</strong><br><span class="hint">When they have no key of their own, their checks and rescans use this key and its daily limit. Off: each reseller and customer must add their own VirusTotal key in their Settings; until they do, they cannot check or rescan sites.</span></span></label>
         <div class="vt-key-display" id="vt-key-display">
           <div class="vt-key-label">Stored key</div>
           <div id="vt-key-value">—</div>
@@ -2158,10 +2161,10 @@ function vtRenderOrphans(){
     const e=vtEsca(domain);
     const dcell='<span class="vt-domain-name">'+vtEsc(domain)+'</span>'+(o&&o.webspace&&o.webspace!==domain?'<div class="hint" style="font-size:11px">in '+vtEsc(o.webspace)+'</div>':'');
     const search=(domain+' '+(o?[o.db,o.prefix,o.webspace,...(o.used_by||[])].join(' '):'')).toLowerCase();
-    if(!o) return '<tr data-domain="'+vtEsc(domain)+'" data-q="'+vtEsc(search)+'"><td>'+dcell+'</td><td colspan="4" class="hint">No database details (administrator only)</td><td></td><td></td></tr>';
+    if(!o) return '<tr data-domain="'+vtEsc(domain)+'" data-q="'+vtEsc(search)+'"><td>'+dcell+'</td><td colspan="4" class="hint">No database details: the database is not in one of your subscriptions</td><td></td><td></td></tr>';
     const k=ORPHAN_KIND[o.kind]||ORPHAN_KIND.unknown, canDb=o.kind==='database'||o.kind==='tables';
     let act='';
-    if(canDb){
+    if(canDb&&o.manage!==false){
       act+='<button class="vt-row-btn" title="Make a .sql.gz copy in the private folder of the subscription" onclick="vtDumpDb(\''+e+'\',\''+vtEsca(o.db)+'\',this)">Back up</button>';
       if(dbScanOk) act+=o.scanning
         ?'<button class="vt-row-btn" data-dbscan="'+vtEsc(o.db)+'" disabled><span class="vt-spin"></span> Scanning</button>'
@@ -3417,7 +3420,9 @@ function loadSettingsForm(cfg){
   const em=document.getElementById('vt-n-email');
   em.value=cfg.notify_email||'';
   if(cfg.access){ document.getElementById('vt-set-access').style.display='';
-    document.getElementById('vt-acc-res').checked=!!cfg.access.resellers; document.getElementById('vt-acc-cl').checked=!!cfg.access.clients; }
+    document.getElementById('vt-acc-res').checked=!!cfg.access.resellers; document.getElementById('vt-acc-cl').checked=!!cfg.access.clients;
+    document.getElementById('vt-share-key-row').style.display=''; document.getElementById('vt-share-key').checked=cfg.access.share_key!==false; }
+  document.getElementById('vt-own-key-note').style.display=cfg.needs_own_key?'':'none';
   if(cfg.panel){ document.getElementById('vt-pn-box').style.display=cfg.panel.available?'':'none';
     document.querySelectorAll('input[name=vt-pn]').forEach(c=>c.checked=(cfg.panel.kinds||[]).includes(c.value));
     document.querySelectorAll('.vt-pn-style').forEach(sel=>{ const v=(cfg.panel.styles||{})[sel.dataset.k]; if(v) sel.value=v; vtPnStyleUi(sel); }); }
@@ -3671,7 +3676,8 @@ window.vtSaveSettings=async function(){
     notify_events:checked('vt-n-ev'),notify_email:document.getElementById('vt-n-email').value.trim(),
     ...(document.getElementById('vt-pn-box').style.display!=='none'?{panel_notify:[...document.querySelectorAll('input[name=vt-pn]:checked')].map(c=>c.value).join(',')||'none',
       panel_style:[...document.querySelectorAll('.vt-pn-style')].map(x=>x.dataset.k+':'+x.value).join(',')}:{}),
-    ...(document.getElementById('vt-set-access').style.display!=='none'?{show_resellers:document.getElementById('vt-acc-res').checked?'true':'false',show_clients:document.getElementById('vt-acc-cl').checked?'true':'false'}:{}),
+    ...(document.getElementById('vt-set-access').style.display!=='none'?{show_resellers:document.getElementById('vt-acc-res').checked?'true':'false',show_clients:document.getElementById('vt-acc-cl').checked?'true':'false',
+      share_api_key:document.getElementById('vt-share-key').checked?'true':'false'}:{}),
     review_name:document.getElementById('vt-rv-name').value.trim(),review_company:document.getElementById('vt-rv-company').value.trim(),review_email:document.getElementById('vt-rv-email').value.trim(),daily_limit:daily,auto_scan_share:share,clean_ttl_days:cttl,infected_ttl_days:ittl};
   if(scIsAdmin){
     const rates={};

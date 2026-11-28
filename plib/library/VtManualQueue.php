@@ -32,9 +32,9 @@ class VtManualQueue
     }
 
     /** Add domains (skips duplicates already in queue). */
-    public static function enqueue(array $domains): void
+    public static function enqueue(array $domains, string $owner = 'admin'): void
     {
-        self::update(function (array $q) use ($domains) {
+        self::update(function (array $q) use ($domains, $owner) {
             $now = time();
             foreach ($domains as $d) {
                 if (!in_array($d, $q['pending'], true)) {
@@ -42,6 +42,7 @@ class VtManualQueue
                     $q['queued_at'][$d] = $now;
                 }
                 $q['alive_at'][$d] = $now;
+                $q['owner'][$d]    = $owner; // whose key and budget the server uses for it
             }
             return $q;
         });
@@ -64,7 +65,7 @@ class VtManualQueue
     {
         self::update(function (array $q) use ($domains) {
             $q['pending'] = array_values(array_diff($q['pending'], $domains));
-            foreach ($domains as $d) unset($q['queued_at'][$d], $q['alive_at'][$d]);
+            foreach ($domains as $d) unset($q['queued_at'][$d], $q['alive_at'][$d], $q['owner'][$d]);
             return $q;
         });
     }
@@ -79,7 +80,7 @@ class VtManualQueue
             $q['pending'] = array_values(array_diff($q['pending'], $domains));
             $now = time();
             foreach ($domains as $d) {
-                unset($q['queued_at'][$d], $q['alive_at'][$d]);
+                unset($q['queued_at'][$d], $q['alive_at'][$d], $q['owner'][$d]);
                 if (!in_array($d, $q['completed'], true)) $q['completed'][] = $d;
                 $q['completed_at'][$d] = $now;
             }
@@ -126,6 +127,12 @@ class VtManualQueue
         return array_values(array_filter($q['pending'], fn($d) => max((int)($q['queued_at'][$d] ?? 0), (int)($q['alive_at'][$d] ?? 0)) < $cut));
     }
 
+    /** Who started the rescan of a domain (their key and budget are used), 'admin' when unknown */
+    public static function ownerOf(string $domain): string
+    {
+        return (string)(self::load()['owner'][$domain] ?? 'admin');
+    }
+
     /** Return the full queue state (for the UI status endpoint). */
     public static function all(): array
     {
@@ -156,7 +163,7 @@ class VtManualQueue
 
     private static function load(): array
     {
-        $empty = ['pending' => [], 'queued_at' => [], 'alive_at' => [], 'completed' => [], 'completed_at' => []];
+        $empty = ['pending' => [], 'queued_at' => [], 'alive_at' => [], 'owner' => [], 'completed' => [], 'completed_at' => []];
         $d = json_decode((string)@file_get_contents(self::file()), true);
         if (!is_array($d)) return $empty;
         $d += $empty;

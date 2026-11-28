@@ -671,9 +671,12 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 .vt-tool-back h2{margin:0;font-size:18px;font-weight:700;color:var(--heading)}
 /* Show/hide tool sections */
 .vt-tool-section{display:none}.vt-tool-section.active{display:block}
-h3.vt-tool-h{display:flex!important;align-items:center;gap:12px 14px;flex-wrap:wrap}
-.vt-tool-hero{flex-shrink:0;display:inline-flex;width:8em;height:8em}
-.vt-tool-hero svg{width:8em;height:8em;stroke-width:1.5}
+/* A tool page: its big icon floats top left; title, explanation and search bar sit to its right, the lists start below it */
+.vt-tool-hero{float:left;width:8em;height:8em;margin:0 20px 10px 0}
+.vt-tool-hero svg{width:8em;height:8em;stroke-width:1.5;display:block}
+.vt-tool-host::after{content:"";display:block;clear:both}
+.vt-tool-host>h3{display:flow-root}
+#vt-pw-list,.vt-tool-host .vt-tbl-wrap,#vt-vnd-box,#vt-log-pre,#vt-aw-box .vt-aw-toolbar~*{clear:left}
 @media(max-width:800px){.vt-tool-hero,.vt-tool-hero svg{width:4em;height:4em}}
 
 /* Settings: no text lighter than rgb(32,32,32) */
@@ -1776,17 +1779,17 @@ window.vtShowTab=function(name){
 
 // ── Tools ──────────────────────────────────────────────────────
 let currentTool=null;
-// Each tool's page shows the icon of its card in Tools, large, left of the page title. Some pages draw
-// their title later (Admin changes), so it is added again whenever a title without it appears.
+// Each tool's page shows the icon of its card in Tools, large, at the top left: the title, the explanation
+// and the search bar sit to the right of it, the lists start below it (see .vt-tool-host in the CSS).
 (function vtToolHeroes(){
   document.querySelectorAll('.vt-tool-section').forEach(sec=>{
     const name=sec.id.replace(/^vtool-/,''), ico=document.querySelector('#vtcard-'+name+' .vt-tool-icon');
     if(!ico) return;
     const put=()=>{
-      const h=sec.querySelector('h3'); if(!h||h.querySelector(':scope>.vt-tool-hero')) return;
-      const hero=document.createElement('span'); hero.className='vt-tool-hero'; hero.setAttribute('aria-hidden','true');
+      const h=sec.querySelector('h3'), host=h?.parentElement; if(!host||host.querySelector(':scope>.vt-tool-hero')) return;
+      const hero=document.createElement('div'); hero.className='vt-tool-hero'; hero.setAttribute('aria-hidden','true');
       hero.style.color=ico.style.color; hero.innerHTML=ico.innerHTML;
-      h.classList.add('vt-tool-h'); h.prepend(hero);
+      host.classList.add('vt-tool-host'); host.insertBefore(hero,h);
     };
     put();
     new MutationObserver(put).observe(sec,{childList:true,subtree:true});

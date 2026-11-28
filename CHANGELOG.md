@@ -3,6 +3,9 @@
 Every version of Stingy Scanner for Plesk (called StingyScan in 2.0–2.1.1, VT Site Scanner until 1.35), newest first.
 Install or update: see the [latest release](https://github.com/dzaal/StingyScan-for-Plesk/releases/latest).
 
+## 2.19.19 — 2026-11-28
+- **Fix:** Settings: *E-mail sender* and the *Maintenance* group (Talk to mama, Log rotation) showed on the About tab instead of in Settings, and were missing from the Settings index (since 2.19.15, when Plesk notifications became a section of its own and closed the Settings page too early).
+
 ## 2.19.18 — 2026-11-28
 - Tools: on each tool page the large icon sits top left, with the title, the explanation and the search bar to its right; the lists and tables start below it, at full width.
 

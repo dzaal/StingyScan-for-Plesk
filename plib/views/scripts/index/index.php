@@ -1460,7 +1460,6 @@ a.vt-row-btn{text-decoration:none;display:inline-block;margin-right:4px}
 <?php endforeach; ?>
         </div>
         <div class="hint" style="margin:8px 0 0">Plesk shows each notification as a pop-up at the bottom and keeps it under the bell. An <strong>Alert</strong> (red) stays on screen until you close it; a <strong>Warning</strong> (orange) and <strong>Information</strong> (green) close by themselves. <strong>Test</strong> sends one notification of that kind in the chosen style and saves the style. Several status changes are combined into one notification, within 5 minutes. Plesk can also switch each kind off: <em>Tools &amp; Settings → Notifications → Panel</em>.</div>
-      </div>
       <div class="vt-save-row"><button class="vt-btn primary" onclick="vtSaveSettings()">Save settings</button></div>
     </div>
 
